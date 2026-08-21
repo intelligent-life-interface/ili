@@ -29,6 +29,12 @@ The second command prints the password for the terminal route. Without
 Then open a board and switch to the terminal — the browser asks for those
 credentials once.
 
+As long as the password is generated, the board's terminal panel shows a hint
+saying so — it reads `/projterm/state`, a two-field endpoint the setup script
+writes alongside the route. The endpoint answers without a password (the page
+could not read it otherwise) and reveals only *whether* a password was
+personalised, never what it is.
+
 To keep a stable password, put it in `.env`:
 
 ```ini

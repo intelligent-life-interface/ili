@@ -249,9 +249,41 @@ function terminalUrl() {
     return '/projterm/?arg=' + encodeURIComponent(BOARD_ID);
 }
 
+// Solange das Terminal-Passwort automatisch erzeugt wird, wechselt es bei jedem
+// Neustart des web-Containers — wer sich einmal angemeldet hat, steht danach
+// wieder vor der Passwortabfrage. Der Hinweis erscheint deshalb genau dann, wenn
+// er zutrifft, statt in einer Anleitung, die niemand zweimal liest.
+// Quelle: /projterm/state, geschrieben von deploy/nginx-setup.sh.
+async function showGeneratedPasswordHint(frame) {
+    try {
+        const r = await fetch('/projterm/state', { cache: 'no-store' });
+        if (!r.ok) return;                        // Terminal aus -> 503, kein Hinweis
+        const st = await r.json();
+        if (!st || st.generated !== true) return; // eigenes Passwort gesetzt
+        if (document.getElementById('term-pw-hint')) return;
+        const box = document.createElement('div');
+        box.id = 'term-pw-hint';
+        box.style.cssText = 'margin:.4rem 0;padding:.5rem .7rem;border-left:3px solid #d69e2e;'
+            + 'background:rgba(214,158,46,.12);border-radius:4px;font-size:.85rem;line-height:1.45';
+        box.innerHTML = '🔑 <strong>Das Terminal-Passwort wurde automatisch erzeugt</strong> '
+            + 'und wechselt bei jedem Neustart. Für ein festes Passwort '
+            + '<code>TERMINAL_PASSWORD</code> in die <code>.env</code> schreiben und den '
+            + 'web-Container neu starten. '
+            + '<a href="#" id="term-pw-hint-x" style="color:inherit">ausblenden</a>';
+        frame.parentNode.insertBefore(box, frame);
+        box.querySelector('#term-pw-hint-x').addEventListener('click', (e) => {
+            e.preventDefault(); box.remove();
+        });
+        console.log('[Terminal] Hinweis: generiertes Passwort aktiv');
+    } catch (e) {
+        console.debug('[Terminal] /projterm/state nicht abrufbar:', e);
+    }
+}
+
 function initTerminal() {
     const frame = document.getElementById('proj-terminal');
     if (!frame) { console.warn('[Terminal] iframe #proj-terminal fehlt'); return; }
+    showGeneratedPasswordHint(frame);
     applyTerminalWidth();          // gemerkten Breit-Zustand wiederherstellen
     applyTerminalZoom();           // gemerkten Schrift-Zoom wiederherstellen
     const url = terminalUrl();
