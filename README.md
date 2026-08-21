@@ -4,6 +4,11 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 
 **Stack:** Python 3.11 / FastAPI · nginx · JSON-basierte Boards · Ollama (optional) · Anthropic Claude (optional)
 
+> **Hinweis zum Repository:** Dieser Stand wird aus einem privaten Werkstatt-Repo
+> erzeugt und als ein Commit je Übernahme veröffentlicht. Direkt hier angelegte
+> Branches werden beim nächsten Abgleich überschrieben — Beiträge deshalb bitte
+> als Fork und Pull Request, nicht als Branch in diesem Repo.
+
 > **Du willst ili nur installieren?** → **[QUICKSTART.md](QUICKSTART.md)** —
 > `git clone`, `.env` anlegen, `docker compose up -d --build`, fertig. Dieses README
 > beschreibt daneben den Aufbau und die Installation aus dem Quelltext.
