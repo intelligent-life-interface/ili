@@ -1,0 +1,30 @@
+# Containerfile.web — the nginx frontend of ili, baked into an image.
+#
+# docker-compose.yml used to bind-mount html/, deploy/nginx-portable.conf and
+# deploy/nginx-setup.sh into a plain nginx:alpine. That only works with a clone
+# of the repository. This image carries the same three pieces so the stack can
+# be installed from the registry alone (docker compose up -d, no --build).
+#
+# Build (from the repository root):
+#   docker build -f Containerfile.web -t ghcr.io/toa1984/ili-dashboard-web .
+#
+# Debug: docker compose logs web | grep ili-setup
+FROM docker.io/library/nginx:alpine
+
+LABEL org.opencontainers.image.title="ili Dashboard (web)"
+LABEL org.opencontainers.image.description="nginx frontend for the ili Kanban dashboard — serves html/ and proxies /api to the api container"
+LABEL org.opencontainers.image.licenses="AGPL-3.0"
+LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-dashboard"
+LABEL org.opencontainers.image.url="https://github.com/Toa1984/ili-dashboard"
+
+# Server block (expects the `api` service in the same compose network).
+COPY deploy/nginx-portable.conf /etc/nginx/conf.d/default.conf
+
+# Runs before nginx: waits for the API and writes the /projterm/ route.
+COPY deploy/nginx-setup.sh /docker-entrypoint.d/20-ili-setup.sh
+RUN chmod +x /docker-entrypoint.d/20-ili-setup.sh
+
+# Static frontend incl. html/_api-locations.conf (included by default.conf).
+COPY html/ /usr/share/nginx/html/
+
+EXPOSE 80

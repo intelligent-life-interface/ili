@@ -6,7 +6,9 @@
 # ignorieren `profiles:` stillschweigend — der Terminal-Container waere dort trotz
 # Profil immer mitgestartet. Eine zweite Datei wirkt in jeder Version.
 #
-# Start:
+# Start (Registry):
+#     docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
+# Start (aus dem Quelltext):
 #     docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d --build
 #
 # Bequemer: einmal COMPOSE_FILE in die .env schreiben, dann genuegt weiterhin
@@ -22,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: deploy/Containerfile.terminal
-    image: ili-terminal:latest
+    image: ghcr.io/toa1984/ili-dashboard-terminal:${ILI_VERSION:-latest}
     container_name: ili-terminal
     restart: unless-stopped
     expose:

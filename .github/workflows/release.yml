@@ -1,0 +1,93 @@
+# release.yml — builds the three ili images and pushes them to ghcr.io.
+#
+# Trigger: a version tag (git tag v0.1.0 && git push --tags) or a manual run.
+# Versioning is manual semver (project decision) — see docs/RELEASING.md.
+#
+# Images (namespace must be lowercase for ghcr):
+#   ghcr.io/toa1984/ili-dashboard           FastAPI backend   (Containerfile)
+#   ghcr.io/toa1984/ili-dashboard-web       nginx frontend    (Containerfile.web)
+#   ghcr.io/toa1984/ili-dashboard-terminal  browser terminal  (deploy/Containerfile.terminal)
+#
+# Tags per image: X.Y.Z, X.Y, latest (latest only for non-prerelease tags).
+# The packages inherit the repository visibility (private until the publish gate
+# is passed) — switching them public is a manual, separate step.
+name: Release images
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BASE: ghcr.io/toa1984/ili-dashboard
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            suffix: ""
+            file: Containerfile
+          - name: web
+            suffix: "-web"
+            file: Containerfile.web
+          - name: terminal
+            suffix: "-terminal"
+            file: deploy/Containerfile.terminal
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (arm64 builds)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata (tags + OCI labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_BASE }}${{ matrix.suffix }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
+            type=raw,value=edge,enable=${{ github.event_name == 'workflow_dispatch' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=AGPL-3.0
+
+      - name: Build and push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+      - name: Summary
+        run: |
+          echo "### ${{ matrix.name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

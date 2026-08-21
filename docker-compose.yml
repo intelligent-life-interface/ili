@@ -2,10 +2,17 @@
 # (web), das html/ ausliefert und die API-Pfade proxyt (deploy/nginx-portable.conf).
 # Ohne den web-Service liefert "/" nur die rohe JSON-API, kein Frontend.
 #
-# Start:   docker compose up -d --build        (oder: podman-compose up -d)
-# Öffnen:  http://localhost:8080               (Port via ILI_PORT in .env)
-# Update:  git pull && docker compose build && docker compose down && docker compose up -d
-#          (podman-compose ignoriert --build auf `up` — siehe QUICKSTART)
+# Zwei Wege, dieselbe Datei:
+#   Registry (kein Clone noetig):  docker compose pull && docker compose up -d
+#       Images: ghcr.io/toa1984/ili-dashboard{,-web}:latest — Version pinnen
+#       mit ILI_VERSION=0.1.0 in .env. (Solange das Repo privat ist, vorher
+#       `docker login ghcr.io` mit einem read:packages-Token.)
+#   Aus dem Quelltext:             docker compose up -d --build
+#       (oder: podman-compose build && podman-compose up -d — podman-compose
+#       ignoriert --build auf `up`, siehe QUICKSTART)
+# Oeffnen:  http://localhost:8080               (Port via ILI_PORT in .env)
+# Update:   docker compose pull && docker compose up -d   (Registry)
+#           git pull && docker compose build && docker compose down && docker compose up -d  (Quelltext)
 #
 # Daten liegen in benannten Volumes (Boards, Terminal-Login) und überleben jeden
 # Neustart und jedes Update — siehe Abschnitt "Data Persistence" im QUICKSTART.
@@ -23,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: Containerfile
-    image: dashboard:latest
+    image: ghcr.io/toa1984/ili-dashboard:${ILI_VERSION:-latest}
     container_name: ili-api
     restart: unless-stopped
     # Kein veroeffentlichter Port: das Frontend erreicht die API unter dem
@@ -51,7 +58,13 @@ services:
       start_period: 10s
 
   web:
-    image: docker.io/library/nginx:alpine
+    # Gebackenes nginx-Image mit html/, nginx-portable.conf und nginx-setup.sh
+    # (Containerfile.web). Frueher lagen die drei per Bind-Mount drin — das
+    # setzte einen Clone voraus; aus der Registry allein gab es kein Frontend.
+    build:
+      context: .
+      dockerfile: Containerfile.web
+    image: ghcr.io/toa1984/ili-dashboard-web:${ILI_VERSION:-latest}
     container_name: ili-web
     restart: unless-stopped
     depends_on:
@@ -66,12 +79,6 @@ services:
       # ausgegeben (docker compose logs web | grep ili-setup).
       TERMINAL_USER: "${TERMINAL_USER:-ili}"
       TERMINAL_PASSWORD: "${TERMINAL_PASSWORD:-}"
-    volumes:
-      - ./html:/usr/share/nginx/html:ro,Z
-      - ./deploy/nginx-portable.conf:/etc/nginx/conf.d/default.conf:ro,Z
-      # Laeuft vor nginx: wartet auf die API und legt die /projterm/-Route an
-      # (echter Proxy, wenn der terminal-Service antwortet, sonst 503 + Anleitung).
-      - ./deploy/nginx-setup.sh:/docker-entrypoint.d/20-ili-setup.sh:ro,Z
 
 volumes:
   dashboard-boards:

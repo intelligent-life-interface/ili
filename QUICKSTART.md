@@ -43,8 +43,31 @@ docker compose up -d --build
 # or: podman-compose up -d
 ```
 
-This builds the `api` image from the `Containerfile` and starts nginx (`web`)
-in front of it. First build takes a minute; subsequent starts are instant.
+This builds the `api` image (`Containerfile`) and the `web` image
+(`Containerfile.web`, nginx with the frontend baked in) and starts both. First
+build takes a minute; subsequent starts are instant.
+
+### Alternative: install from the registry (no clone, no build)
+
+Prebuilt images live on GitHub Container Registry:
+`ghcr.io/toa1984/ili-dashboard` (api) and `ghcr.io/toa1984/ili-dashboard-web` (web),
+for `linux/amd64` and `linux/arm64`. You only need `docker-compose.yml` and `.env`:
+
+```bash
+mkdir ili && cd ili
+curl -fsSLO https://raw.githubusercontent.com/Toa1984/ili-dashboard/main/docker-compose.yml
+curl -fsSL  https://raw.githubusercontent.com/Toa1984/ili-dashboard/main/.env.example -o .env
+docker compose pull
+docker compose up -d          # note: no --build
+```
+
+Pin a version with `ILI_VERSION=0.1.0` in `.env` (default `latest`). Updates:
+`docker compose pull && docker compose up -d`.
+
+> **While the repository is still private** this path needs a login first:
+> `docker login ghcr.io` with a GitHub token that has `read:packages`. Once the
+> repository and its packages are public, no login is required. Until then the
+> clone-and-build path above is the documented default.
 
 ### 3. Access the Dashboard
 

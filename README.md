@@ -1,5 +1,10 @@
 # Home Stack Dashboard
 
+[![Release](https://img.shields.io/github/v/release/Toa1984/ili-dashboard?display_name=tag&sort=semver)](https://github.com/Toa1984/ili-dashboard/releases)
+[![Release images](https://github.com/Toa1984/ili-dashboard/actions/workflows/release.yml/badge.svg)](https://github.com/Toa1984/ili-dashboard/actions/workflows/release.yml)
+[![ghcr.io](https://img.shields.io/badge/ghcr.io-toa1984%2Fili--dashboard-blue?logo=docker)](https://github.com/Toa1984/ili-dashboard/pkgs/container/ili-dashboard)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-green)](LICENSE)
+
 Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Management und Homelab-Automatisierung.
 
 **Stack:** Python 3.11 / FastAPI · nginx · JSON-basierte Boards · Ollama (optional) · Anthropic Claude (optional)
@@ -10,8 +15,10 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 > als Fork und Pull Request, nicht als Branch in diesem Repo.
 
 > **Du willst ili nur installieren?** → **[QUICKSTART.md](QUICKSTART.md)** —
-> `git clone`, `.env` anlegen, `docker compose up -d --build`, fertig. Dieses README
-> beschreibt daneben den Aufbau und die Installation aus dem Quelltext.
+> entweder fertige Images von `ghcr.io/toa1984/ili-dashboard{,-web}` ziehen
+> (`docker compose pull && docker compose up -d`, kein Clone nötig) oder
+> `git clone` + `docker compose up -d --build`. Dieses README beschreibt daneben
+> den Aufbau und die Installation aus dem Quelltext. Releases: [docs/RELEASING.md](docs/RELEASING.md).
 
 ---
 
