@@ -1374,10 +1374,10 @@
         .proj-link {
             display:inline-flex; align-items:center; gap:.3rem;
             font-size:.82rem; text-decoration:none;
-            color:var(--t-text2, #c7d3e3); background:var(--t-surface2, #22303f); border:1px solid #3a536b;
+            color:var(--accent-soft, #90cdf4); background:var(--t-surface2, #22303f); border:1px solid #3a536b;
             padding:.25rem .7rem; border-radius:14px; white-space:nowrap;
         }
-        .proj-link:hover { border-color:#4f9cf9; background:var(--t-raised, #27384a); }
+        .proj-link:hover { border-color:var(--accent, #4a90d9); background:var(--t-raised, #27384a); color:var(--accent-soft, #90cdf4); }
         .proj-link-dir { font-size:.72rem; color:#76819a; font-family:monospace; margin-left:.2rem; }
 
 /* 🗂 Datei-Liste: Dropdown-Overlay unter der Chip-Leiste (beeinflusst die Board-Höhe nicht) */
@@ -1401,9 +1401,9 @@
         .proj-files-item {
             display:flex; align-items:center; gap:.45rem;
             padding:.3rem .55rem; border-radius:6px;
-            font-size:.82rem; text-decoration:none; color:#fff;
+            font-size:.82rem; text-decoration:none; color:var(--accent-soft, #90cdf4);
         }
-        .proj-files-item:hover { background:var(--t-raised, #27384a); color:#fff; }
+        .proj-files-item:hover { background:var(--t-raised, #27384a); color:var(--accent-soft, #90cdf4); }
 
 /* 🤖 Auto-Entwicklung-Toggle (Kanban-Automat): 4 Status, farblich identisch zur
    Kachel in der Projektliste (index.css .eis-autobtn) — grün = arbeitet noch,
