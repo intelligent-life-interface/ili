@@ -277,4 +277,10 @@ Quellcode ebenfalls offenlegen (Netzwerk-Copyleft, Art. 13 AGPL).
 
 ## Beitragen
 
-Contributions sind willkommen — Issues und Pull Requests via GitHub.
+Contributions sind willkommen. Die Repos sind derzeit **privat** — Zugang gibt es
+auf Anfrage als eingeladener Collaborator (Kontakt: Mastodon
+[@Toa1984@mastodon.social](https://mastodon.social/@Toa1984)). Danach wie gewohnt:
+Issues und Pull Requests via GitHub.
+
+Für Code-Beiträge gilt ein kurzes [CLA](CLA.md), damit neben der AGPL eine
+kommerzielle Dual-Lizenz möglich bleibt.
