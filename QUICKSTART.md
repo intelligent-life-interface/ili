@@ -65,9 +65,11 @@ Pin a version with `ILI_VERSION=0.1.0` in `.env` (default `latest`). Updates:
 `docker compose pull && docker compose up -d`.
 
 > **While the repository is still private** this path needs a login first:
-> `docker login ghcr.io` with a GitHub token that has `read:packages`. Once the
-> repository and its packages are public, no login is required. Until then the
-> clone-and-build path above is the documented default.
+> `docker login ghcr.io` with a GitHub token that has `read:packages` — and the
+> two `curl` lines above return 404 without a token, so take `docker-compose.yml`
+> and `.env.example` from a clone instead. Once the repository and its packages
+> are public, no login is required. Until then the clone-and-build path above is
+> the documented default.
 
 ### 3. Access the Dashboard
 
