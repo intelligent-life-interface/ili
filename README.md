@@ -7,7 +7,7 @@
 
 Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Management und Homelab-Automatisierung.
 
-**Stack:** Python 3.11 / FastAPI · nginx · JSON-basierte Boards · Ollama (optional) · Anthropic Claude (optional)
+**Stack:** Python 3.11 / FastAPI · nginx · JSON-basierte Boards · Anthropic Claude (Abo oder API-Key) · Ollama (optional)
 
 > **Hinweis zum Repository:** Dieser Stand wird aus einem privaten Werkstatt-Repo
 > erzeugt und als ein Commit je Übernahme veröffentlicht. Direkt hier angelegte
@@ -27,7 +27,7 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 | Feature | Beschreibung |
 |---|---|
 | **Multi-Board Kanban** | Boards per JSON, unbegrenzt viele, mit Spalten/Karten/Labels/Anhängen |
-| **KI-Chat** | Chat-Interface mit Ollama (lokal) oder Claude API; Intent-Klassifikation |
+| **KI-Chat** | Chat-Interface mit Claude (Abo oder API-Key), optional Ollama lokal; Intent-Klassifikation |
 | **KI-Automatisierung** | Auto-Tagger, Karten-Brainstorm, Duplikat-Erkennung, KI-Sortierer |
 | **Projekt-Management** | Board ↔ CLAUDE.md Sync, Projekt-Erstellung via Foto/Formular, Terminal-Integration |
 | **Log-Scanner** | Fehler aus systemd journal + Datei-Logs → Kanban-Karten |
@@ -45,8 +45,10 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 - Linux mit systemd (rootless Podman oder Docker)
 - Python 3.11+
 - nginx (für das Frontend-Serving)
-- Ollama (empfohlen für lokale KI-Features, z.B. `http://localhost:11434`)
-- Anthropic API-Key (optional, für Claude-basierte Features)
+- Claude-Zugang für die KI-Features — **eines von beiden genügt:**
+  - ein Claude-Abo (Claude Code CLI, Token via `claude setup-token` → `CLAUDE_CODE_OAUTH_TOKEN`), **oder**
+  - ein Anthropic API-Key (`ANTHROPIC_API_KEY`)
+- Ollama ist **nicht** nötig (optional als lokaler Fallback, `OLLAMA_URL`)
 
 ---
 
@@ -153,11 +155,14 @@ DASHBOARD_DOMAIN=yourdomain.example
 DASHBOARD_URL=http://localhost:8798
 DASHBOARD_HOST_IP=127.0.0.1       # IP für Auto-Detect-Links im generierten HTML
 
-# Ollama (lokale KI — empfohlen)
-OLLAMA_URL=http://localhost:11434
-
-# Claude API (optional — für erweiterte KI-Features)
+# KI-Zugang: EINES von beiden genügt
+# a) Claude-Abo (Token aus `claude setup-token`)
+CLAUDE_CODE_OAUTH_TOKEN=
+# b) Anthropic API-Key
 ANTHROPIC_API_KEY=sk-ant-...
+
+# Ollama (optional — lokaler Fallback, nicht nötig)
+# OLLAMA_URL=http://localhost:11434
 
 # GitHub-Integration (optional — für automatisches Repo-Anlegen)
 GITHUB_OWNER=your-github-username
@@ -239,7 +244,7 @@ Die REST-API läuft auf Port 8798. Wichtige Endpunkte:
 |---|---|---|
 | `/boards` | GET | Alle Boards auflisten |
 | `/boards/{id}` | GET/PUT | Board lesen/schreiben |
-| `/api/chat` | POST | KI-Chat (Ollama/Claude) |
+| `/api/chat` | POST | KI-Chat (Claude, optional Ollama) |
 | `/api/client-config` | GET | Frontend-Konfiguration (DASHBOARD_DOMAIN etc.) |
 | `/scan-logs` | GET | Log-Scanner starten |
 | `/health` | GET | Health-Check |
