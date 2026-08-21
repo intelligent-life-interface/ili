@@ -45,7 +45,7 @@ SKIP_RE = re.compile(r"^(foto[-_]\d|sub_|testesteset)")
 # Spalten, die als "erledigt/raus" gelten (Substring, case-insensitiv) -> nicht spiegeln.
 # 'behoben'/'fixed'/'closed' 2026-08-01 ergänzt: die Erledigt-Spalte von
 # 'home-stack-bugs' heisst "Behoben" — sie fehlte hier, darum blieben 20 längst
-# beantwortete Bug-Entscheidungen für immer in das Sammelboard stehen.
+# beantwortete Bug-Entscheidungen für immer im Sammelboard stehen.
 # Gleiche Wortliste wie DONE_HINTS in app/api/automat.py.
 DONE_RE = re.compile(r"(done|erledigt|fertig|abgeschlossen|beendet|behoben|fixed|closed|archiv)", re.I)
 # Karten-Label, das Entscheidungen markiert -> separat halten

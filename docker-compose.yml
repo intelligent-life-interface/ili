@@ -14,13 +14,17 @@
 # heissen nach einem Umbenennen anders — die Boards wären scheinbar verschwunden.
 name: ili
 
+# Container heissen ili-* passend zum Projektnamen. Container-Namen sind in Docker
+# GLOBAL, nicht pro Projekt: mit den alten Namen (dashboard-api/-web) konnte dieser
+# Stack nie neben einer zweiten ili-Installation laufen.
+
 services:
   api:
     build:
       context: .
       dockerfile: Containerfile
     image: dashboard:latest
-    container_name: dashboard-api
+    container_name: ili-api
     restart: unless-stopped
     # Kein veroeffentlichter Port: das Frontend erreicht die API unter dem
     # Service-Namen `api` im Compose-Netz (siehe html/_api-locations.conf).
@@ -48,7 +52,7 @@ services:
 
   web:
     image: docker.io/library/nginx:alpine
-    container_name: dashboard-web
+    container_name: ili-web
     restart: unless-stopped
     depends_on:
       - api

@@ -53,7 +53,6 @@ window.I18N = {
     "nav.cost": "Kosten",
     "nav.datenbanken": "Datenbanken",
     "nav.neuesprojekt": "Neues Projekt",
-    "nav.scan": "LAN-Scan",
     "nav.kiadvisor": "KI-Advisor",
     "nav.kisettings": "KI-Settings",
     "nav.whitelist": "Whitelist",
@@ -61,7 +60,6 @@ window.I18N = {
     "nav.flow": "Flow",
     "nav.container": "Container",
     "nav.wiki": "Code-Wiki",
-    "nav.shelly": "Shelly",
     "nav.ollamaqueue": "Ollama-Queue",
 
     // ── Projekt-Übersicht (index.html) ──────────────────────────────────────

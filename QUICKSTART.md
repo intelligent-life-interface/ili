@@ -67,6 +67,14 @@ docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d --buil
 docker compose logs web | grep ili-setup   # prints the terminal password
 ```
 
+**Already had the stack running?** Then `web` still carries the configuration from
+its last start, where the terminal did not exist yet — the terminal route keeps
+answering 503. One extra command fixes it:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.terminal.yml restart web
+```
+
 Tired of typing both files? Remember the file list once, then plain `up`/`down`/
 `logs` commands include the terminal:
 

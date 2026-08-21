@@ -127,7 +127,7 @@ network. If you need direct access, put your own authentication in front of it.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `/projterm/` returns 503 | terminal service not running | `docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d` |
+| `/projterm/` returns 503 | either the terminal service is not running, or `web` was started before it existed — the route is decided once, when `web` starts | start it: `docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d`, and if the stack was already running, add `restart web` |
 | Board page shows "The project terminal needs a login" | browsers do not show the Basic-auth dialog inside an iframe | use the "Sign in in a new tab" button on that page, then "Reload terminal" |
 | Changed `TERMINAL_PASSWORD` has no effect | the route is written once, when the web container starts | `docker compose up -d web` (or `restart web`) |
 | Terminal loads, no input accepted, browser console shows a failed WebSocket | cookie missing — the HTML route was not loaded first, or cookies are blocked for the site | reload `/projterm/` directly, then the board |

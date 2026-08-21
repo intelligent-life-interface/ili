@@ -20,7 +20,7 @@ def get_status():
 
 @router.get("/api/manager/strategie")
 def get_strategie():
-    """STRATEGIE.md — das Dokument (read-only), read-only."""
+    """STRATEGIE.md — Dokument des Betreibers, read-only."""
     return manager_service.get_strategie()
 
 
