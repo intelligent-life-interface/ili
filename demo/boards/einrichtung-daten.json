@@ -1,0 +1,58 @@
+{
+  "columns": [
+    {
+      "id": "backlog",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "card_d1",
+          "title": "Wo deine Daten liegen",
+          "desc": "Boards und Karten sind JSON-Dateien, eine pro Projekt, dazu eine manifest.json als Register. Sie liegen im Volume `ili_dashboard-boards`, Anwendungsdaten in `ili_dashboard-data`. Beide überleben Neustarts und Updates; nur `docker compose down -v` löscht sie.\n\nAnschauen: `docker volume ls | grep ili_`",
+          "description": "Boards und Karten sind JSON-Dateien, eine pro Projekt, dazu eine manifest.json als Register. Sie liegen im Volume `ili_dashboard-boards`, Anwendungsdaten in `ili_dashboard-data`. Beide überleben Neustarts und Updates; nur `docker compose down -v` löscht sie.\n\nAnschauen: `docker volume ls | grep ili_`"
+        },
+        {
+          "id": "decision-daten-speicher",
+          "title": "🟡 ENTSCHEIDUNG: Reichen dir JSON-Dateien, oder willst du eine Datenbank?",
+          "desc": "JSON ist der Auslieferungszustand: gut lesbar, versionierbar, kein zusätzlicher Dienst. Eine Datenbank lohnt sich erst, wenn du auswerten willst (wie viele Karten pro Monat, wie lange liegt etwas) oder sehr viele Projekte hast.\n\nOptionen:\n1. JSON so lassen — einfachste Variante, nichts zu tun\n2. SQLite daneben für Auswertungen (Dateien bleiben die Quelle)\n3. Postgres oder MariaDB als eigener Container\n4. Später entscheiden — erst Erfahrung sammeln",
+          "description": "JSON ist der Auslieferungszustand: gut lesbar, versionierbar, kein zusätzlicher Dienst. Eine Datenbank lohnt sich erst, wenn du auswerten willst (wie viele Karten pro Monat, wie lange liegt etwas) oder sehr viele Projekte hast.\n\nOptionen:\n1. JSON so lassen — einfachste Variante, nichts zu tun\n2. SQLite daneben für Auswertungen (Dateien bleiben die Quelle)\n3. Postgres oder MariaDB als eigener Container\n4. Später entscheiden — erst Erfahrung sammeln",
+          "labels": [
+            {
+              "text": "Entscheidung",
+              "color": "#d69e2e"
+            }
+          ]
+        },
+        {
+          "id": "card_d2",
+          "title": "Projektcode ausserhalb des Klons ablegen",
+          "desc": "Das Terminal legt pro Board einen Arbeitsordner an, standardmässig `./projects` neben der compose-Datei — also im git-Arbeitsbaum. Für echten Code besser einen eigenen Pfad setzen:\n\n    ILI_PROJECTS_DIR=/pfad/zu/deinem/code\n\nDann kann kein `git clean` und kein frischer Klon deinen Code berühren.",
+          "description": "Das Terminal legt pro Board einen Arbeitsordner an, standardmässig `./projects` neben der compose-Datei — also im git-Arbeitsbaum. Für echten Code besser einen eigenen Pfad setzen:\n\n    ILI_PROJECTS_DIR=/pfad/zu/deinem/code\n\nDann kann kein `git clean` und kein frischer Klon deinen Code berühren.",
+          "owner": "me"
+        },
+        {
+          "id": "card_d3",
+          "title": "Eine Sicherung ziehen, bevor du experimentierst",
+          "desc": "    docker run --rm -v ili_dashboard-boards:/data -v $(pwd):/backup \\\n      alpine tar czf /backup/ili-boards-backup.tar.gz -C /data .\n\nZurückspielen ist derselbe Befehl mit `tar xzf`. Das Wiederherstellen einmal geübt zu haben ist mehr wert als die Sicherung selbst.",
+          "description": "    docker run --rm -v ili_dashboard-boards:/data -v $(pwd):/backup \\\n      alpine tar czf /backup/ili-boards-backup.tar.gz -C /data .\n\nZurückspielen ist derselbe Befehl mit `tar xzf`. Das Wiederherstellen einmal geübt zu haben ist mehr wert als die Sicherung selbst."
+        }
+      ]
+    },
+    {
+      "id": "inprogress",
+      "title": "In Bearbeitung",
+      "cards": []
+    },
+    {
+      "id": "review",
+      "title": "Überprüfen",
+      "cards": []
+    },
+    {
+      "id": "done",
+      "title": "Erledigt",
+      "cards": []
+    }
+  ],
+  "rev": 1,
+  "title": "Daten & Datenbank"
+}

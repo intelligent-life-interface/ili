@@ -1,0 +1,548 @@
+/* index.css — Styles für die dynamische Projekt-Übersicht (index-new.html).
+ * Dark Theme passend zu den restlichen Dashboard-Seiten (var(--t-bg, #0f1117)). */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root { --card-min-width: 280px; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--t-bg, #0f1117);
+    color: var(--t-text, #e2e8f0);
+    min-height: 100vh;
+    padding: 0 0 3rem 0;
+}
+
+.page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 2rem 0;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.page-title    { font-size: 1.6rem; font-weight: 700; }
+.page-subtitle { font-size: 0.88rem; color: var(--t-muted, #718096); margin-top: 0.25rem; }
+
+.error-banner {
+    display: none;
+    background: #742a2a;
+    border: 1px solid #fc8181;
+    color: #fed7d7;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1.2rem;
+    font-size: 0.88rem;
+}
+
+/* ── Toolbar (Suche, Gruppierung, Zoom) ─────────────────────── */
+.toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1.6rem;
+}
+.toolbar input[type="search"] {
+    flex: 1 1 200px;
+    max-width: 320px;
+    background: var(--t-surface, #1a202c);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 8px;
+    color: var(--t-text, #e2e8f0);
+    padding: 0.5rem 0.8rem;
+    font-size: 0.88rem;
+    outline: none;
+}
+.toolbar input[type="search"]:focus { border-color: var(--accent, #4a90d9); }
+
+.group-buttons { display: flex; gap: 0.3rem; }
+.group-btn {
+    background: var(--t-surface, #1a202c);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 8px;
+    color: var(--t-muted, #718096);
+    padding: 0.5rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.group-btn:hover  { border-color: var(--t-line2, #4a5568); color: var(--t-text, #e2e8f0); }
+.group-btn.active { background: var(--accent-deep, #2b4c7e); border-color: var(--accent, #4a90d9); color: var(--accent-soft, #90cdf4); }
+
+.count-label { font-size: 0.78rem; color: var(--t-line2, #4a5568); margin-left: auto; }
+
+.zoom-controls { display: flex; align-items: center; gap: 0.3rem; }
+.zoom-btn {
+    background: var(--t-surface, #1a202c);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 6px;
+    color: var(--t-muted, #718096);
+    width: 1.7rem; height: 1.7rem;
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+}
+.zoom-btn:hover { background: var(--t-line2, #4a5568); color: var(--t-text, #e2e8f0); }
+.zoom-label { font-size: 0.72rem; color: var(--t-line2, #4a5568); min-width: 34px; text-align: center; }
+
+/* ── Gruppen + Grid ─────────────────────────────────────────── */
+.group-section { margin-bottom: 2rem; }
+.group-heading {
+    font-size: 1.02rem;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--t-raised, #2d3748);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.group-heading .group-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--t-muted, #718096);
+    background: var(--t-surface, #1a202c);
+    border-radius: 10px;
+    padding: 0.1rem 0.55rem;
+}
+
+.projects-grid {
+    display: grid;
+    /* Fluid 1→2→3 Spalten: max(Kartenbreite, ⅓) deckelt bei 3 Spalten; wird der Platz
+       enger als die Kartenbreite (--card-min-width, per Zoom verstellbar), bricht es
+       automatisch auf 2 bzw. 1 Spalte um (iPhone/Portrait = 1). */
+    grid-template-columns: repeat(auto-fill, minmax(max(var(--card-min-width), calc((100% - 2rem) / 3)), 1fr));
+    gap: 1rem;
+}
+@media (max-width: 640px) {
+    .projects-grid { grid-template-columns: 1fr; gap: 0.7rem; }
+    .zoom-controls { display: none !important; }
+    .page { padding: 1.2rem 1rem 0; }
+}
+
+/* ── Listenansicht (📋 Liste): Gruppe+Prio sortiert, Auto-Status, filterbar ── */
+.list-filter {
+    background: var(--t-surface, #1a202c);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 8px;
+    color: var(--t-muted, #718096);
+    padding: 0.5rem 0.7rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+.list-filter:focus { outline: none; border-color: var(--accent, #4a90d9); }
+
+.list-table { display: flex; flex-direction: column; gap: 0.4rem; }
+.list-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: var(--t-surface, #1a202c);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-left: 4px solid var(--cat-color, var(--accent, #4a90d9));
+    border-radius: 8px;
+    padding: 0.55rem 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+.list-row:hover { border-color: var(--t-line2, #4a5568); }
+.list-prio { font-size: 0.95rem; flex: 0 0 auto; }
+.list-cat-chip {
+    flex: 0 0 auto;
+    border-radius: 6px;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+.list-name {
+    flex: 1 1 auto;
+    font-weight: 600;
+    font-size: 0.92rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.list-counts { display: flex; gap: 0.55rem; font-size: 0.78rem; flex: 0 0 auto; }
+.list-autobtn { flex: 0 0 auto; margin: 0; }
+/* Projekt-Status (Lebenszyklus). Farben kommen inline aus constants.STATUSES, damit
+   Liste und Projekt-Kopf (project-head.js) identisch aussehen. NICHT mit dem
+   Auto-Entwicklungs-Knopf am Zeilenende verwechseln — das sind zwei Dinge. */
+.list-status {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.list-status-none { border: 1px dashed var(--t-raised, #2d3748); color: #718096; }
+/* Auto=an + Status pausiert/archiviert: stiller Widerspruch (Automat arbeitet trotzdem
+   nie, s. kanban-automat PAUSED_STATUSES) — Warn-Icon macht das im UI sichtbar. */
+.list-status-warn { flex: 0 0 auto; font-size: 0.85rem; cursor: help; }
+@media (max-width: 640px) {
+    .list-name { white-space: normal; }
+    .list-counts { display: none; }
+    .list-status { display: none; }
+    .list-status-warn { display: none; }
+}
+
+/* ── Projekt-Kachel ─────────────────────────────────────────── */
+.project-card {
+    position: relative;
+    background: var(--t-surface, #1a202c);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-left: 4px solid var(--cat-color, var(--accent, #4a90d9));
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    transition: transform 0.12s, border-color 0.12s;
+}
+.project-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--cat-color, var(--accent, #4a90d9));
+}
+/* Aktions-Knöpfe (Archivieren/Löschen) oben rechts — dezent, bei Hover/Touch deutlicher */
+.card-actions {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.4rem;
+    display: flex;
+    gap: 0.15rem;
+    opacity: 0.35;
+    transition: opacity 0.12s;
+}
+.project-card:hover .card-actions { opacity: 1; }
+.card-act {
+    background: rgba(45, 55, 72, 0.85);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0.2rem 0.3rem;
+    cursor: pointer;
+}
+.card-act:hover { background: var(--t-raised, #2d3748); }
+.card-act-del:hover { background: #742a2a; border-color: #c53030; }
+@media (pointer: coarse) { .card-actions { opacity: 0.85; } }
+.card-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--t-text, #e2e8f0);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+/* Prioritaets-Punkt auf der Projektkachel (Manifest-Feld `eisenhower`),
+   gleiche Emojis wie Listenansicht + Priorisieren-Modus. Nur wenn gesetzt. */
+.card-prio { font-size: 0.9rem; flex: 0 0 auto; line-height: 1; }
+.card-desc {
+    font-size: 0.78rem;
+    color: var(--t-muted, #718096);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.card-activity {
+    font-size: 0.72rem;
+    color: #38a169;
+    margin-top: 0.35rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.card-badges {
+    margin-top: auto;
+    font-size: 0.74rem;
+    color: var(--t-line2, #4a5568);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+    align-items: center;
+}
+.badge-num            { font-weight: 700; }
+.badge-backlog        { color: var(--accent-soft, #90cdf4); }
+.badge-in_progress    { color: #f6ad55; }
+.badge-done           { color: #68d391; }
+.badge-sub {
+    background: var(--t-raised, #2d3748);
+    color: var(--t-text2, #a0aec0);
+    border-radius: 10px;
+    padding: 0.05rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+.badge-att {
+    background: #1c2e22;
+    color: #68d391;
+    border-radius: 10px;
+    padding: 0.05rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.badge-att:hover { background: #234232; }
+
+/* ── Zustände ───────────────────────────────────────────────── */
+.loading-state {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    color: var(--t-muted, #718096);
+    font-size: 0.9rem;
+    padding: 2.5rem 0;
+    justify-content: center;
+}
+.spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--t-raised, #2d3748);
+    border-top-color: var(--accent, #4a90d9);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--t-muted, #718096);
+    padding: 2.5rem 0;
+    font-size: 0.9rem;
+}
+.empty-state .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+/* KI-Suche-Fallback im Empty-State */
+.empty-ki { margin-top: 1.25rem; }
+.empty-ki-btn {
+    background: var(--accent-deep, #2b4c7e);
+    color: var(--accent-soft, #90cdf4);
+    border: 1px solid var(--accent, #4a90d9);
+    border-radius: 8px;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+}
+.empty-ki-btn:hover { background: var(--accent, #4a90d9); color: #fff; }
+.empty-ki-btn:active { transform: translateY(1px); }
+.empty-ki-hint { margin-top: 0.5rem; font-size: 0.82rem; color: var(--t-muted, #718096); }
+.empty-ki-note { opacity: 0.75; font-size: 0.85rem; }
+
+/* Begruendung der KI unter der vorgeschlagenen Projektkachel */
+.card-ki-reason {
+    margin-top: 0.5rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed var(--t-raised, #2a2d3e);
+    font-size: 0.8rem;
+    color: var(--t-muted, #9aa4b2);
+    line-height: 1.35;
+}
+
+/* ── Link-Kacheln ───────────────────────────────────────────── */
+.links-title {
+    font-size: 1.02rem;
+    font-weight: 700;
+    margin: 2.5rem 0 0.8rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--t-raised, #2d3748);
+}
+.links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.7rem;
+}
+.link-tile {
+    background: var(--t-surface, #1a202c);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 10px;
+    padding: 0.8rem 0.9rem;
+    text-decoration: none;
+    color: var(--t-text2, #a0aec0);
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.12s;
+}
+.link-tile:hover { border-color: var(--accent, #4a90d9); color: var(--t-text, #e2e8f0); transform: translateY(-2px); }
+.lt-icon { font-size: 1.1rem; }
+
+/* ── Eisenhower-Priorisierung ───────────────────────────────────
+   Pro Thema (Kategorie) ein Board mit Zonen; Drag&Drop + Schnell-Knöpfe. */
+.eis-toggle.active { background: #553c2b; border-color: #d99a4a; color: #f4c990; }
+
+/* Board: Zonen nebeneinander, umbrechend; im Eisenhower-Modus ist der Zoom egal */
+.eis-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.8rem;
+    align-items: start;
+}
+.eis-zone {
+    background: var(--t-surface2, #161b25);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 10px;
+    padding: 0.55rem;
+    min-height: 90px;
+    transition: border-color 0.12s, background 0.12s;
+}
+.eis-zone.drop-hover { border-color: var(--accent, #4a90d9); background: var(--t-surface2, #1b2434); }
+.eis-zone-head {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--t-text2, #cbd5e0);
+    padding: 0.1rem 0.2rem 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.eis-zone-count {
+    font-size: 0.7rem;
+    color: var(--t-muted, #718096);
+    background: var(--t-surface, #1a202c);
+    border-radius: 10px;
+    padding: 0.05rem 0.45rem;
+}
+.eis-zone-hint { font-size: 0.68rem; font-weight: 500; color: #5a6677; margin-left: auto; }
+.eis-zone-body { display: flex; flex-direction: column; gap: 0.5rem; min-height: 30px; }
+
+/* Farbakzent je Zone (linker Rand des Headers) */
+.eis-q1 { border-top: 2px solid #e53e3e; }
+.eis-q2 { border-top: 2px solid #d69e2e; }
+.eis-q3 { border-top: 2px solid #38a169; }
+.eis-q4 { border-top: 2px solid var(--t-line2, #4a5568); opacity: 0.85; }
+.eis-none { border-top: 2px solid var(--accent-deep, #2b4c7e); }
+
+/* Karten im Eisenhower-Modus: kompakter, draggable */
+.eis-card { padding: 0.6rem 0.7rem !important; gap: 0.3rem !important; }
+.eis-card:active { cursor: grabbing; }
+.eis-card.dragging { opacity: 0.45; }
+.eis-card .card-desc, .eis-card .card-activity { display: none; }  /* im Board kompakt halten */
+
+.eis-quickbar { display: flex; gap: 0.2rem; margin-top: 0.25rem; }
+.eis-qbtn {
+    flex: 1;
+    background: var(--t-raised, #0f141d);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 6px;
+    padding: 0.15rem 0;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.1s, border-color 0.1s;
+}
+.eis-qbtn:hover { opacity: 1; border-color: var(--t-line2, #4a5568); }
+.eis-qbtn.active { opacity: 1; border-color: var(--accent, #4a90d9); background: var(--t-surface2, #1b2434); }
+
+/* Auto-Weiterentwicklungs-Schalter pro Kachel (4 Status), rechts abgesetzt von
+   den Eisenhower-Quadranten. aus/an per Klick; erledigt/entscheidung abgeleitet. */
+.eis-autobtn {
+    flex: 0 0 auto;
+    margin-left: auto;          /* schiebt den Schalter ans rechte Ende der Quickbar */
+    min-width: 2rem;
+    background: var(--t-raised, #0f141d);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 6px;
+    padding: 0.15rem 0.35rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.1s, border-color 0.1s;
+}
+.eis-autobtn:hover              { opacity: 1; border-color: var(--t-line2, #4a5568); }
+.eis-autobtn.auto-an           { opacity: 1; border-color: #38a169; background: rgba(56,161,105,0.15); }
+.eis-autobtn.auto-erledigt     { opacity: 1; border-color: #3182ce; background: rgba(49,130,206,0.15); }
+.eis-autobtn.auto-entscheidung { opacity: 1; border-color: #dd6b20; background: rgba(221,107,32,0.20);
+                                 animation: eis-auto-pulse 1.6s ease-in-out infinite; }
+@keyframes eis-auto-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(221,107,32,0.55); }
+    50%      { box-shadow: 0 0 0 3px rgba(221,107,32,0); }
+}
+
+/* ── Arrange-Modus: Drag-and-Drop Reihenfolge ───────────────────────
+   Nur in der Kategorie-Ansicht aktiv. Reihenfolge per Browser in
+   localStorage (idx_order), kein Backend nötig. */
+#arrange-toggle.active { background: #1a2e3a; border-color: var(--accent, #4a90d9); color: var(--accent-soft, #60a5fa); }
+
+.arrange-active .project-card {
+    cursor: grab;
+    user-select: none;
+}
+.arrange-active .project-card:active {
+    cursor: grabbing;
+}
+.project-card.dragging {
+    opacity: 0.35;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+    transform: scale(0.97);
+}
+/* Einfüge-Indikator: farbiger Schatten links/rechts (kein Konflikt mit dem linken Kategorie-Rand) */
+.project-card.drop-before {
+    box-shadow: -4px 0 0 0 var(--accent-soft, #60a5fa), 0 0 0 1px rgba(96,165,250,0.25);
+}
+.project-card.drop-after {
+    box-shadow:  4px 0 0 0 var(--accent-soft, #60a5fa), 0 0 0 1px rgba(96,165,250,0.25);
+}
+/* Reset-Knopf etwas kleiner */
+#arrange-reset { font-size: 0.75rem; opacity: 0.75; }
+#arrange-reset:hover { opacity: 1; }
+
+/* ── Tag-Treffer aus dem Index (Projekte ohne eigenes Board) ────────── */
+.group-heading .group-subnote {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--t-muted, #718096);
+}
+.tag-hit-card {
+    border-left-color: #9f7aea;            /* lila = Index-Treffer, kein Board */
+}
+.tag-hit-card:hover { border-color: #9f7aea; }
+.tag-hit-via {
+    font-size: 0.62rem;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 0.05rem 0.4rem;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+.tag-hit-via-name { background: #2c5282; color: #bee3f8; }
+.tag-hit-via-tag  { background: #44337a; color: #e9d8fd; }
+.tag-hit-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0.4rem 0 0.2rem;
+}
+.tag-chip {
+    font-size: 0.68rem;
+    color: var(--t-text2, #a0aec0);
+    background: var(--t-surface, #1a202c);
+    border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 10px;
+    padding: 0.08rem 0.5rem;
+}
+.tag-chip-hot {
+    color: #faf089;
+    border-color: #975a16;
+    background: #2d2410;
+}

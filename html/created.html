@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📅 Nach Erstelldatum</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  :root {
+    --accent:#4a9eff;
+  }
+  .wrap { max-width:820px; margin:0 auto; padding:16px; }
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px; }
+  .toolbar select { background:var(--surface); color:var(--text); border:1px solid var(--border);
+                    border-radius:8px; padding:7px 10px; font-size:0.82rem; font-family:inherit; }
+  .toolbar .count { font-size:0.78rem; color:var(--muted); margin-left:auto; }
+  .list { display:flex; flex-direction:column; gap:8px; }
+  .month-sep { font-size:0.72rem; color:var(--muted); text-transform:uppercase;
+               letter-spacing:.05em; margin:12px 2px 2px; font-weight:600; }
+  .month-sep:first-child { margin-top:0; }
+  .row { display:flex; align-items:center; gap:12px; background:var(--surface);
+         border:1px solid var(--border); border-radius:10px; padding:12px 14px;
+         text-decoration:none; color:inherit; transition:background .12s,border-color .12s; }
+  .row:hover { background:#20242f; border-color:#3a3f56; }
+  .icon { font-size:1.4rem; width:34px; text-align:center; flex-shrink:0; }
+  .body { min-width:0; flex:1; }
+  .name-line { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .name { font-weight:600; font-size:0.92rem; }
+  .cat-badge { font-size:0.68rem; color:var(--muted); padding:1px 7px;
+               border-radius:20px; border:1px solid var(--border); white-space:nowrap; }
+  .desc { font-size:0.78rem; color:var(--muted); margin-top:2px;
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .when { flex-shrink:0; text-align:right; font-size:0.76rem; color:var(--muted);
+          font-family:ui-monospace,monospace; min-width:92px; }
+  .when.fresh { color:#68d391; }
+  .when.none  { opacity:.45; font-style:italic; font-family:inherit; }
+  .age { font-size:0.68rem; color:var(--muted); opacity:.7; }
+  .empty { text-align:center; color:var(--muted); padding:40px 0; font-size:0.85rem; }
+  .gen { text-align:center; font-size:0.72rem; color:var(--muted); margin-top:18px; }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+
+<div class="ds-zones">
+<header class="ds-zone-top">
+  <h1>📅 Nach Erstelldatum</h1>
+  <p>Projekte sortiert nach ihrem Erstelldatum — das neueste zuerst.</p>
+</header>
+
+<main class="ds-zone-main">
+<div class="wrap">
+  <div class="toolbar">
+    <select id="cat-filter">
+      <option value="">Alle Kategorien</option>
+    </select>
+    <select id="status-filter">
+      <option value="">Alle Status</option>
+    </select>
+    <select id="order-filter">
+      <option value="desc" selected>Neueste zuerst</option>
+      <option value="asc">Älteste zuerst</option>
+    </select>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="gen" id="gen"></div>
+</div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+
+<script>
+let allProjects = [];
+
+const escapeHtml = window.escHtml;
+
+// "vor N Tagen / Monaten / Jahren" — kurzer Alters-Hinweis
+function fmtAge(ts) {
+  const d = new Date(ts);
+  if (isNaN(d)) return '';
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days < 0) return '';
+  if (days === 0) return 'heute';
+  if (days === 1) return 'gestern';
+  if (days < 30) return `vor ${days} Tagen`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `vor ${months} Monat${months === 1 ? '' : 'en'}`;
+  const years = Math.floor(days / 365);
+  return `vor ${years} Jahr${years === 1 ? '' : 'en'}`;
+}
+
+function fmtDate(ts) {
+  if (!ts) return { text: '–', cls: 'none' };
+  const d = new Date(ts);
+  if (isNaN(d)) return { text: ts, cls: '' };
+  const text = d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  return { text, cls: days <= 7 ? 'fresh' : '' };
+}
+
+// Monats-Überschrift, z.B. "Juli 2026"
+function monthLabel(ts) {
+  const d = new Date(ts);
+  if (isNaN(d)) return 'Ohne Datum';
+  return d.toLocaleDateString('de-CH', { month: 'long', year: 'numeric' });
+}
+
+function render() {
+  const catSel = document.getElementById('cat-filter').value;
+  const statusSel = document.getElementById('status-filter').value;
+  const order = document.getElementById('order-filter').value;
+
+  const filtered = allProjects.filter(p => {
+    if (catSel && p.category !== catSel) return false;
+    if (statusSel && p.status !== statusSel) return false;
+    return true;
+  });
+  filtered.sort((a, b) => {
+    const cmp = (b.created_at || '').localeCompare(a.created_at || '');
+    return order === 'asc' ? -cmp : cmp;
+  });
+
+  document.getElementById('count').textContent = `${filtered.length} Projekt${filtered.length === 1 ? '' : 'e'}`;
+
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">Keine Projekte im gewählten Filter.</div>';
+    return;
+  }
+
+  let lastMonth = null;
+  for (const p of filtered) {
+    const month = p.created_at ? monthLabel(p.created_at) : 'Ohne Datum';
+    if (month !== lastMonth) {
+      const sep = document.createElement('div');
+      sep.className = 'month-sep';
+      sep.textContent = month;
+      list.appendChild(sep);
+      lastMonth = month;
+    }
+
+    const a = document.createElement('a');
+    a.className = 'row';
+    a.href = `/project.html?id=${encodeURIComponent(p.id)}`;
+    const when = fmtDate(p.created_at);
+    const age = p.created_at ? `<div class="age">${fmtAge(p.created_at)}</div>` : '';
+    const desc = p.description ? `<div class="desc">${escapeHtml(p.description)}</div>` : '';
+    a.innerHTML = `
+      <div class="icon">${p.icon || '📁'}</div>
+      <div class="body">
+        <div class="name-line">
+          <span class="name">${escapeHtml(p.name)}</span>
+          ${p.category_label ? `<span class="cat-badge" style="color:${p.color}">${p.category_label}</span>` : ''}
+          ${p.status_label ? `<span class="cat-badge">${p.status_emoji || ''} ${p.status_label}</span>` : ''}
+        </div>
+        ${desc}
+      </div>
+      <div class="when ${when.cls}">${when.text}${age}</div>`;
+    list.appendChild(a);
+  }
+}
+
+function fillCategoryFilter(projects) {
+  const sel = document.getElementById('cat-filter');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Alle Kategorien</option>';
+  const seen = new Map();
+  for (const p of projects) {
+    if (p.category && !seen.has(p.category)) seen.set(p.category, p.category_label || p.category);
+  }
+  for (const [val, label] of [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]))) {
+    const o = document.createElement('option');
+    o.value = val; o.textContent = label;
+    sel.appendChild(o);
+  }
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
+const STATUS_ORDER = ['entwurf', 'in_bearbeitung', 'blockiert', 'pausiert', 'abgeschlossen', 'archiviert'];
+
+function fillStatusFilter(projects) {
+  const sel = document.getElementById('status-filter');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Alle Status</option>';
+  const seen = new Map();
+  for (const p of projects) {
+    if (p.status && !seen.has(p.status)) {
+      seen.set(p.status, `${p.status_emoji || ''} ${p.status_label || p.status}`.trim());
+    }
+  }
+  const ordered = [...seen.entries()].sort((a, b) => STATUS_ORDER.indexOf(a[0]) - STATUS_ORDER.indexOf(b[0]));
+  for (const [val, label] of ordered) {
+    const o = document.createElement('option');
+    o.value = val; o.textContent = label;
+    sel.appendChild(o);
+  }
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
+async function load() {
+  try {
+    const r = await fetch('/api/projects/created?limit=1000&ts=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    allProjects = data.projects || [];
+    fillCategoryFilter(allProjects);
+    fillStatusFilter(allProjects);
+    render();
+    document.getElementById('gen').textContent =
+      `${data.with_date} von ${data.total} Projekten mit Erstelldatum`;
+  } catch (e) {
+    document.getElementById('list').innerHTML =
+      `<div class="empty">⚠️ Konnte Erstelldatum-Daten nicht laden: ${e.message}</div>`;
+  }
+}
+
+document.getElementById('cat-filter').addEventListener('change', render);
+document.getElementById('status-filter').addEventListener('change', render);
+document.getElementById('order-filter').addEventListener('change', render);
+load();
+</script>
+</body>
+</html>

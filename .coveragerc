@@ -1,0 +1,15 @@
+# Coverage-Konfiguration für das CI-Gate (--cov-fail-under in .github/workflows/ci.yml).
+# Nur Produktivcode zählt: die Testdateien selbst, das venv und die stillgelegten
+# Backups/Legacy in archiv/ würden die Zahl sonst verfälschen (Tests ~100 %, archiv tot).
+[run]
+omit =
+    venv/*
+    tests/*
+    archiv/*
+    */__pycache__/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError

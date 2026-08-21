@@ -1,0 +1,65 @@
+# Containerfile.terminal — browser terminal for the ili project terminals.
+#
+# Ships ttyd (browser terminal) + tmux (one persistent session per Kanban board)
+# + Claude Code CLI. The web service exposes it under the authenticated
+# /projterm/ route; this container publishes NO port of its own on purpose.
+#
+# Build (from the repository root, not from deploy/):
+#   docker compose -f docker-compose.yml -f docker-compose.terminal.yml build terminal
+FROM docker.io/library/node:20-bookworm-slim
+
+LABEL org.opencontainers.image.title="ili Project Terminal"
+LABEL org.opencontainers.image.description="ttyd + tmux + Claude Code, one session per Kanban board"
+LABEL org.opencontainers.image.licenses="AGPL-3.0"
+LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-dashboard"
+
+# ttyd is not packaged in Debian 12 — the project publishes static binaries per
+# architecture (asset names match `uname -m`: x86_64, aarch64, armhf, ...).
+ARG TTYD_VERSION=1.7.7
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      tmux \
+      git \
+      curl \
+      ca-certificates \
+      procps \
+      less \
+      jq \
+    && arch="$(uname -m)" \
+    && echo "[build] downloading ttyd ${TTYD_VERSION} for ${arch}" \
+    && curl -fsSL -o /usr/local/bin/ttyd \
+        "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${arch}" \
+    && chmod +x /usr/local/bin/ttyd \
+    && ttyd --version \
+    && rm -rf /var/lib/apt/lists/*
+
+# Claude Code CLI — the reason the terminal exists. Optional at runtime: without
+# credentials the terminal still works as a plain shell.
+RUN npm install -g @anthropic-ai/claude-code \
+    && claude --version
+
+COPY deploy/terminal/entrypoint.sh /usr/local/bin/ili-terminal
+COPY deploy/terminal/ili-term.sh   /usr/local/bin/ili-term
+COPY deploy/terminal/ili-claude.sh /usr/local/bin/ili-claude
+RUN chmod +x /usr/local/bin/ili-terminal /usr/local/bin/ili-term /usr/local/bin/ili-claude
+
+# Runs as root inside the container by design: with rootless Podman that maps to
+# the unprivileged host user, so bind-mounted project files stay writable. Docker
+# users who bind-mount host code should override this (see docs/PROJECT-TERMINAL.md).
+ENV HOME=/root \
+    CLAUDE_CONFIG_DIR=/root/.claude \
+    PROJECTS_DIR=/projects \
+    BOARDS_DIR=/boards \
+    TERMINAL_PORT=7690 \
+    TERMINAL_BASE_PATH=/projterm
+
+# /root holds the Claude login (.claude/ + .claude.json) — persist it, otherwise
+# every container restart needs a fresh login.
+VOLUME ["/root", "/projects"]
+
+EXPOSE 7690
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fs "http://localhost:${TERMINAL_PORT}${TERMINAL_BASE_PATH}/token" >/dev/null || exit 1
+
+ENTRYPOINT ["/usr/local/bin/ili-terminal"]

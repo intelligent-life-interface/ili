@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Markdown-Ansicht</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0; background: #16202b; color: #c7d3e3;
+        font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.55;
+    }
+    header {
+        position: sticky; top: 0; z-index: 10;
+        display: flex; align-items: center; gap: .8rem;
+        background: #1c2938; border-bottom: 1px solid #3a536b;
+        padding: .55rem 1rem; font-size: .85rem;
+    }
+    header a { color: var(--accent-soft, #76b9f7); text-decoration: none; }
+    header a:hover { text-decoration: underline; }
+    header .fname { font-family: monospace; color: #9fb0c6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    main { max-width: 980px; margin: 0 auto; padding: 1.2rem 1.4rem 4rem; }
+    main h1, main h2, main h3 { color: #e8eef6; border-bottom: 1px solid #2c3d51; padding-bottom: .25rem; }
+    main a { color: var(--accent-soft, #76b9f7); }
+    main code { background: #22303f; padding: .1rem .35rem; border-radius: 4px; font-size: .88em; }
+    main pre { background: #22303f; padding: .8rem 1rem; border-radius: 8px; overflow-x: auto; }
+    main pre code { background: none; padding: 0; }
+    main blockquote { border-left: 3px solid #3a536b; margin-left: 0; padding-left: 1rem; color: #9fb0c6; }
+    main table { border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%; }
+    main th, main td { border: 1px solid #3a536b; padding: .35rem .6rem; font-size: .88rem; }
+    main th { background: #22303f; }
+    main img { max-width: 100%; }
+    .err { color: #f08c8c; padding: 2rem; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+    <a href="#" id="back-link">← Projekt</a>
+    <span class="fname" id="fname"></span>
+</header>
+<main id="content"><p style="color:#76819a">lädt…</p></main>
+<script>
+(function () {
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id') || '';
+    const file = params.get('file') || '';
+    console.log('[md.html] id=' + id + ' file=' + file);
+    document.getElementById('back-link').href = '/project.html?id=' + encodeURIComponent(id);
+    document.getElementById('fname').textContent = id + ' / ' + file;
+    document.title = file + ' — ' + id;
+    fetch('/api/project-files/view?id=' + encodeURIComponent(id) + '&file=' + encodeURIComponent(file))
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(d => {
+            const main = document.getElementById('content');
+            main.innerHTML = d.html;
+            // externe Links in neuem Tab öffnen
+            main.querySelectorAll('a[href^="http"]').forEach(a => {
+                a.target = '_blank'; a.rel = 'noopener';
+            });
+            console.log('[md.html] gerendert:', d.html.length, 'Zeichen,', main.querySelectorAll('a').length, 'Links');
+        })
+        .catch(e => {
+            console.error('[md.html] Fehler:', e);
+            document.getElementById('content').innerHTML = '<div class="err">Konnte Datei nicht laden: ' + e.message + '</div>';
+        });
+})();
+</script>
+<script src="/theme.js?v=20260716b" defer></script>
+</body>
+</html>

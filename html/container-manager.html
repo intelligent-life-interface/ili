@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📦 Container-Manager</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  :root {
+    --bg: var(--t-bg, #0f1117); --surface: var(--t-surface, #1a1d27); --border: var(--t-raised, #2a2d3e);
+    --text: var(--t-text, #e2e8f0); --muted: var(--t-muted, #8892a4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif;
+         display: flex; flex-direction: column; }
+
+  header { padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+           display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1rem; font-weight: 600; }
+  header .hint { font-size: 0.78rem; color: var(--muted); }
+  header a { color: var(--muted); text-decoration: none; font-size: 0.85rem; margin-left: auto; }
+  header a:hover { color: var(--text); }
+
+  #cm-wrap { flex: 1; background: #fff; }
+  #cm { width: 100%; height: 100%; border: 0; display: block; }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+
+<header>
+  <h1>📦 Container-Manager</h1>
+  <span class="hint">läuft auf Port 8810 — API-Key beim ersten Mal in der UI eingeben</span>
+  <a id="cm-link" href="#" target="_blank">↗ in neuem Tab</a>
+  <a href="/" data-i18n="app.back">← ili</a>
+</header>
+
+<div id="cm-wrap">
+  <iframe id="cm" src="" allow="clipboard-read; clipboard-write"></iframe>
+</div>
+
+<script>
+  (function () {
+    var url = 'http://' + location.hostname + ':8810/';
+    document.getElementById('cm').src = url;
+    document.getElementById('cm-link').href = url;
+  })();
+</script>
+
+</body>
+</html>

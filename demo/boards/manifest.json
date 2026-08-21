@@ -1,0 +1,122 @@
+{
+  "boards": [
+    {
+      "id": "willkommen",
+      "name": "Willkommen",
+      "title": "Willkommen",
+      "description": "Startpunkt: wie ili gedacht ist und was du zuerst tun kannst",
+      "color": "#4a90d9",
+      "icon": "👋",
+      "created_at": "2026-08-17T00:00:00",
+      "updated_at": "2026-08-17T00:00:00+00:00",
+      "auto": false,
+      "category": "technik"
+    },
+    {
+      "id": "ideen",
+      "name": "Ideen",
+      "title": "Ideen",
+      "description": "Werkzeuge, die als Idee mitkommen — nimm eine Karte und lass sie von deiner KI bauen",
+      "color": "#ecc94b",
+      "icon": "💡",
+      "created_at": "2026-08-17T00:00:00",
+      "updated_at": "2026-08-17T00:00:00+00:00",
+      "auto": false,
+      "category": "ideen"
+    },
+    {
+      "id": "einrichtung",
+      "name": "Einrichtung",
+      "title": "Einrichtung",
+      "description": "Konfiguration Schritt für Schritt — du entscheidest, was du brauchst",
+      "color": "#805ad5",
+      "icon": "🔧",
+      "created_at": "2026-08-17T00:00:00",
+      "updated_at": "2026-08-17T00:00:00+00:00",
+      "auto": false,
+      "category": "technik",
+      "child_order": [
+        "einrichtung-daten",
+        "einrichtung-domain",
+        "einrichtung-betrieb",
+        "einrichtung-ki",
+        "einrichtung-git"
+      ]
+    },
+    {
+      "id": "einrichtung-daten",
+      "name": "Daten & Datenbank",
+      "title": "Daten & Datenbank",
+      "description": "Wo Boards und Projektcode liegen, und ob eine Datenbank dazu soll",
+      "color": "#4a90d9",
+      "icon": "🗄",
+      "created_at": "2026-08-17T00:00:00",
+      "updated_at": "2026-08-17T00:00:00+00:00",
+      "auto": false,
+      "category": "technik",
+      "parent_ids": [
+        "einrichtung"
+      ]
+    },
+    {
+      "id": "einrichtung-domain",
+      "name": "Domain & Aussenzugang",
+      "title": "Domain & Aussenzugang",
+      "description": "Unter welcher Adresse ili läuft und wer von aussen darf",
+      "color": "#4a90d9",
+      "icon": "🌐",
+      "created_at": "2026-08-17T00:00:00",
+      "updated_at": "2026-08-17T00:00:00+00:00",
+      "auto": false,
+      "category": "technik",
+      "parent_ids": [
+        "einrichtung"
+      ]
+    },
+    {
+      "id": "einrichtung-betrieb",
+      "name": "Betrieb",
+      "title": "Betrieb",
+      "description": "Sicherung, Updates und ein Blick auf Logs und Gesundheit",
+      "color": "#4a90d9",
+      "icon": "♻",
+      "created_at": "2026-08-17T00:00:00",
+      "updated_at": "2026-08-17T00:00:00+00:00",
+      "auto": false,
+      "category": "technik",
+      "parent_ids": [
+        "einrichtung"
+      ]
+    },
+    {
+      "id": "einrichtung-ki",
+      "name": "KI-Anbindung",
+      "title": "KI-Anbindung",
+      "description": "Welche KI angebunden wird, welches Modell — und die Kostenbremse",
+      "color": "#4a90d9",
+      "icon": "🤖",
+      "created_at": "2026-08-17T00:00:00",
+      "updated_at": "2026-08-17T00:00:00+00:00",
+      "auto": false,
+      "category": "technik",
+      "parent_ids": [
+        "einrichtung"
+      ]
+    },
+    {
+      "id": "einrichtung-git",
+      "name": "Code & Beiträge",
+      "title": "Code & Beiträge",
+      "description": "Eigenes Repo, Token sicher ablegen, Beiträge als Pull Request",
+      "color": "#4a90d9",
+      "icon": "🐙",
+      "created_at": "2026-08-17T00:00:00",
+      "updated_at": "2026-08-17T00:00:00+00:00",
+      "auto": false,
+      "category": "technik",
+      "parent_ids": [
+        "einrichtung"
+      ]
+    }
+  ]
+}

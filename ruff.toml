@@ -1,0 +1,7 @@
+# Lint-Gate (opt_ruff_gate_0812): schmaler Start-Scope, siehe CLAUDE.md "Coverage-Gate".
+# F = Pyflakes (u.a. F821 undefined-name — die Klasse, die den OLLAMA_USAGE_FILE-NameError
+# gefangen hätte), E722 = bare except. Kein Style/Format-Regelwerk (kein E/W-Rest, kein I/UP).
+extend-exclude = ["archiv"]
+
+[lint]
+select = ["F", "E722"]

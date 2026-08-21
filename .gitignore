@@ -1,0 +1,59 @@
+# ─── Application State & Data ──────────────────────────────────────────────
+# User's kanban boards (JSON files) — runtime data, not source
+boards/
+# Starter boards that ship with the release: freshly written, neutral content that
+# the entrypoint copies into an empty boards volume on first start. Everything else
+# under demo/ stays out — it used to hold boards mirroring a private setup.
+demo/*
+!demo/boards/
+# Configuration/state JSON files, except the checked-in example templates
+*.json
+!board_templates.example.json
+# ... and the starter boards (the *.json rule above would swallow them)
+!demo/boards/*.json
+!automat_limits.example.json
+!batch_budget.example.json
+
+# ─── Python & Development ─────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ─── IDE & Editor ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ─── Environment & Secrets ────────────────────────────────────────────────
+.env
+.env.local
+.env*.local
+config.env
+
+# ─── Container & Runtime ──────────────────────────────────────────────────
+.containerignore
+.dockerignore
+
+# ─── Temporary Files ──────────────────────────────────────────────────────
+*.log
+*.tmp
+*.bak
+.*.swp
+
+# Terminal working directories — project code must not land in the repo
+projects/*
+!projects/.gitkeep
+
+# Fotos, die Nutzer über die Foto-Funktion hochladen — Laufzeitdaten, nie ins Repo
+# (17.08.2026: 85 private Bilder lagen seit dem Initial-Commit im Release-Repo)
+html/photos/

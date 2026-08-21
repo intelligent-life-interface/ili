@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal login</title>
+    <!--
+      Served as the body of the 401 from the /projterm/ route (error_page 401).
+      Browsers suppress the Basic-auth dialog inside an iframe and render this
+      body instead — without it the board page would show nginx' raw
+      "401 Authorization Required". Opening the terminal in a top-level tab still
+      gets the normal login dialog, because the 401 status and the
+      WWW-Authenticate header are preserved.
+    -->
+    <style>
+        :root { color-scheme: light dark; }
+        body {
+            margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: #1a202c; color: #e2e8f0; padding: 1.5rem;
+        }
+        .card { max-width: 30rem; text-align: center; }
+        h1 { font-size: 1.15rem; margin: 0 0 .75rem; }
+        p { font-size: .9rem; line-height: 1.55; color: #a0aec0; margin: 0 0 1rem; }
+        .actions { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; }
+        a.btn, button.btn {
+            display: inline-block; padding: .55rem 1.1rem; border-radius: .4rem; border: 0;
+            font-size: .9rem; font-weight: 600; cursor: pointer; text-decoration: none;
+            background: #4a90d9; color: #fff;
+        }
+        button.btn.secondary { background: #2d3748; color: #e2e8f0; }
+        code { background: #2d3748; padding: .1rem .35rem; border-radius: .25rem; font-size: .85em; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔑 The project terminal needs a login</h1>
+        <p>
+            The terminal gives full shell access, so it sits behind a password.
+            Your browser does not show the login dialog inside an embedded frame —
+            sign in once in a separate tab, then come back and reload.
+        </p>
+        <div class="actions">
+            <a class="btn" href="/projterm/" target="_blank" rel="noopener">Sign in in a new tab ↗</a>
+            <button class="btn secondary" onclick="location.reload()">Reload terminal</button>
+        </div>
+        <p style="margin-top:1.25rem">
+            Lost the password? It is printed in the startup log of the web container:
+            <code>docker compose logs web | grep ili-setup</code>
+        </p>
+    </div>
+</body>
+</html>

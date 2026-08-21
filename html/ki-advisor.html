@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 KI-Advisor – Home Server</title>
+    <script src="/js/esc.js?v=20260809-xss"></script>
+    <script src="/i18n/de.js" defer></script>
+    <script src="/ui-kit/v1/i18n.js" defer></script>
+    <script src="/nav.js" defer></script>
+    <link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+    <link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+    <link rel="stylesheet" href="/css/ki-advisor.css?v=20260708-theme">
+</head>
+<body>
+
+<header>
+    <h1>🤖 KI-Projekt-Advisor</h1>
+    <span style="font-size:0.78rem;color:#4a5568">Auto-Refresh aktiv <span id="refresh-dot"></span></span>
+</header>
+
+<nav>
+    <a href="/">← Projekte</a>
+    <a href="/project.html?id=home-stack">📋 Übersicht</a>
+    <a href="/ki-advisor.html" class="active">🤖 KI-Advisor</a>
+    <a href="/swipe.html">🤔 JEIN Tool</a>
+    <a href="/whitelist.html">📱 Whitelist</a>
+    <a href="/cost.html">💸 Kosten</a>
+    <a href="/ai-settings.html">⚙️ KI-Einstellungen</a>
+</nav>
+
+<main>
+
+    <!-- Status Card -->
+    <div class="status-card" id="status-card">
+        <div class="status-header">
+            <div class="status-dot" id="status-dot"></div>
+            <div>
+                <div class="status-title" id="status-title">Lade…</div>
+                <div class="status-sub"  id="status-sub"></div>
+            </div>
+        </div>
+        <div class="progress-wrap" id="progress-wrap" style="display:none">
+            <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+        </div>
+        <div class="progress-label" id="progress-label"></div>
+    </div>
+
+    <!-- Vorschläge-Liste -->
+    <div class="vorschlaege-section" id="vorschlaege-section">
+        <div class="vorschlaege-header">
+            <span class="vorschlaege-title">🤖 Offene KI-Vorschläge</span>
+            <span class="vorschlaege-count zero" id="vs-count">⏳</span>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:0.4rem">
+                <button class="btn" style="font-size:0.85rem;padding:0.2rem 0.55rem" onclick="vsZoom(-1)" title="Kleiner">−</button>
+                <button class="btn" style="font-size:0.85rem;padding:0.2rem 0.55rem" onclick="vsZoom(+1)" title="Größer">+</button>
+                <button class="btn" style="font-size:0.8rem" onclick="loadVorschlaege()">↻</button>
+            </div>
+        </div>
+        <div class="vs-model-row">
+            <span>Modell für Erklärungen:</span>
+            <select id="vs-explain-model">
+                <option value="mistral:latest"        title="Allround-Modell: Texterklärungen, Konzepte, breite Analyse. Schnell &amp; effizient.">mistral</option>
+                <option value="qwen2.5-coder:latest"  title="Code-Spezialist: Refactoring, Architektur, technische Implementierungen. Ideal für Dev-Boards.">qwen2.5-coder</option>
+                <option value="gemma3:12b"            title="Google-Modell mit grossem Kontext: nuancierte Analyse, komplexe Zusammenhänge. Mittlere Geschwindigkeit.">gemma3:12b</option>
+                <option value="qwen3:8b"              title="Neueste Qwen3-Generation: ausgewogen zwischen Qualität und Geschwindigkeit. Gut für allgemeine Analyse.">qwen3:8b</option>
+            </select>
+        </div>
+        <div class="vorschlaege-list" id="vs-list">
+            <div class="vorschlaege-loading">⏳ Lade Vorschläge…</div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="status-card" id="controls-card">
+        <div class="section-title">Steuerung</div>
+
+        <!-- Modus-Tabs -->
+        <div style="display:flex;gap:0.5rem;margin:0.8rem 0 1rem">
+            <button class="btn primary" id="tab-single" onclick="setMode('single')">Einzelmodell</button>
+            <button class="btn" id="tab-panel" onclick="setMode('panel')">🗣️ Panel-Diskussion</button>
+        </div>
+
+        <!-- Projekt-Auswahl (gilt für beide Modi) -->
+        <div style="margin-bottom:1rem">
+            <div class="section-title" style="margin-bottom:0.5rem">Projekt (Pflicht — analysiert genau EIN Projekt)</div>
+            <select id="board-select" style="min-width:280px;max-width:100%">
+                <option value="" selected>— Projekt wählen —</option>
+            </select>
+        </div>
+
+        <!-- Einzelmodell -->
+        <div id="mode-single">
+            <div class="controls">
+                <button class="btn primary" id="btn-all" onclick="startRun()">▶ Projekt analysieren</button>
+                <select id="model-select">
+                    <option value="claude-sonnet-5" selected title="Claude Sonnet 5 übers Abo (gratis, Bridge 8950). Starkes Modell — empfohlen für brauchbare, code-bezogene Vorschläge.">Claude Sonnet 5 (Abo, empfohlen)</option>
+                    <option value="claude-opus-4-8"        title="Claude Opus 4.8 übers Abo (gratis, Bridge 8950). Stärkstes Modell — gründlichste Analyse, langsamer.">Claude Opus 4.8 (Abo, stärkste)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Panel-Modus -->
+        <div id="mode-panel" style="display:none">
+            <div style="font-size:0.82rem;color:#718096;margin-bottom:0.8rem">
+                Mehrere KI-Modelle diskutieren gemeinsam — jedes sieht was die anderen vorschlagen und hinterfragt es.
+                Ergebnis: ein synthetisierter Vorschlag aus der Diskussion.
+            </div>
+            <div style="margin-bottom:0.8rem">
+                <div class="section-title" style="margin-bottom:0.5rem">Modelle für die Diskussion</div>
+                <div style="display:flex;flex-wrap:wrap;gap:0.5rem" id="panel-model-checkboxes">
+                    <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.88rem;cursor:pointer" title="Claude Sonnet 5 übers Abo (gratis, Bridge 8950). Starkes Modell.">
+                        <input type="checkbox" value="claude-sonnet-5" checked> Claude Sonnet 5 (Abo)
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.88rem;cursor:pointer" title="Claude Opus 4.8 übers Abo (gratis, Bridge 8950). Stärkstes Modell.">
+                        <input type="checkbox" value="claude-opus-4-8" checked> Claude Opus 4.8 (Abo)
+                    </label>
+                </div>
+            </div>
+            <div style="margin-bottom:1rem">
+                <div class="section-title" style="margin-bottom:0.5rem">Diskussions-Runden</div>
+                <div style="display:flex;align-items:center;gap:1rem">
+                    <input type="range" id="rounds-slider" min="1" max="3" value="2"
+                        style="width:140px;accent-color:var(--accent, #4a90d9)"
+                        oninput="document.getElementById('rounds-label').textContent=this.value">
+                    <span id="rounds-label" style="font-size:0.9rem;color:var(--accent-soft, #90cdf4);font-weight:700">2</span>
+                    <span style="font-size:0.8rem;color:#718096">Runden + Synthese am Ende</span>
+                </div>
+            </div>
+            <div style="font-size:0.78rem;color:#4a5568;margin-bottom:0.8rem">
+                ⏱ Schätzung: 2 Modelle × 2 Runden ≈ ~5 Min für das gewählte Projekt
+            </div>
+            <button class="btn primary" id="btn-panel" onclick="startPanel()">▶ Panel starten</button>
+        </div>
+
+        <div style="margin-top:1rem">
+            <div class="info-row" id="last-run-info"></div>
+        </div>
+    </div>
+
+    <!-- Boards -->
+    <div class="status-card" id="boards-section" style="display:none">
+        <div class="section-title" id="boards-title">Boards</div>
+        <div class="boards-grid" id="boards-grid"></div>
+    </div>
+
+    <!-- Aktivitäts-Log (laienverständlich) -->
+    <div class="status-card" id="activity-section" style="display:none">
+        <div class="section-title">Was ist passiert?</div>
+        <div class="activity-list" id="activity-list"></div>
+    </div>
+
+    <!-- Ollama Statistiken -->
+    <div class="ollama-card" id="ollama-card">
+        <div class="ollama-header">
+            <div class="ollama-dot" id="ollama-dot"></div>
+            <div>
+                <strong id="ollama-title">KI-Server (Ollama)</strong>
+                <div style="font-size:0.8rem;color:#718096" id="ollama-sub">Verbinde…</div>
+            </div>
+        </div>
+        <div id="ollama-models-wrap" style="display:none">
+            <div class="section-title" style="margin-bottom:0.5rem">Verfügbare Modelle</div>
+            <div class="models-list" id="ollama-models-list"></div>
+        </div>
+    </div>
+
+</main>
+
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/api.js?v=20260611a"></script>
+<script src="/js/ki-advisor.js?v=20260810-claude-einzelprojekt"></script>
+
+    <div id="ka-toast"></div>
+</body>
+</html>

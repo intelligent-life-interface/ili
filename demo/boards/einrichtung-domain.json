@@ -1,0 +1,65 @@
+{
+  "columns": [
+    {
+      "id": "backlog",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "decision-zugang",
+          "title": "🟡 ENTSCHEIDUNG: Wie soll ili erreichbar sein?",
+          "desc": "Davon hängt alles Weitere ab. Wichtig: ili bringt KEINE Benutzerverwaltung mit. Wer die Adresse erreicht, sieht die Boards — und wenn das Projekt-Terminal läuft, steht dahinter eine Shell (nur durch das Terminal-Passwort geschützt).\n\nOptionen:\n1. Nur auf diesem Rechner (localhost) — nichts weiter nötig\n2. Im Heimnetz über IP und Port, z.B. http://192.168.x.y:8080\n3. Eigene Domain im Heimnetz, mit Reverse Proxy und TLS\n4. Aus dem Internet, über einen Tunnel mit Zugangsschutz davor",
+          "description": "Davon hängt alles Weitere ab. Wichtig: ili bringt KEINE Benutzerverwaltung mit. Wer die Adresse erreicht, sieht die Boards — und wenn das Projekt-Terminal läuft, steht dahinter eine Shell (nur durch das Terminal-Passwort geschützt).\n\nOptionen:\n1. Nur auf diesem Rechner (localhost) — nichts weiter nötig\n2. Im Heimnetz über IP und Port, z.B. http://192.168.x.y:8080\n3. Eigene Domain im Heimnetz, mit Reverse Proxy und TLS\n4. Aus dem Internet, über einen Tunnel mit Zugangsschutz davor",
+          "labels": [
+            {
+              "text": "Entscheidung",
+              "color": "#d69e2e"
+            }
+          ]
+        },
+        {
+          "id": "card_n1",
+          "title": "DASHBOARD_DOMAIN setzen",
+          "desc": "In der `.env`. Der Wert steckt in erzeugten Links (Navigation, Verweise zwischen Projekten) — er macht ili nicht erreichbar, er sorgt nur dafür, dass die Links stimmen. Default `home.arpa` funktioniert ohne DNS.\n\nDer Port kommt separat über `ILI_PORT` (Default 8080).",
+          "description": "In der `.env`. Der Wert steckt in erzeugten Links (Navigation, Verweise zwischen Projekten) — er macht ili nicht erreichbar, er sorgt nur dafür, dass die Links stimmen. Default `home.arpa` funktioniert ohne DNS.\n\nDer Port kommt separat über `ILI_PORT` (Default 8080).",
+          "owner": "me"
+        },
+        {
+          "id": "card_n2",
+          "title": "Variante Tunnel: Zugangsschutz ZUERST",
+          "desc": "Ein Tunnel (z.B. Cloudflare Tunnel) macht ili ohne offene Ports im Router erreichbar. Die Reihenfolge ist sicherheitsrelevant: **erst die Zugangs-Regel (wer darf rein), dann den Tunnel scharf schalten.** Andersherum steht deine Instanz — inklusive Terminal — für Minuten oder Stunden offen im Netz, und genau diese Minuten reichen.\n\nLass deine KI im Terminal dieses Unterprojekts die Schritte für deinen Anbieter erarbeiten und schreibe das Ergebnis als Karte hierher zurück.",
+          "description": "Ein Tunnel (z.B. Cloudflare Tunnel) macht ili ohne offene Ports im Router erreichbar. Die Reihenfolge ist sicherheitsrelevant: **erst die Zugangs-Regel (wer darf rein), dann den Tunnel scharf schalten.** Andersherum steht deine Instanz — inklusive Terminal — für Minuten oder Stunden offen im Netz, und genau diese Minuten reichen.\n\nLass deine KI im Terminal dieses Unterprojekts die Schritte für deinen Anbieter erarbeiten und schreibe das Ergebnis als Karte hierher zurück."
+        },
+        {
+          "id": "card_n3",
+          "title": "Variante Reverse Proxy: TLS im eigenen Netz",
+          "desc": "Caddy, Traefik oder nginx davor, Zertifikat per DNS-Challenge (funktioniert auch ohne Erreichbarkeit von aussen). Dann läuft ili unter einem Namen statt IP:Port, und das Terminal-Cookie fährt verschlüsselt.\n\nili selbst braucht kein HTTPS — es funktioniert auch über http im LAN.",
+          "description": "Caddy, Traefik oder nginx davor, Zertifikat per DNS-Challenge (funktioniert auch ohne Erreichbarkeit von aussen). Dann läuft ili unter einem Namen statt IP:Port, und das Terminal-Cookie fährt verschlüsselt.\n\nili selbst braucht kein HTTPS — es funktioniert auch über http im LAN."
+        },
+        {
+          "id": "card_n4",
+          "title": "Terminal nur bewusst nach aussen geben",
+          "desc": "Das Projekt-Terminal ist voller Shell-Zugriff auf den Container. Es ist deshalb nicht im Standardstart enthalten und liegt hinter einem Passwort. Wenn du ili ins Internet stellst: eigenen Zugangsschutz davorsetzen und ein langes, eigenes `TERMINAL_PASSWORD` in der `.env` — nicht das bei jedem Start neu erzeugte.",
+          "description": "Das Projekt-Terminal ist voller Shell-Zugriff auf den Container. Es ist deshalb nicht im Standardstart enthalten und liegt hinter einem Passwort. Wenn du ili ins Internet stellst: eigenen Zugangsschutz davorsetzen und ein langes, eigenes `TERMINAL_PASSWORD` in der `.env` — nicht das bei jedem Start neu erzeugte.",
+          "owner": "me"
+        }
+      ]
+    },
+    {
+      "id": "inprogress",
+      "title": "In Bearbeitung",
+      "cards": []
+    },
+    {
+      "id": "review",
+      "title": "Überprüfen",
+      "cards": []
+    },
+    {
+      "id": "done",
+      "title": "Erledigt",
+      "cards": []
+    }
+  ],
+  "rev": 1,
+  "title": "Domain & Aussenzugang"
+}

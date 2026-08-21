@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Schnellstart</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  :root {
+    --bg: var(--t-bg, #0f1117); --surface: var(--t-surface, #1a1d27); --border: var(--t-raised, #2a2d3e);
+    --text: var(--t-text, #e2e8f0); --muted: var(--t-muted, #8892a4); --accent: #4a9eff;
+    --purple: #b794f4; --green: #68d391; --orange: #f6ad55;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif;
+         min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { padding: 16px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+           display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1rem; font-weight: 600; }
+  header a  { color: var(--muted); text-decoration: none; font-size: 0.85rem; margin-left: auto; }
+  header a:hover { color: var(--text); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+          gap: 12px; padding: 20px; max-width: 700px; margin: 0 auto; width: 100%; }
+
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+          padding: 20px 14px; display: flex; flex-direction: column; align-items: center;
+          gap: 10px; cursor: pointer; text-decoration: none; color: var(--text);
+          transition: transform 0.1s, border-color 0.15s; user-select: none; }
+  .tile:hover  { border-color: var(--accent); transform: translateY(-2px); }
+  .tile:active { transform: scale(0.97); }
+  .tile .icon  { font-size: 2.2rem; }
+  .tile .label { font-size: 0.82rem; text-align: center; color: var(--muted); font-weight: 500; }
+  .tile.accent  { border-color: var(--accent); }
+  .tile.purple  { border-color: var(--purple); }
+  .tile.green   { border-color: var(--green);  }
+  .tile.orange  { border-color: var(--orange); }
+
+  /* Foto-Upload (unsichtbares Input) */
+  #foto-input { display: none; }
+
+  /* Modal für neues Projekt */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+              z-index: 100; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+           padding: 24px; width: 90%; max-width: 400px; }
+  .modal h2 { margin-bottom: 16px; font-size: 1rem; }
+  .modal input, .modal textarea {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px; font-size: 0.9rem; margin-bottom: 10px;
+    font-family: inherit; resize: vertical;
+  }
+  .modal input:focus, .modal textarea:focus { outline: none; border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 6px; }
+  .btn { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+         background: var(--bg); color: var(--text); font-size: 0.9rem; cursor: pointer; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text, #fff); font-weight: 600; }
+  .btn:hover:not(.primary) { background: var(--border); }
+
+  /* Overlay während Verarbeitung */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+             z-index: 200; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+  .overlay.show { display: flex; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border);
+             border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .overlay p { color: var(--text); font-size: 0.95rem; }
+
+  .status-msg { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 8px 20px; }
+</style>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+</head>
+<body>
+<div class="ds-zones">
+<header class="ds-zone-top">
+  <h1>⚡ Schnellstart</h1>
+  <a href="/" data-i18n="app.back">← ili</a>
+</header>
+
+<main class="ds-zone-main">
+<div class="grid">
+
+  <!-- Foto-Projekt -->
+  <label class="tile purple" for="foto-input" title="Foto aufnehmen oder auswählen">
+    <span class="icon">📸</span>
+    <span class="label">Foto-Idee</span>
+  </label>
+  <input type="file" id="foto-input" accept="image/*" capture="environment" onchange="handleFoto(this)">
+
+  <!-- Neues Projekt (Text) -->
+  <div class="tile accent" onclick="openModal()" title="Neues Projekt mit Beschreibung">
+    <span class="icon">✏️</span>
+    <span class="label">Neues Projekt</span>
+  </div>
+
+  <!-- Dashboard -->
+  <a class="tile" href="/" title="Alle Projekte / Kanban">
+    <span class="icon">📋</span>
+    <span class="label">Dashboard</span>
+  </a>
+
+  <!-- Bug-Viewer -->
+  <a class="tile orange" href="/bugs.html" title="Fehler & Logs anschauen">
+    <span class="icon">🐛</span>
+    <span class="label">Bug-Viewer</span>
+  </a>
+
+  <!-- Bots abarbeiten -->
+  <a class="tile orange" href="/bots.html" title="Welche Claude-Sessions warten auf deine Antwort?">
+    <span class="icon">🤖</span>
+    <span class="label">Bots abarbeiten</span>
+  </a>
+
+  <!-- KI-Advisor -->
+  <a class="tile green" href="/ki-advisor.html" title="KI-Projektberatung">
+    <span class="icon">🤖</span>
+    <span class="label">KI-Advisor</span>
+  </a>
+
+  <!-- Kosten -->
+  <a class="tile" href="/cost.html" title="API-Kosten anzeigen">
+    <span class="icon">💰</span>
+    <span class="label">Kosten</span>
+  </a>
+
+  <!-- KI-Einstellungen -->
+  <a class="tile" href="/ai-settings.html" title="KI-Modelle & Einstellungen">
+    <span class="icon">⚙️</span>
+    <span class="label">KI-Config</span>
+  </a>
+
+</div>
+
+<div id="status-msg" class="status-msg"></div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+
+<!-- Modal: Neues Projekt -->
+<div class="modal-bg" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <h2>✏️ Neues Projekt</h2>
+    <input type="text" id="proj-name" placeholder="Projektname (Ollama korrigiert Schreibfehler)" autofocus>
+    <textarea id="proj-desc" rows="3" placeholder="Beschreibung (optional — mehr Info = bessere Tags)"></textarea>
+    <div class="modal-actions">
+      <button id="quick-btn-abbrechen" data-i18n="quick.abbrechen" class="btn" onclick="closeModal()">Abbrechen</button>
+      <button id="quick-btn-erstellen" data-i18n="quick.erstellen" class="btn primary" onclick="createProject()">Erstellen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay -->
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <p id="overlay-text">Wird verarbeitet…</p>
+</div>
+
+<script>
+// Relativ über nginx (Port 80/443) → FastAPI 8798. NICHT :8799/:8798 hartcodieren
+// (alter trigger_server 8799 ist seit 2026-06-10 stillgelegt → sonst "Load failed"/CORS).
+const API = '';
+
+// ── Foto-Idee ─────────────────────────────────────────────────────
+async function handleFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  showOverlay('Foto wird hochgeladen…');
+  try {
+    const photo = await compressImage(file, 1200, 0.82);
+
+    // GPS aus Gerät holen (optional)
+    const gps = await getGPS().catch(() => null);
+
+    const payload = { photo, title: '', note: '' };
+    if (gps) Object.assign(payload, gps);
+
+    const res = await fetch(`${API}/project-from-photo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + await res.text());
+    const data = await res.json();
+
+    hideOverlay();
+    setStatus(`✅ Idee erstellt: "${data.title}" — Analyse läuft im Hintergrund`);
+    // Direkt zum Board navigieren
+    setTimeout(() => { window.location.href = `/project.html?id=${encodeURIComponent(data.board_id)}`; }, 800);
+  } catch(e) {
+    hideOverlay();
+    setStatus('❌ Fehler: ' + e.message, true);
+  }
+}
+
+// ── Neues Projekt ─────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('proj-name').focus(), 100);
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.getElementById('proj-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') createProject();
+});
+
+async function createProject() {
+  const name = document.getElementById('proj-name').value.trim();
+  const desc = document.getElementById('proj-desc').value.trim();
+  if (!name) { document.getElementById('proj-name').focus(); return; }
+
+  closeModal();
+  showOverlay('Ollama analysiert…');
+
+  try {
+    const res = await fetch(`${API}/boards`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description: desc }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      hideOverlay();
+      setStatus('❌ ' + (data.message || data.error || 'Fehler'), true);
+      return;
+    }
+    hideOverlay();
+    window.location.href = `/project.html?id=${encodeURIComponent(data.id)}`;
+  } catch(e) {
+    hideOverlay();
+    setStatus('❌ ' + e.message, true);
+  }
+}
+
+// ── Hilfsfunktionen ───────────────────────────────────────────────
+function showOverlay(text) {
+  document.getElementById('overlay-text').textContent = text;
+  document.getElementById('overlay').classList.add('show');
+}
+function hideOverlay() {
+  document.getElementById('overlay').classList.remove('show');
+}
+function setStatus(msg, isError) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--error, #fc8181)' : 'var(--green)';
+}
+
+async function compressImage(file, maxPx, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else       { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function getGPS() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject('kein GPS');
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({
+        gps_lat: p.coords.latitude,
+        gps_lon: p.coords.longitude,
+        gps_alt: p.coords.altitude,
+        gps_accuracy: p.coords.accuracy,
+      }),
+      reject, { timeout: 5000, maximumAge: 30000 }
+    );
+  });
+}
+</script>
+<script src="/theme.js?v=20260716b" defer></script>
+</body>
+</html>

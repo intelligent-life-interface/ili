@@ -1,0 +1,59 @@
+{
+  "columns": [
+    {
+      "id": "backlog",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "decision-start",
+          "title": "🟡 ENTSCHEIDUNG: Wie weit willst du ili treiben?",
+          "desc": "Diese eine Antwort bestimmt, welche Unterprojekte für dich überhaupt relevant sind. Du kannst sie jederzeit ändern — die Karten laufen dir nicht weg.\n\nOptionen:\n1. Nur auf diesem Rechner — nichts weiter einrichten\n2. Im Heimnetz, damit Handy und Laptop drankommen\n3. Von aussen erreichbar (Internet)\n4. Mit KI-Unterstützung arbeiten (Terminal + Modell)",
+          "description": "Diese eine Antwort bestimmt, welche Unterprojekte für dich überhaupt relevant sind. Du kannst sie jederzeit ändern — die Karten laufen dir nicht weg.\n\nOptionen:\n1. Nur auf diesem Rechner — nichts weiter einrichten\n2. Im Heimnetz, damit Handy und Laptop drankommen\n3. Von aussen erreichbar (Internet)\n4. Mit KI-Unterstützung arbeiten (Terminal + Modell)",
+          "labels": [
+            {
+              "text": "Entscheidung",
+              "color": "#d69e2e"
+            }
+          ]
+        },
+        {
+          "id": "card_e1",
+          "title": "Reihenfolge, die sich bewährt",
+          "desc": "1. 🗄 Daten — wissen, wo deine Boards liegen und wie du sie sicherst\n2. 🌐 Zugang — unter welcher Adresse ili läuft und wer rein darf\n3. ♻ Betrieb — Sicherung, Updates, Logs\n4. 🤖 KI — Schlüssel, Modell, Kostenbremse\n5. 🐙 Code — eigenes Repo und Beiträge zurückgeben\n\nZugang vor Sicherung ist die häufigste Reihenfolge-Falle: erst öffnen, dann merken, dass es kein Backup gibt.",
+          "description": "1. 🗄 Daten — wissen, wo deine Boards liegen und wie du sie sicherst\n2. 🌐 Zugang — unter welcher Adresse ili läuft und wer rein darf\n3. ♻ Betrieb — Sicherung, Updates, Logs\n4. 🤖 KI — Schlüssel, Modell, Kostenbremse\n5. 🐙 Code — eigenes Repo und Beiträge zurückgeben\n\nZugang vor Sicherung ist die häufigste Reihenfolge-Falle: erst öffnen, dann merken, dass es kein Backup gibt."
+        },
+        {
+          "id": "card_e2",
+          "title": "Wenn du fertig bist: dieses Projekt archivieren",
+          "desc": "Die Einrichtung ist einmalig. Ist alles entschieden, kannst du das Projekt samt Unterprojekten archivieren (🗄 auf der Kachel) — die Entscheidungen bleiben als Karten erhalten und beantworten später die Frage „warum haben wir das so gemacht\".",
+          "description": "Die Einrichtung ist einmalig. Ist alles entschieden, kannst du das Projekt samt Unterprojekten archivieren (🗄 auf der Kachel) — die Entscheidungen bleiben als Karten erhalten und beantworten später die Frage „warum haben wir das so gemacht\".",
+          "owner": "me"
+        }
+      ]
+    },
+    {
+      "id": "inprogress",
+      "title": "In Bearbeitung",
+      "cards": []
+    },
+    {
+      "id": "review",
+      "title": "Überprüfen",
+      "cards": []
+    },
+    {
+      "id": "done",
+      "title": "Erledigt",
+      "cards": [
+        {
+          "id": "card_e0",
+          "title": "✅ Dieses Projekt führt dich durch die Einrichtung",
+          "desc": "Die Grundstruktur läuft — jetzt geht es darum, ili auf DEINE Verhältnisse einzustellen. Jedes Thema ist ein Unterprojekt mit eigenen Karten. Karten mit 🟡 ENTSCHEIDUNG haben Antwort-Knöpfe: du klickst die Variante an, die du willst, und deine KI setzt sie im Terminal des jeweiligen Unterprojekts um.\n\nNichts davon ist Pflicht. Ein ili, das nur auf deinem Rechner läuft, braucht keinen einzigen dieser Schritte.",
+          "description": "Die Grundstruktur läuft — jetzt geht es darum, ili auf DEINE Verhältnisse einzustellen. Jedes Thema ist ein Unterprojekt mit eigenen Karten. Karten mit 🟡 ENTSCHEIDUNG haben Antwort-Knöpfe: du klickst die Variante an, die du willst, und deine KI setzt sie im Terminal des jeweiligen Unterprojekts um.\n\nNichts davon ist Pflicht. Ein ili, das nur auf deinem Rechner läuft, braucht keinen einzigen dieser Schritte."
+        }
+      ]
+    }
+  ],
+  "rev": 1,
+  "title": "Einrichtung"
+}

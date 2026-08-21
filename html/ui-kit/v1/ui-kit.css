@@ -1,0 +1,460 @@
+/* ili UI-Kit v1 — shared styles, shipped with the release so the frontend
+   works standalone (no external stylesheet host). */
+/* ============================================================================
+ * Home-Stack UI-Kit v1 — zentrale Basis fuer alle Web-GUIs im Homeserver
+ * Ausgeliefert unter: /ui-kit/v1/ui-kit.css
+ * Quelle:             ~/Projekte/ui-verbesserungen/ui-kit/v1/ui-kit.css
+ *
+ * WICHTIG: v1 ist eingefroren fuer Breaking Changes. Neue Komponenten und
+ * Bugfixes duerfen rein, umbenannte/entfernte Klassen NICHT — sonst brechen
+ * bestehende GUIs. Grosse Umbauten kommen als /v2/.
+ * Styleguide + Klassenliste: /ui-kit/ (Styleguide-VHost)
+ * ========================================================================== */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* --- Design-Tokens: hell (Default) ---------------------------------------- */
+:root {
+    --bg: #f0f2f5;
+    --fg: #1f2937;
+    --muted: #6b7280;
+    --card-bg: #ffffff;
+    --panel2: #f5f7fa;
+    --border: #d1d5db;
+
+    --accent: #5a63d8;          /* Buttons/aktiv — dunkler als das alte #667eea,
+                                   damit weisse Schrift darauf lesbar ist */
+    --accent-fg: #ffffff;
+    --accent-soft: #eef0fd;
+    --link: #4c53c4;
+
+    --ok: #1a7f37;
+    --warn: #9a6700;
+    --err: #c1362c;
+    --info: #0969da;
+
+    --head-grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --head-fg: #ffffff;
+
+    --radius: 8px;
+    --radius-sm: 6px;
+    --gap: 20px;
+    --shadow: 0 1px 4px rgba(0, 0, 0, .06);
+    --shadow-lg: 0 2px 8px rgba(0, 0, 0, .10);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    --tap: 44px;                /* Mindest-Trefferflaeche fuer Touch */
+}
+
+/* --- Design-Tokens: dunkel ------------------------------------------------ */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #1b1d24;
+        --fg: #e4e4e7;
+        --muted: #8b9bab;
+        --card-bg: #262933;
+        --panel2: #2e3340;
+        --border: #3a3f4d;
+
+        --accent: #6d78ee;
+        --accent-fg: #ffffff;
+        --accent-soft: #2a2f4d;
+        --link: #8b93f0;
+
+        --ok: #3fb950;
+        --warn: #d29922;
+        --err: #e5534b;
+        --info: #58a6ff;
+
+        --head-grad: linear-gradient(135deg, #2c3e6b 0%, #1a2540 100%);
+        --shadow: 0 1px 4px rgba(0, 0, 0, .35);
+        --shadow-lg: 0 2px 8px rgba(0, 0, 0, .45);
+    }
+}
+
+/* Expliziter Toggle gewinnt in beide Richtungen (siehe theme() in ui-kit.js) */
+:root[data-theme="dark"] {
+    --bg: #1b1d24;
+    --fg: #e4e4e7;
+    --muted: #8b9bab;
+    --card-bg: #262933;
+    --panel2: #2e3340;
+    --border: #3a3f4d;
+    --accent: #6d78ee;
+    --accent-fg: #ffffff;
+    --accent-soft: #2a2f4d;
+    --link: #8b93f0;
+    --ok: #3fb950;
+    --warn: #d29922;
+    --err: #e5534b;
+    --info: #58a6ff;
+    --head-grad: linear-gradient(135deg, #2c3e6b 0%, #1a2540 100%);
+    --shadow: 0 1px 4px rgba(0, 0, 0, .35);
+    --shadow-lg: 0 2px 8px rgba(0, 0, 0, .45);
+}
+
+/* --- Alias-Layer: bestehende GUIs benutzen andere Namen fuer dasselbe -----
+ * Damit laesst sich eine alte GUI umstellen, ohne jede var() anzufassen.
+ * Neue GUIs bitte die Namen oben verwenden. */
+:root {
+    --surface: var(--card-bg);
+    --surface2: var(--panel2);
+    --text: var(--fg);
+    --text-muted: var(--muted);
+    --green: var(--ok);
+    --orange: var(--warn);
+    --red: var(--err);
+    --t-bg: var(--bg);
+    --t-text: var(--fg);
+    --t-card: var(--card-bg);
+    --t-border: var(--border);
+    --t-accent: var(--accent);
+}
+
+/* --- Basis ---------------------------------------------------------------- */
+body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3 { line-height: 1.25; }
+h1 { font-size: 2.2rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.05rem; }
+
+a { color: var(--link); }
+code, pre, .mono { font-family: var(--font-mono); font-size: .9em; }
+pre {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    overflow-x: auto;
+}
+hr { border: none; border-top: 1px solid var(--border); margin: var(--gap) 0; }
+
+/* Tastatur-Bedienung sichtbar halten, Maus-Klicks nicht verunstalten */
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+/* --- Layout --------------------------------------------------------------- */
+.container { max-width: 1200px; margin: 0 auto; padding: var(--gap); }
+.container.narrow { max-width: 760px; }
+.container.wide { max-width: 1600px; }
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--gap);
+}
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.row.end { justify-content: flex-end; }
+.spacer { flex: 1; }
+
+/* --- Header --------------------------------------------------------------- */
+header, .app-header {
+    background: var(--head-grad);
+    color: var(--head-fg);
+    padding: 30px;
+    border-radius: var(--radius);
+    margin-bottom: 30px;
+    box-shadow: var(--shadow-lg);
+}
+header h1, .app-header h1 { margin-bottom: 5px; }
+header p, .app-header p { font-size: .95rem; opacity: .9; }
+header a, .app-header a { color: var(--head-fg); }
+
+/* --- Tabs ----------------------------------------------------------------- */
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: var(--gap);
+    border-bottom: 2px solid var(--border);
+    flex-wrap: wrap;
+}
+.tab-btn {
+    background: var(--card-bg);
+    color: var(--fg);
+    border: 2px solid var(--border);
+    border-bottom: none;
+    padding: 12px 20px;
+    min-height: var(--tap);
+    cursor: pointer;
+    border-radius: var(--radius) var(--radius) 0 0;
+    font: inherit;
+    font-size: 1rem;
+}
+.tab-btn:hover { background: var(--panel2); }
+.tab-btn.active {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* --- Card ----------------------------------------------------------------- */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--gap);
+    margin-bottom: var(--gap);
+    box-shadow: var(--shadow);
+}
+.card > h2 { margin-bottom: 12px; }
+.card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+.card.ok { border-left: 4px solid var(--ok); }
+.card.warn { border-left: 4px solid var(--warn); }
+.card.err { border-left: 4px solid var(--err); }
+
+/* --- Buttons -------------------------------------------------------------- */
+button, .btn {
+    font: inherit;
+    font-size: 1rem;
+    padding: 10px 18px;
+    min-height: var(--tap);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--fg);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: filter .12s ease, background .12s ease;
+}
+button:hover, .btn:hover { background: var(--panel2); }
+button:disabled, .btn:disabled, .btn.disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+button.primary, .btn.primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+}
+button.primary:hover, .btn.primary:hover { filter: brightness(1.1); background: var(--accent); }
+
+button.danger, .btn.danger {
+    background: var(--err);
+    color: #fff;
+    border-color: var(--err);
+}
+button.danger:hover, .btn.danger:hover { filter: brightness(1.1); background: var(--err); }
+
+button.ghost, .btn.ghost { background: transparent; border-color: transparent; }
+button.ghost:hover, .btn.ghost:hover { background: var(--panel2); }
+
+button.small, .btn.small { padding: 6px 12px; min-height: 34px; font-size: .9rem; }
+
+/* --- Formulare ------------------------------------------------------------ */
+label { display: block; margin-bottom: 6px; font-size: .9rem; color: var(--muted); }
+
+input, select, textarea {
+    font: inherit;
+    font-size: 1rem;
+    width: 100%;
+    padding: 10px 12px;
+    min-height: var(--tap);
+    background: var(--card-bg);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+/* Ausweg aus der `width:100%`-Regel darueber: Eingabefelder/Auswahlen, die
+   NEBENEINANDER stehen sollen (Filter-/Meta-Leisten), bekommen `.w-auto`.
+   Ohne das belegt jede Auswahl eine eigene Zeile — genau daran ist am 17.08.2026
+   die Gruppen-/Status-Zeile im Dashboard-Projektkopf haengen geblieben. */
+.w-auto { width: auto !important; max-width: 100%; }
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+input[type="checkbox"], input[type="radio"] {
+    width: auto;
+    min-height: 0;
+    accent-color: var(--accent);
+}
+textarea { min-height: 100px; resize: vertical; }
+.field { margin-bottom: 14px; }
+.hint { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+/* --- Tabelle -------------------------------------------------------------- */
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--muted); font-size: .9rem; }
+tbody tr:hover { background: var(--panel2); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Breite Tabellen scrollen in sich, nie die ganze Seite */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* --- Badge / Status ------------------------------------------------------- */
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: .8rem;
+    background: var(--panel2);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+}
+.badge.ok { background: var(--ok); color: #fff; border-color: transparent; }
+.badge.warn { background: var(--warn); color: #fff; border-color: transparent; }
+.badge.err { background: var(--err); color: #fff; border-color: transparent; }
+.badge.info { background: var(--info); color: #fff; border-color: transparent; }
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    flex: none;
+}
+.dot.ok { background: var(--ok); }
+.dot.warn { background: var(--warn); }
+.dot.err { background: var(--err); }
+
+/* --- Footer --------------------------------------------------------------- */
+footer, .app-footer {
+    margin-top: 30px;
+    font-size: .85rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* --- Kleinteile ----------------------------------------------------------- */
+.muted { color: var(--muted); }
+.empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+}
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+    animation: ui-spin .7s linear infinite;
+}
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+
+/* Toast-Container wird von ui-kit.js angelegt */
+.toast-host {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+}
+.toast {
+    background: var(--card-bg);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    box-shadow: var(--shadow-lg);
+    max-width: min(90vw, 380px);
+}
+.toast.ok { border-left-color: var(--ok); }
+.toast.err { border-left-color: var(--err); }
+
+/* --- Modal ------------------------------------------------------------------
+ * War bislang in mehreren GUIs unabhängig als .modal-overlay/.modal kopiert
+ * (code-wiki, dashboard) — ab hier zentral. Öffnen/Schliessen per Klasse
+ * "open" auf .modal-overlay, keine JS-Logik im Kit (siehe Nutzung z.B. in
+ * code-wiki/html/app.js). */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .55);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: var(--gap);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    padding: var(--gap);
+    width: 620px;
+    max-width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.modal h2 { font-size: 1.05rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* --- Mobile --------------------------------------------------------------- */
+@media (max-width: 640px) {
+    :root { --gap: 14px; }
+    h1 { font-size: 1.6rem; }
+    header, .app-header { padding: 20px; margin-bottom: 20px; border-radius: 0; }
+    .container { padding: 0 var(--gap) var(--gap); }
+    .tabs { gap: 6px; overflow-x: auto; flex-wrap: nowrap; }
+    .tab-btn { padding: 10px 14px; white-space: nowrap; }
+    .grid { grid-template-columns: 1fr; }
+    /* Nur KIT-eigene Knoepfe auf volle Breite ziehen (17.08.2026).
+       Vorher stand hier `button, .btn` — das traf jeden <button> jeder GUI, also
+       auch projekteigene Widget-Knoepfe: im Dashboard-Projektkopf bekam dadurch
+       jeder Eisenhower-Knopf eine eigene Zeile und der Prioritaets-Drawer-Griff
+       wurde zum bildschirmbreiten Balken. Ein Knopf mit eigener Klasse gehoert
+       dem Projekt und wird nicht mehr angefasst; wer die alte Wirkung will,
+       nimmt die Kit-Klasse `.btn` oder neu `.btn-block`. */
+    button:not([class]), .btn, .btn-block,
+    button.primary, button.danger, button.ghost { width: 100%; }
+    .row button, .row .btn, button.small, .btn.small, .tab-btn { width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+
+@media print {
+    header, .app-header { background: none; color: #000; box-shadow: none; }
+    .tabs, button, .btn, .toast-host { display: none !important; }
+    .tab-panel { display: block !important; }
+}

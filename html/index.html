@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="app.title.index">ili – Projekte</title>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="ili">
+    <script src="/js/esc.js?v=20260809-xss"></script>
+    <script src="/i18n/de.js" defer></script>
+    <script src="/ui-kit/v1/i18n.js" defer></script>
+    <script src="/nav.js" defer></script>
+    <link rel="stylesheet" href="/css/zones.css?v=20260803-zones">
+    <link rel="stylesheet" href="/css/index.css?v=20260807-kisuche">
+    <link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+    <script src="/js/api.js?v=20260711-restore"></script>
+    <script src="/js/index.js?v=20260809-escxss" defer></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 0 0 3rem 0;
+        }
+
+        /* ── Buttons ──────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--accent, #4a90d9); color: var(--accent-text, #fff); }
+        .btn-primary:hover { background: var(--accent-hover, #357abd); }
+        .btn-primary:disabled { background: var(--accent-deep, #2b4c7e); color: #4a6fa5; cursor: not-allowed; }
+
+        .btn-ghost {
+            background: transparent;
+            color: #718096;
+            border: 1px solid #2d3748;
+        }
+        .btn-ghost:hover { border-color: #4a5568; color: #e2e8f0; }
+
+        /* ── Foto-Cover auf Projekt-Kachel (index.css kennt nur Text-Karten) ── */
+        .project-card.has-photo {
+            background-size: cover;
+            background-position: center;
+        }
+        .project-card.has-photo::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 17, 23, 0.82);
+            z-index: 0;
+        }
+        .project-card.has-photo > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── KI-Settings Drawer ────────────────────────────────── */
+        #ai-drawer.open { transform: translateX(0) !important; }
+        .ai-setting-group { display: flex; flex-direction: column; gap: 0.35rem; }
+        .ai-setting-label { font-size: 0.88rem; font-weight: 600; color: #e2e8f0; }
+        .ai-setting-desc  { font-size: 0.75rem; color: #718096; line-height: 1.4; }
+        .ai-setting-select { background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;border-radius:6px;padding:0.45rem 0.6rem;font-size:0.82rem;width:100%;cursor:pointer; }
+        .ai-setting-select:focus { outline:none;border-color:var(--accent, #4a90d9); }
+        .ai-model-chip { background:#2d3748;color:var(--accent-soft, #90cdf4);border-radius:4px;padding:0.2rem 0.5rem;font-size:0.72rem;font-family:monospace; }
+        .ai-model-chip.claude { color:#fbb6ce; }
+
+        /* ── Modal overlay ────────────────────────────────────── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+            padding: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 14px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 480px;
+            transform: translateY(16px);
+            transition: transform 0.2s;
+        }
+
+        .modal-overlay.open .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #718096;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            transition: color 0.15s;
+            line-height: 1;
+            font-family: inherit;
+        }
+
+        .modal-close:hover { color: #e2e8f0; }
+
+        /* ── Form ─────────────────────────────────────────────── */
+        .form-group { margin-bottom: 1.1rem; }
+
+        .form-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #a0aec0;
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea {
+            width: 100%;
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 0.92rem;
+            padding: 0.6rem 0.9rem;
+            outline: none;
+            transition: border-color 0.15s;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group textarea:focus { border-color: var(--accent, #4a90d9); }
+
+        .form-group textarea { min-height: 75px; }
+
+        /* ── Color picker ─────────────────────────────────────── */
+        .color-picker {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+            margin-top: 0.4rem;
+        }
+
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s;
+            outline: none;
+            padding: 0;
+        }
+
+        .color-swatch:hover { transform: scale(1.15); }
+        .color-swatch.selected { border-color: #fff; transform: scale(1.1); }
+
+        /* ── Modal footer ─────────────────────────────────────── */
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.8rem;
+        }
+
+        .modal-error {
+            background: #3b1515;
+            border: 1px solid #c53030;
+            border-radius: 6px;
+            padding: 0.6rem 0.9rem;
+            color: #fc8181;
+            font-size: 0.83rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        /* ── Foto Upload Overlay ──────────────────────────────── */
+        .photo-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.2rem;
+        }
+        .photo-overlay.active { display: flex; }
+        .photo-overlay-icon { font-size: 3rem; }
+        .photo-overlay-text { font-size: 1.05rem; color: #b794f4; font-weight: 600; }
+        .photo-overlay-sub  { font-size: 0.82rem; color: #718096; }
+    </style>
+    <script src="/theme.js?v=20260716b" defer></script>
+</head>
+<body data-ui-autoinit="off">
+
+    <!-- ── KI-Settings Drawer ──────────────────────────────────── -->
+    <div id="ai-drawer-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900" onclick="closeAiDrawer()"></div>
+    <aside id="ai-drawer" style="position:fixed;top:0;right:0;height:100%;width:340px;max-width:95vw;background:#1a202c;border-left:1px solid #2d3748;transform:translateX(100%);transition:transform .25s ease;z-index:901;display:flex;flex-direction:column;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;border-bottom:1px solid #2d3748">
+            <span style="font-weight:700;font-size:1rem;color:var(--accent-soft, #90cdf4)" data-i18n="idx.kidrawer.titel">⚙️ KI-Einstellungen</span>
+            <button id="idx-btn-ki-drawer-zu" onclick="closeAiDrawer()" data-i18n-aria="idx.kidrawer.zu" aria-label="KI-Bereich schliessen" style="background:none;border:none;color:#718096;font-size:1.3rem;cursor:pointer;padding:0.2rem 0.4rem">✕</button>
+        </div>
+        <div style="padding:1.2rem;flex:1;display:flex;flex-direction:column;gap:1.4rem">
+            <p style="font-size:0.78rem;color:#718096;line-height:1.5" data-i18n="idx.kidrawer.intro">Wähle welches KI-Modell für die einzelnen Features verwendet wird. Claude-Modelle kosten API-Tokens, Ollama läuft lokal kostenlos.</p>
+            <div class="ai-setting-group">
+                <label class="ai-setting-label" data-i18n="idx.kidrawer.chat.label">💬 Kanban Chat</label>
+                <p class="ai-setting-desc" data-i18n="idx.kidrawer.chat.desc">Modell für den Chat auf Projekt-Boards</p>
+                <select id="sel-chat-model" class="ai-setting-select" onchange="saveAiConfig()"></select>
+            </div>
+            <div class="ai-setting-group">
+                <label class="ai-setting-label" data-i18n="idx.kidrawer.vision.label">📸 Foto-Titel</label>
+                <p class="ai-setting-desc" data-i18n="idx.kidrawer.vision.desc">Erkennt Projekttitel aus Fotos (Vision-fähig)</p>
+                <select id="sel-vision-model" class="ai-setting-select" onchange="saveAiConfig()"></select>
+            </div>
+            <div class="ai-setting-group">
+                <label class="ai-setting-label" data-i18n="idx.kidrawer.advisor.label">🤖 KI-Advisor</label>
+                <p class="ai-setting-desc" data-i18n="idx.kidrawer.advisor.desc">Einzelmodell-Modus für Board-Analyse</p>
+                <select id="sel-advisor-model" class="ai-setting-select" onchange="saveAiConfig()"></select>
+            </div>
+            <div class="ai-setting-group">
+                <label class="ai-setting-label" data-i18n="idx.kidrawer.panel.label">🎭 KI-Advisor Panel</label>
+                <p class="ai-setting-desc" data-i18n="idx.kidrawer.panel.desc">Mehrere Modelle diskutieren (Ctrl+Klick = Mehrfachauswahl)</p>
+                <select id="sel-panel-models" class="ai-setting-select" multiple style="height:110px" onchange="saveAiConfig()"></select>
+            </div>
+            <div id="ai-save-status" style="font-size:0.8rem;color:#68d391;min-height:1.2rem;text-align:center"></div>
+            <div style="border-top:1px solid #2d3748;padding-top:1rem">
+                <p style="font-size:0.75rem;color:#4a5568;margin-bottom:0.5rem" data-i18n="idx.kidrawer.modelle">Verfügbare Modelle</p>
+                <div id="ai-model-list" style="display:flex;flex-wrap:wrap;gap:0.3rem"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── Main: 3-Zonen-Layout (Kopf voll · Mitte 1→2→3 Spalten · Fuss voll) ── -->
+    <div class="ds-zones">
+      <!-- Kopfzone (volle Breite): Titel, Aktionen, Toolbar/Filter -->
+      <header class="ds-zone-top">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Projekte</h1>
+                <p class="page-subtitle" id="page-subtitle">Alle Kanban-Boards auf einen Blick</p>
+            </div>
+            <div style="display:flex;gap:0.6rem">
+                <button class="btn btn-primary" id="btn-photo-project" style="background:#7c3aed">📸 Foto-Projekt</button>
+                <input type="file" id="photo-camera-input" accept="image/*" capture="environment" style="display:none" />
+                <button class="btn btn-primary" id="btn-new-project">＋ Neues Projekt</button>
+                <a href="#" id="btn-ai-settings" title="KI-Einstellungen" class="btn" style="text-decoration:none">⚙️ KI</a>
+            </div>
+        </div>
+
+        <div class="error-banner" id="error-banner"></div>
+
+        <div class="toolbar">
+            <input type="search" id="project-search" placeholder="🔍 Projekt suchen…" autocomplete="off">
+            <div class="group-buttons" id="group-buttons">
+                <button id="idx-btn-gruppe-kategorie" class="group-btn active" data-group="category" data-i18n="idx.gruppe.kategorie">📂 Kategorie</button>
+                <button id="idx-btn-gruppe-status" class="group-btn" data-group="status" data-i18n="idx.gruppe.status">📊 Status</button>
+                <button id="idx-btn-gruppe-alpha" class="group-btn" data-group="alpha" data-i18n="idx.gruppe.alpha">🔤 A–Z</button>
+                <button id="idx-btn-gruppe-liste" class="group-btn" data-group="list" data-i18n="idx.gruppe.liste"
+                        data-i18n-title="idx.gruppe.liste.title" title="Flache Liste, sortiert nach Gruppe und Priorität, mit Auto-Entwicklung-Status">📋 Liste</button>
+            </div>
+            <select id="list-filter-cat" class="list-filter" title="Nach Gruppe filtern" style="display:none"></select>
+            <select id="list-filter-auto" class="list-filter" title="Nach Auto-Entwicklung-Status filtern" style="display:none"></select>
+            <select id="list-filter-status" class="list-filter" title="Nach Projekt-Status filtern (Lebenszyklus: Entwurf … Archiviert)" style="display:none"></select>
+            <!-- Eisenhower-Priorisierung: pro Thema (Kategorie) eine eigene Matrix, Drag&Drop -->
+            <button class="group-btn eis-toggle" id="eisenhower-toggle" data-i18n="idx.prio"
+                    title="Pro Thema nach Dringlichkeit/Wichtigkeit sortieren (Drag&amp;Drop)">🎯 Priorisieren</button>
+            <button class="group-btn" id="ki-prio-btn" data-i18n="idx.kiprio"
+                    title="KI ordnet noch nicht einsortierte Projekte in die Eisenhower-Quadranten (deine bleiben unangetastet)">🤖 KI-Prio</button>
+            <button class="group-btn" id="archive-toggle" data-i18n="idx.archiv"
+                    title="Nur die archivierten Projekte anzeigen (zum Aufräumen / Reaktivieren). Pausierte stehen seit 06.08.26 normal in der Übersicht — erkennbar am ⏸️-Status.">🗄 Archiv</button>
+            <button class="group-btn" id="arrange-toggle" data-i18n="idx.anordnen"
+                    title="Kacheln per Drag &amp; Drop neu anordnen (nur Kategorie-Ansicht). Reihenfolge wird im Browser gespeichert.">🔀 Anordnen</button>
+            <button class="group-btn" id="arrange-reset"
+                    title="Benutzerdefinierte Reihenfolge zurücksetzen (alphabetisch)" style="display:none">↩ Reset</button>
+            <span class="count-label" id="count-label"></span>
+            <button class="group-btn" id="ki-search-persist-btn" style="display:none"
+                    title="Nicht das Richtige dabei? KI durchsucht alle Projekte semantisch (nicht nur Titel/Tags).">🤖 KI-Suche</button>
+            <div class="zoom-controls" title="Kartengrösse">
+                <button class="zoom-btn" id="zoom-out" title="Kleiner">−</button>
+                <span class="zoom-label" id="zoom-label">100%</span>
+                <button class="zoom-btn" id="zoom-in" title="Grösser">+</button>
+            </div>
+        </div>
+      </header>
+
+      <!-- Mittelzone: fluid 1→2→3 Spalten (kleine Displays = gestapelt) -->
+      <main class="ds-zone-main">
+        <div id="projects-area">
+            <div class="loading-state"><div class="spinner"></div>Dashboard wird geladen…</div>
+        </div>
+      </main>
+
+      <!-- Fusszone (volle Breite): Status/Branding -->
+      <footer class="ds-zone-bottom">
+        <span data-i18n="footer.brand">Home Server · ili</span>
+        <span id="footer-count" class="ds-foot-count"></span>
+      </footer>
+    </div>
+
+    <!-- ── Foto Upload Overlay ───────────────────────────────── -->
+    <div class="photo-overlay" id="photo-overlay">
+        <div class="photo-overlay-icon">📸</div>
+        <div class="photo-overlay-text" id="photo-overlay-text">Foto wird analysiert…</div>
+        <div class="photo-overlay-sub" id="photo-overlay-sub">Claude erkennt das Thema automatisch</div>
+    </div>
+
+    <!-- ── New Project Modal ──────────────────────────────────── -->
+    <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="modal-title">Neues Projekt</span>
+                <button class="modal-close" id="modal-close" aria-label="Schliessen">✕</button>
+            </div>
+
+            <div class="form-group">
+                <label for="input-name">Projektname *</label>
+                <input type="text" id="input-name" placeholder="z.B. Home Automation" maxlength="80" />
+            </div>
+
+            <div class="form-group">
+                <label for="input-desc">Beschreibung</label>
+                <textarea id="input-desc" placeholder="Kurze Beschreibung des Projekts…" maxlength="300"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="input-icon">Icon (Emoji)</label>
+                <input type="text" id="input-icon" placeholder="📁" maxlength="4" value="📁" />
+            </div>
+
+            <div class="form-group">
+                <label>Farbe</label>
+                <div class="color-picker" id="color-picker">
+                    <button class="color-swatch selected" data-color="#4a90d9" style="background:#4a90d9" title="Blau"   aria-label="Blau"></button>
+                    <button class="color-swatch"          data-color="#68d391" style="background:#68d391" title="Grün"   aria-label="Grün"></button>
+                    <button class="color-swatch"          data-color="#fc8181" style="background:#fc8181" title="Rot"    aria-label="Rot"></button>
+                    <button class="color-swatch"          data-color="#f6ad55" style="background:#f6ad55" title="Orange" aria-label="Orange"></button>
+                    <button class="color-swatch"          data-color="#b794f4" style="background:#b794f4" title="Lila"   aria-label="Lila"></button>
+                    <button class="color-swatch"          data-color="#76e4f7" style="background:#76e4f7" title="Cyan"   aria-label="Cyan"></button>
+                </div>
+            </div>
+
+            <div class="modal-error" id="modal-error"></div>
+
+            <div class="modal-footer">
+                <button class="btn btn-ghost" id="btn-cancel">Abbrechen</button>
+                <button class="btn btn-primary" id="btn-create" data-i18n="idx.create.btn">Projekt anlegen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    'use strict';
+
+    // ── Config ──────────────────────────────────────────────────
+    const DEFAULT_COLUMNS = [
+        { id: 'backlog',     title: 'Backlog',   cards: [] },
+        { id: 'in_progress', title: 'In Arbeit', cards: [] },
+        { id: 'done',        title: 'Erledigt',  cards: [] }
+    ];
+
+    // ── Helpers ─────────────────────────────────────────────────
+    function slugify(str) {
+        return str
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[\s_]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    // ── API ──────────────────────────────────────────────────────
+    async function postBoards(payload) {
+        console.log('[Projects] POST /boards', payload);
+        const res = await fetch('/boards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`POST /boards → HTTP ${res.status}${text ? ': ' + text : ''}`);
+        }
+        const data = await res.json();
+        console.log('[Projects] POST /boards response:', data);
+        return data;
+    }
+
+    async function postBoardColumns(id) {
+        const payload = { columns: DEFAULT_COLUMNS };
+        console.log(`[Projects] POST /board?id=${id}`, payload);
+        const res = await fetch(`/board?id=${encodeURIComponent(id)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`POST /board?id=${id} → HTTP ${res.status}${text ? ': ' + text : ''}`);
+        }
+        const data = await res.json();
+        console.log(`[Projects] POST /board?id=${id} response:`, data);
+        return data;
+    }
+
+    // ── Modal ────────────────────────────────────────────────────
+    let selectedColor = '#4a90d9';
+
+    function openModal() {
+        document.getElementById('input-name').value = '';
+        document.getElementById('input-desc').value = '';
+        document.getElementById('input-icon').value = '📁';
+        document.getElementById('modal-error').style.display = 'none';
+        document.getElementById('btn-create').disabled = false;
+        document.getElementById('btn-create').textContent = t('idx.create.btn', 'Projekt anlegen');
+        selectedColor = '#4a90d9';
+        document.querySelectorAll('.color-swatch').forEach(s => {
+            s.classList.toggle('selected', s.dataset.color === selectedColor);
+        });
+        document.getElementById('modal-overlay').classList.add('open');
+        setTimeout(() => document.getElementById('input-name').focus(), 50);
+        console.log('[Projects] Modal opened');
+    }
+
+    function closeModal() {
+        document.getElementById('modal-overlay').classList.remove('open');
+        console.log('[Projects] Modal closed');
+    }
+
+    async function handleCreate() {
+        const name  = document.getElementById('input-name').value.trim();
+        const desc  = document.getElementById('input-desc').value.trim();
+        const icon  = document.getElementById('input-icon').value.trim() || '📁';
+        const errEl = document.getElementById('modal-error');
+
+        errEl.style.display = 'none';
+
+        if (!name) {
+            errEl.textContent = 'Bitte einen Projektnamen eingeben.';
+            errEl.style.display = 'block';
+            document.getElementById('input-name').focus();
+            console.log('[Projects] Validation failed: empty name');
+            return;
+        }
+
+        const id = slugify(name);
+        if (!id) {
+            errEl.textContent = 'Der Name enthält keine verwendbaren Zeichen für eine ID.';
+            errEl.style.display = 'block';
+            console.log('[Projects] Validation failed: slugify produced empty id for name:', name);
+            return;
+        }
+
+        console.log('[Projects] handleCreate() — id:', id, 'name:', name, 'color:', selectedColor, 'icon:', icon);
+
+        const btnCreate = document.getElementById('btn-create');
+        btnCreate.disabled = true;
+        btnCreate.textContent = t('idx.create.laeuft', 'Wird angelegt…');
+
+        try {
+            await postBoards({ id, name, description: desc, color: selectedColor, icon });
+            await postBoardColumns(id);
+            console.log('[Projects] Board created, navigating to /project.html?id=' + id);
+            closeModal();
+            window.location.href = `/project.html?id=${encodeURIComponent(id)}`;
+        } catch (err) {
+            console.log('[Projects] handleCreate() failed:', err);
+            errEl.textContent = t('idx.create.fehler', 'Fehler: {msg}').replace('{msg}', err.message);
+            errEl.style.display = 'block';
+            btnCreate.disabled = false;
+            btnCreate.textContent = t('idx.create.btn', 'Projekt anlegen');
+        }
+    }
+
+    // ── Event listeners ──────────────────────────────────────────
+    document.getElementById('btn-new-project').addEventListener('click', openModal);
+    document.getElementById('btn-cancel').addEventListener('click', closeModal);
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('btn-create').addEventListener('click', handleCreate);
+
+    document.getElementById('modal-overlay').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    document.getElementById('input-name').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') handleCreate();
+    });
+
+    document.getElementById('color-picker').addEventListener('click', function(e) {
+        const swatch = e.target.closest('.color-swatch');
+        if (!swatch) return;
+        selectedColor = swatch.dataset.color;
+        document.querySelectorAll('.color-swatch').forEach(s => {
+            s.classList.toggle('selected', s === swatch);
+        });
+        console.log('[Projects] Color selected:', selectedColor);
+    });
+
+    // ── Foto-Projekt: direkte Kamera ─────────────────────────────
+    function compressImage(file, maxDim, quality) {
+        return new Promise(function(resolve, reject) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    let w = img.width, h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                        else       { w = Math.round(w * maxDim / h); h = maxDim; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    console.log('[Photos] Komprimiert auf', w + 'x' + h, '— base64-Länge:', dataUrl.split(',')[1].length);
+                    resolve(dataUrl.split(',')[1]);
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    document.getElementById('btn-photo-project').addEventListener('click', function() {
+        document.getElementById('photo-camera-input').click();
+    });
+
+    document.getElementById('photo-camera-input').addEventListener('change', async function() {
+        const file = this.files[0];
+        if (!file) return;
+        this.value = '';   // Reset für nächste Verwendung
+        console.log('[Photos] Datei:', file.name, file.size + ' Bytes', file.type);
+
+        const overlay    = document.getElementById('photo-overlay');
+        const overlayTxt = document.getElementById('photo-overlay-text');
+        const overlaySub = document.getElementById('photo-overlay-sub');
+
+        try {
+            overlay.classList.add('active');
+            overlayTxt.textContent = 'Foto wird vorbereitet…';
+            overlaySub.textContent = 'Bitte warten';
+
+            const photo = await compressImage(file, 1200, 0.82);
+
+            overlayTxt.textContent = 'Claude analysiert das Foto…';
+            overlaySub.textContent = 'Projekttitel wird automatisch erkannt';
+
+            const resp = await fetch('/project-from-photo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ photo: photo, title: '', note: '' })
+            });
+
+            if (!resp.ok) {
+                const txt = await resp.text().catch(function() { return ''; });
+                throw new Error('HTTP ' + resp.status + (txt ? ': ' + txt.substring(0, 120) : ''));
+            }
+
+            const data = await resp.json();
+            console.log('[Photos] Projekt erstellt:', data.board_id, data.board_url);
+            overlayTxt.textContent = t('idx.foto.erstellt', 'Projekt erstellt!');
+            overlaySub.textContent = data.title || data.board_id;
+            window.location.href = '/project.html?id=' + encodeURIComponent(data.board_id);
+
+        } catch(err) {
+            console.error('[Photos] Fehler:', err);
+            overlay.classList.remove('active');
+            alert(t('idx.foto.fehler', 'Foto-Projekt konnte nicht erstellt werden:\n{msg}').replace('{msg}', err.message));
+        }
+    });
+
+    </script>
+
+    <script>
+    // KI-Settings Drawer
+    (function(){
+        var CLAUDE=[{id:'claude-sonnet-4-6',name:'Claude Sonnet 4.6 (API)'},{id:'claude-haiku-4-5-20251001',name:'Claude Haiku 4.5 (API, g\u00fcnstig)'},{id:'claude-opus-4-7',name:'Claude Opus 4.7 (API, teuer)'}];
+        var _t=null;
+        function open(){ document.getElementById('ai-drawer-backdrop').style.display='block'; document.getElementById('ai-drawer').classList.add('open'); load(); }
+        function close(){ document.getElementById('ai-drawer-backdrop').style.display='none'; document.getElementById('ai-drawer').classList.remove('open'); }
+        window.openAiDrawer=open; window.closeAiDrawer=close;
+        var btn=document.getElementById('btn-ai-settings');
+        if(btn) btn.addEventListener('click',function(e){e.preventDefault();open();});
+        async function load(){
+            try{
+                var r=await Promise.all([fetch('/api/models'),fetch('/api/ai-config')]);
+                var md=await r[0].json(); var cfg=await r[1].json();
+                var om=(md.data||[]).map(function(m){return{id:m.id||m.name,name:m.name||m.id};});
+                var all=CLAUDE.concat(om);
+                fs('sel-chat-model',cfg.chat_model,all); fs('sel-vision-model',cfg.vision_title_model,all);
+                fs('sel-advisor-model',cfg.ki_advisor_model,all); fm('sel-panel-models',cfg.ki_advisor_panel_models||[],all);
+                var c=document.getElementById('ai-model-list'); if(!c)return; c.innerHTML='';
+                om.forEach(function(m){var x=document.createElement('span');x.className='ai-model-chip';x.textContent=m.id.split(':')[0];x.title=m.id;c.appendChild(x);});
+                CLAUDE.forEach(function(m){var x=document.createElement('span');x.className='ai-model-chip claude';x.textContent=m.id.split('-').slice(1,3).join('-');x.title=m.name;c.appendChild(x);});
+            }catch(e){var s=document.getElementById('ai-save-status');if(s){s.textContent=t('idx.kidrawer.fehler','✗ Fehler');s.style.color='#fc8181';}}
+        }
+        function fs(id,sel,models){var el=document.getElementById(id);if(!el)return;el.innerHTML='';models.forEach(function(m){var o=document.createElement('option');o.value=m.id;o.textContent=m.name||m.id;if(m.id===sel)o.selected=true;el.appendChild(o);});}
+        function fm(id,sel,models){var el=document.getElementById(id);if(!el)return;el.innerHTML='';models.forEach(function(m){var o=document.createElement('option');o.value=m.id;o.textContent=m.name||m.id;if((sel||[]).indexOf(m.id)>=0)o.selected=true;el.appendChild(o);});}
+        window.saveAiConfig=function(){clearTimeout(_t);_t=setTimeout(async function(){
+            var pm=Array.from(document.getElementById('sel-panel-models').selectedOptions).map(function(o){return o.value;});
+            var cfg={chat_model:document.getElementById('sel-chat-model').value,vision_title_model:document.getElementById('sel-vision-model').value,ki_advisor_model:document.getElementById('sel-advisor-model').value,ki_advisor_panel_models:pm.length?pm:[document.getElementById('sel-advisor-model').value]};
+            var s=document.getElementById('ai-save-status');
+            try{await fetch('/api/ai-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});if(s){s.textContent=t('idx.kidrawer.gespeichert','\u2713 Gespeichert');s.style.color='#68d391';setTimeout(function(){if(s)s.textContent='';},2500);}
+            }catch(e){if(s){s.textContent=t('idx.kidrawer.fehler','\u2717 Fehler');s.style.color='#fc8181';}}
+        },400);};
+    })();
+    </script>
+    <script src="/chat-widget.js"></script>
+</body>
+</html>

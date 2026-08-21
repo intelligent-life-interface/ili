@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐛 Bug-Viewer</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<link rel="stylesheet" href="/css/bugs.css?v=20260716-accent">
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+
+<header>
+  <h1>🐛 Bug-Viewer</h1>
+</header>
+
+<div class="stats" id="stats" style="display:none">
+  <span><span class="dot dot-error"></span><span id="cnt-error">0</span> Errors</span>
+  <span><span class="dot dot-warn"></span><span id="cnt-warn">0</span> Warnings</span>
+  <span id="cnt-total-span"><strong id="cnt-total">0</strong> total</span>
+  <span class="scanned-at" id="scanned-at"></span>
+</div>
+
+<div class="filters" id="filters" style="display:none">
+  <div class="filter-group">
+    <span class="filter-group-label">Level</span>
+    <button id="bugs-btn-level-all" data-i18n="bugs.level.all" class="filter-btn active" data-level="all"     onclick="setLevel('all',this)">Alle</button>
+    <button id="bugs-btn-level-error" data-i18n="bugs.level.error" class="filter-btn"        data-level="error"   onclick="setLevel('error',this)">Errors</button>
+    <button id="bugs-btn-level-warning" data-i18n="bugs.level.warning" class="filter-btn"        data-level="warning" onclick="setLevel('warning',this)">Warnings</button>
+  </div>
+  <div class="filter-group">
+    <span class="filter-group-label">Quelle</span>
+    <button id="bugs-btn-source-all" data-i18n="bugs.source.all" class="filter-btn active" data-source="all"    onclick="setSource('all',this)">Alle</button>
+    <button id="bugs-btn-source-kanban" data-i18n="bugs.source.kanban" class="filter-btn"        data-source="kanban" onclick="setSource('kanban',this)">📋 Kanban</button>
+    <button id="bugs-btn-source-log" data-i18n="bugs.source.log" class="filter-btn"        data-source="log"    onclick="setSource('log',this)">📜 Logs</button>
+  </div>
+  <div class="filter-group">
+    <span class="filter-group-label">Alter</span>
+    <button id="bugs-btn-age-3" data-i18n="bugs.age.3" class="filter-btn"        data-age="3"    onclick="setAge('3',this)">3 h</button>
+    <button id="bugs-btn-age-24" data-i18n="bugs.age.24" class="filter-btn"        data-age="24"   onclick="setAge('24',this)">heute</button>
+    <button id="bugs-btn-age-168" data-i18n="bugs.age.168" class="filter-btn"        data-age="168"  onclick="setAge('168',this)">7 Tage</button>
+    <button id="bugs-btn-age-720" data-i18n="bugs.age.720" class="filter-btn"        data-age="720"  onclick="setAge('720',this)">30 Tage</button>
+    <button id="bugs-btn-age-all" data-i18n="bugs.age.all" class="filter-btn active" data-age="all"  onclick="setAge('all',this)">alle</button>
+  </div>
+  <input type="search" id="search-input" placeholder="Suchen…" oninput="renderBugs()">
+  <button class="primary" id="scan-btn" onclick="scan()" style="font-size:0.78rem;padding:5px 12px">🔍 neu scannen</button>
+  <span class="visible-count" id="visible-count"></span>
+</div>
+
+<main id="main">
+  <div class="empty"><span class="spinner"></span> Logs werden geladen…</div>
+</main>
+
+<script src="/js/api.js?v=20260611a"></script>
+<script src="/js/bugs.js?v=20260809-escxss"></script>
+<script src="chat-widget.js"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+/* zones.css — Globales, wiederverwendbares 3-Zonen-Layout fuer die Dashboard-Seiten.
+ *
+ * Aufbau:
+ *   .ds-zones          Seiten-Wrapper (Flex-Spalte, fuellt die Hoehe)
+ *     .ds-zone-top     Kopfzone   — nutzt die VOLLE Breite (Band ueber die ganze Seite)
+ *     .ds-zone-main    Mittelzone — Inhalt, fluid 1->2->3 Spalten (siehe .ds-flow / .projects-grid)
+ *     .ds-zone-bottom  Fusszone   — nutzt die VOLLE Breite, klebt unten
+ *
+ * Responsive: kleine Displays werden ueber die Media-Queries automatisch erkannt und
+ * stapeln alles auf 1 Spalte. Breite Displays splitten die Mitte in 2-3 Spalten.
+ *
+ * Wiederverwenden: eine Seite haengt <link rel="stylesheet" href="/css/zones.css"> ein
+ * und strukturiert ihren Body als .ds-zones > (.ds-zone-top, .ds-zone-main, .ds-zone-bottom).
+ * Fuer beliebige Karten-/Kachel-Raster in der Mitte die Utility-Klasse .ds-flow nutzen. */
+
+.ds-zones {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* ── Kopf- und Fusszone: volle Seitenbreite (Band) ─────────────────────────── */
+.ds-zone-top,
+.ds-zone-bottom {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.8rem clamp(0.8rem, 3vw, 2rem);
+    background: var(--t-surface, #1a202c);
+}
+.ds-zone-top    { border-bottom: 1px solid var(--t-raised, #2d3748); }
+.ds-zone-bottom {
+    margin-top: auto;                     /* schiebt die Fusszone bei kurzen Seiten nach unten */
+    border-top: 1px solid var(--t-raised, #2d3748);
+    color: var(--t-muted, #718096);
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+/* ── Mittelzone: der eigentliche Inhalt ────────────────────────────────────── */
+.ds-zone-main {
+    width: 100%;
+    max-width: 1500px;                    /* haelt 2-3 Spalten lesbar statt endlos breit */
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 1.2rem clamp(0.8rem, 3vw, 2rem);
+    flex: 1 1 auto;
+}
+
+/* ── Utility: fluid 1 -> 2 -> 3 Spalten fuer beliebige Kachel-Container ─────── */
+.ds-flow {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;                                    /* klein/iPhone: 1 Spalte */
+}
+@media (min-width: 720px)  { .ds-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1200px) { .ds-flow { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* ── Fusszeilen-Detail ─────────────────────────────────────────────────────── */
+.ds-foot-count { font-variant-numeric: tabular-nums; }

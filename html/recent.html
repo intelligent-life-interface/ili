@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🕒 Zuletzt aktiv</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  :root {
+    --bg:var(--t-bg, #0f1117); --surface:var(--t-surface, #1a1d27); --border:var(--t-raised, #2a2d3e);
+    --text:var(--t-text, #e2e8f0); --muted:var(--t-muted, #8892a4); --accent:#4a9eff;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text);
+         font-family:system-ui,-apple-system,sans-serif; min-height:100vh; }
+
+  header { padding:16px 20px; background:var(--surface);
+           border-bottom:1px solid var(--border); }
+  header h1 { font-size:1.05rem; font-weight:600; }
+  header p  { font-size:0.8rem; color:var(--muted); margin-top:4px; }
+
+  .wrap { max-width:820px; margin:0 auto; padding:16px; }
+
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+             margin-bottom:14px; }
+  .toolbar select, .toolbar input {
+    background:var(--surface); color:var(--text); border:1px solid var(--border);
+    border-radius:8px; padding:7px 10px; font-size:0.82rem; font-family:inherit;
+  }
+  .toolbar .count { font-size:0.78rem; color:var(--muted); margin-left:auto; }
+  .auto-toggle { font-size:0.78rem; color:var(--muted); display:flex; align-items:center;
+                 gap:5px; cursor:pointer; user-select:none; }
+  .auto-line { font-size:0.72rem; color:#b48ead; margin-top:3px;
+               overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .when.auto, .when.fresh.auto { color:#b48ead; }  /* schlägt .fresh (steht weiter unten) */
+
+  .list { display:flex; flex-direction:column; gap:8px; }
+
+  .row { display:flex; align-items:center; gap:12px; background:var(--surface);
+         border:1px solid var(--border); border-radius:10px; padding:12px 14px;
+         text-decoration:none; color:inherit; transition:background .12s,border-color .12s; }
+  .row:hover { background:#20242f; border-color:#3a3f56; }
+
+  .icon { font-size:1.4rem; width:34px; text-align:center; flex-shrink:0; }
+  .body { min-width:0; flex:1; }
+  .name-line { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .name { font-weight:600; font-size:0.92rem; }
+  .cat-badge { font-size:0.68rem; color:var(--muted); padding:1px 7px;
+               border-radius:20px; border:1px solid var(--border); white-space:nowrap; }
+  .desc { font-size:0.78rem; color:var(--muted); margin-top:2px;
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .subject { font-size:0.76rem; color:#a3b3c9; margin-top:3px;
+             overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .span { font-size:0.72rem; color:var(--muted); margin-top:3px;
+          font-family:ui-monospace,monospace; }
+  .span b { color:#a3b3c9; font-weight:600; }
+
+  .when { flex-shrink:0; text-align:right; font-size:0.76rem; color:var(--muted);
+          font-family:ui-monospace,monospace; min-width:78px; }
+  .when.fresh { color:#68d391; }
+  .when.none  { opacity:.45; font-style:italic; font-family:inherit; }
+
+  .empty { text-align:center; color:var(--muted); padding:40px 0; font-size:0.85rem; }
+  .gen { text-align:center; font-size:0.72rem; color:var(--muted); margin-top:18px; }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+
+<div class="ds-zones">
+<header class="ds-zone-top">
+  <h1>🕒 Zuletzt aktiv</h1>
+  <p>Projekte sortiert nach echter Arbeit (interaktive Sessions + Commits). KI-Autopilot/Doku-Wartung zählt nur mit aktiviertem 🤖-Toggle.</p>
+</header>
+
+<main class="ds-zone-main">
+<div class="wrap">
+  <div class="toolbar">
+    <select id="cat-filter">
+      <option value="">Alle Kategorien</option>
+    </select>
+    <select id="status-filter">
+      <option value="">Alle Status</option>
+    </select>
+    <select id="time-filter">
+      <option value="0">Alle</option>
+      <option value="1">Heute</option>
+      <option value="7" selected>Letzte 7 Tage</option>
+      <option value="30">Letzte 30 Tage</option>
+    </select>
+    <label class="auto-toggle"><input type="checkbox" id="auto-toggle"> 🤖 KI-Autopilot einbeziehen</label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="gen" id="gen"></div>
+  <div class="gen" id="next-run"></div>
+</div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+
+<script>
+let allProjects = [];
+let nextWorklogRun = null;
+
+function renderNextRun() {
+  const el = document.getElementById('next-run');
+  if (!nextWorklogRun) { el.textContent = ''; return; }
+  const t = new Date(nextWorklogRun).getTime();
+  const diffMin = Math.round((t - Date.now()) / 60000);
+  const time = new Date(nextWorklogRun).toTimeString().slice(0, 5);
+  el.textContent = diffMin > 0
+    ? `🔄 worklog.db aktualisiert sich um ${time} Uhr (in ${diffMin} Min.)`
+    : `🔄 worklog.db-Aktualisierung läuft …`;
+}
+
+function fmtWhen(ts) {
+  if (!ts) return { text: '–', cls: 'none' };
+  const d = new Date(ts.replace(' ', 'T'));
+  if (isNaN(d)) return { text: ts, cls: '' };
+  const now = new Date();
+  const diffH = (now - d) / 36e5;
+  const time = d.toTimeString().slice(0, 5);
+  let text;
+  if (diffH < 24 && d.getDate() === now.getDate()) text = `Heute ${time}`;
+  else {
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    text = (d.getDate() === y.getDate() && diffH < 48)
+      ? `Gestern ${time}`
+      : d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }) + ' ' + time;
+  }
+  return { text, cls: diffH < 24 ? 'fresh' : '' };
+}
+
+function fmtSpan(firstTs, lastTs) {
+  // Spanne des jüngsten aktiven Tages: "aktiv HH:MM–HH:MM · Dauer".
+  // Nur wenn beide Zeitpunkte am selben Tag liegen und auseinanderliegen.
+  if (!firstTs || !lastTs) return '';
+  const f = new Date(firstTs.replace(' ', 'T'));
+  const l = new Date(lastTs.replace(' ', 'T'));
+  if (isNaN(f) || isNaN(l)) return '';
+  if (firstTs.slice(0, 10) !== lastTs.slice(0, 10)) return '';  // anderer Tag
+  const min = Math.round((l - f) / 60000);
+  if (min < 1) return '';  // Einzelaktion, keine sinnvolle Spanne
+  const h = Math.floor(min / 60), m = min % 60;
+  const dur = h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`;
+  const ft = f.toTimeString().slice(0, 5), lt = l.toTimeString().slice(0, 5);
+  return `<div class="span">⏱ aktiv <b>${ft}–${lt}</b> · ${dur}</div>`;
+}
+
+// Effektiver Sortier-Zeitstempel: Default nur echte Arbeit (activity_ts, gesetzt
+// bei interaktiven Änderungen); mit Toggle zählt auch KI-Autopilot/Doku-Wartung.
+function effTs(p, includeAuto) {
+  if (!includeAuto) return p.activity_ts;
+  if (!p.activity_ts) return p.activity_auto_ts;
+  if (!p.activity_auto_ts) return p.activity_ts;
+  return p.activity_auto_ts > p.activity_ts ? p.activity_auto_ts : p.activity_ts;
+}
+
+const AUTO_KIND_LABEL = { automat: 'KI-Autopilot', doku: 'Doku-Pflege' };
+
+function render() {
+  const catSel = document.getElementById('cat-filter').value;
+  const statusSel = document.getElementById('status-filter').value;
+  const days = parseInt(document.getElementById('time-filter').value, 10);
+  const includeAuto = document.getElementById('auto-toggle').checked;
+  const cutoff = days > 0 ? Date.now() - days * 86400000 : null;
+
+  const filtered = allProjects.filter(p => {
+    if (catSel && p.category !== catSel) return false;
+    if (statusSel && p.status !== statusSel) return false;
+    if (cutoff !== null) {
+      const ts = effTs(p, includeAuto);
+      if (!ts) return false;
+      const t = new Date(ts.replace(' ', 'T')).getTime();
+      if (isNaN(t) || t < cutoff) return false;
+    }
+    return true;
+  });
+  filtered.sort((a, b) => (effTs(b, includeAuto) || '').localeCompare(effTs(a, includeAuto) || ''));
+
+  document.getElementById('count').textContent = `${filtered.length} Projekt${filtered.length === 1 ? '' : 'e'}`;
+
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">Keine Projekte im gewählten Zeitraum/Filter.</div>';
+    return;
+  }
+  for (const p of filtered) {
+    const a = document.createElement('a');
+    a.className = 'row';
+    a.href = `/project.html?id=${encodeURIComponent(p.id)}`;
+    // Spalte rechts: mit Toggle der effektive (ggf. Autopilot-)Zeitpunkt, sonst echte Arbeit
+    const shownTs = effTs(p, includeAuto);
+    const isAutoShown = includeAuto && shownTs && shownTs !== p.activity_ts;
+    const when = fmtWhen(shownTs);
+    const subject = p.activity_subject
+      ? `<div class="subject">💬 ${escapeHtml(p.activity_subject)}</div>` : '';
+    const span = fmtSpan(p.activity_first_ts, p.activity_ts);
+    // Autopilot-Hinweis immer zeigen, wenn KI-Wartung NEUER als die letzte echte Arbeit ist
+    let autoLine = '';
+    if (p.activity_auto_ts && (!p.activity_ts || p.activity_auto_ts > p.activity_ts)) {
+      const aw = fmtWhen(p.activity_auto_ts);
+      const kind = AUTO_KIND_LABEL[p.activity_auto_kind] || 'KI-Wartung';
+      const detail = p.activity_auto_subject ? ` — ${escapeHtml(p.activity_auto_subject)}` : '';
+      autoLine = `<div class="auto-line">🤖 ${kind} ${aw.text}${detail}</div>`;
+    }
+    const desc = p.description ? `<div class="desc">${escapeHtml(p.description)}</div>` : '';
+    a.innerHTML = `
+      <div class="icon">${p.icon || '📁'}</div>
+      <div class="body">
+        <div class="name-line">
+          <span class="name">${escapeHtml(p.name)}</span>
+          ${p.category_label ? `<span class="cat-badge" style="color:${p.color}">${p.category_label}</span>` : ''}
+          ${p.status_label ? `<span class="cat-badge">${p.status_emoji || ''} ${p.status_label}</span>` : ''}
+        </div>
+        ${desc}
+        ${subject}
+        ${autoLine}
+        ${span}
+      </div>
+      <div class="when ${when.cls}${isAutoShown ? ' auto' : ''}">${isAutoShown ? '🤖 ' : ''}${when.text}</div>`;
+    list.appendChild(a);
+  }
+}
+
+const escapeHtml = window.escHtml;
+
+function fillCategoryFilter(projects) {
+  const sel = document.getElementById('cat-filter');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Alle Kategorien</option>';
+  const seen = new Map();
+  for (const p of projects) {
+    if (p.category && !seen.has(p.category)) seen.set(p.category, p.category_label || p.category);
+  }
+  for (const [val, label] of [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]))) {
+    const o = document.createElement('option');
+    o.value = val; o.textContent = label;
+    sel.appendChild(o);
+  }
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
+const STATUS_ORDER = ['entwurf', 'in_bearbeitung', 'blockiert', 'pausiert', 'abgeschlossen', 'archiviert'];
+
+function fillStatusFilter(projects) {
+  const sel = document.getElementById('status-filter');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Alle Status</option>';
+  const seen = new Map();
+  for (const p of projects) {
+    if (p.status && !seen.has(p.status)) {
+      seen.set(p.status, `${p.status_emoji || ''} ${p.status_label || p.status}`.trim());
+    }
+  }
+  const ordered = [...seen.entries()].sort((a, b) => STATUS_ORDER.indexOf(a[0]) - STATUS_ORDER.indexOf(b[0]));
+  for (const [val, label] of ordered) {
+    const o = document.createElement('option');
+    o.value = val; o.textContent = label;
+    sel.appendChild(o);
+  }
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
+async function load() {
+  try {
+    const r = await fetch('/api/projects/recent?limit=500&ts=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    allProjects = data.projects || [];
+    fillCategoryFilter(allProjects);
+    fillStatusFilter(allProjects);
+    render();
+    document.getElementById('gen').textContent =
+      `${data.with_activity} von ${data.total} Projekten mit erkannter Worklog-Aktivität`;
+    nextWorklogRun = data.next_worklog_run || null;
+    renderNextRun();
+  } catch (e) {
+    document.getElementById('list').innerHTML =
+      `<div class="empty">⚠️ Konnte Aktivitätsdaten nicht laden: ${e.message}</div>`;
+  }
+}
+
+document.getElementById('cat-filter').addEventListener('change', render);
+document.getElementById('status-filter').addEventListener('change', render);
+document.getElementById('time-filter').addEventListener('change', render);
+// Toggle-Zustand überlebt Reloads (Seite läuft oft dauerhaft auf dem Zweitmonitor)
+const autoToggle = document.getElementById('auto-toggle');
+autoToggle.checked = localStorage.getItem('recent_include_auto') === '1';
+autoToggle.addEventListener('change', () => {
+  localStorage.setItem('recent_include_auto', autoToggle.checked ? '1' : '0');
+  render();
+});
+load();
+
+// Auto-Refresh: Seite bleibt oft offen (zweiter Monitor) — Daten sollen ohne manuelles
+// Neuladen aktuell bleiben. Pausiert im Hintergrund-Tab, holt beim Zurückkehren sofort nach.
+const REFRESH_MS = 30000;
+let refreshTimer = setInterval(() => { if (!document.hidden) load(); }, REFRESH_MS);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+setInterval(renderNextRun, 30000);
+</script>
+</body>
+</html>

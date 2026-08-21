@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Neues Projekt</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  :root { --bg:var(--t-bg, #0f1117); --surface:var(--t-surface, #1a1d27); --border:var(--t-raised, #2a2d3e); --text:var(--t-text, #e2e8f0); --muted:var(--t-muted, #8892a4);
+          --accent:#4a9eff; --purple:#b794f4; --green:#68d391; --error:#fc8181; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:system-ui,sans-serif;
+         min-height:100vh; display:flex; flex-direction:column; }
+  .center-wrap { flex:1; display:flex; flex-direction:column; align-items:center;
+         justify-content:center; gap:16px; padding:20px; }
+
+  .icon { font-size:3.5rem; }
+  h1    { font-size:1.1rem; color:var(--muted); }
+
+  .field { width:100%; max-width:380px; }
+  .field label { display:block; font-size:0.78rem; color:var(--muted); margin-bottom:5px; }
+  .field input, .field textarea {
+    width:100%; background:var(--surface); color:var(--text); border:1px solid var(--border);
+    border-radius:10px; padding:12px; font-size:0.95rem; font-family:inherit; resize:none;
+  }
+  .field input:focus, .field textarea:focus { outline:none; border-color:var(--accent); }
+
+  /* Foto(s) (optional, mehrere möglich) */
+  .foto-add { width:100%; max-width:380px; padding:11px; border-radius:10px;
+              background:var(--surface); border:1px dashed var(--border); color:var(--muted);
+              font-size:0.9rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .foto-add:active { opacity:0.85; }
+  #foto-input { display:none; }
+  #foto-grid { width:100%; max-width:380px; display:flex; flex-wrap:wrap; gap:8px; }
+  #foto-grid:empty { display:none; }
+  .foto-thumb { position:relative; width:76px; height:76px; }
+  .foto-thumb img { width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid var(--border); }
+  .foto-thumb button { position:absolute; top:-7px; right:-7px; width:22px; height:22px; border-radius:50%;
+                       border:none; background:var(--error); color:#fff; font-size:0.8rem; line-height:1;
+                       cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+  .btn { width:100%; max-width:380px; padding:14px; border-radius:10px; border:none;
+         background:var(--accent); color: var(--accent-text, #fff); font-size:1rem; font-weight:600;
+         cursor:pointer; }
+  .btn:active { opacity:0.85; }
+  .btn:disabled { opacity:0.5; cursor:default; }
+
+  .msg { font-size:0.85rem; color:var(--muted); text-align:center; max-width:340px; }
+  .msg.error { color:var(--error); }
+  .msg.ok    { color:var(--green); }
+
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85);
+             align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:10; }
+  .overlay.show { display:flex; }
+  .spinner { width:36px; height:36px; border:3px solid var(--border);
+             border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .overlay p { font-size:0.95rem; }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body>
+
+<div class="center-wrap">
+  <span class="icon">✏️</span>
+  <h1>Neues Projekt erstellen</h1>
+
+  <div class="field">
+    <label>Projektname</label>
+    <input type="text" id="name" placeholder="z.B. smarte küchen beleuchtig…" autofocus>
+  </div>
+
+  <div class="field">
+    <label>Beschreibung <span style="color:var(--muted);font-size:0.75rem">(optional — mehr Info = bessere Tags)</span></label>
+    <textarea id="desc" rows="3" placeholder="Was soll das Projekt können? Welche Technologien? Welches Ziel?"></textarea>
+  </div>
+
+  <!-- Foto(s) optional, mehrere möglich: Formular + Fotos sind „ein und dasselbe" -->
+  <div id="foto-grid"></div>
+  <button type="button" class="foto-add" id="foto-add" onclick="document.getElementById('foto-input').click()">
+    📷 Foto(s) hinzufügen (optional)
+  </button>
+  <input type="file" id="foto-input" accept="image/*" capture="environment" multiple onchange="handlePick(this)">
+
+  <button class="btn" id="create-btn" onclick="createProject()">Projekt erstellen</button>
+
+  <p class="msg" id="msg">ID wird sofort vergeben (kein Doppelprojekt bei Timeout) · KI ergänzt Name, Tags &amp; Ideen-Karten im Hintergrund.</p>
+
+  <div class="overlay" id="overlay">
+    <div class="spinner"></div>
+    <p>Projekt wird angelegt…</p>
+  </div>
+</div>
+
+<script>
+// Relativ über nginx (Port 80/443) → FastAPI 8798. NIE Ports hartcodieren.
+const API = '';
+let pendingPhotos = [];     // komprimierte Fotos (dataURLs) — optional, mehrere möglich
+let clientBoardId = null;   // wird EINMAL vergeben und bei Retry wiederverwendet (Idempotenz)
+
+document.getElementById('name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') createProject();
+});
+
+// Client-Slugify (grob wie project_creator._slugify) für eine lesbare, stabile Board-ID.
+function slugify(s) {
+  return (s || '').toLowerCase().trim()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^\w\s-]/g, '').replace(/[\s_]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+function rand(n) { return Math.random().toString(36).slice(2, 2 + n); }
+
+// Foto(s) NUR entgegennehmen + anzeigen (nicht sofort hochladen). Mehrfach-Auswahl möglich,
+// und wiederholtes Antippen von „Foto(s) hinzufügen" hängt weitere an.
+async function handlePick(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  for (const file of files) {
+    try {
+      pendingPhotos.push(await compressImage(file, 1200, 0.82));
+    } catch (e) {
+      setMsg('❌ Ein Foto konnte nicht gelesen werden: ' + e.message, 'error');
+    }
+  }
+  renderThumbs();
+}
+function removeFoto(idx) {
+  pendingPhotos.splice(idx, 1);
+  renderThumbs();
+}
+function renderThumbs() {
+  const grid = document.getElementById('foto-grid');
+  grid.innerHTML = '';
+  pendingPhotos.forEach((src, idx) => {
+    const div = document.createElement('div');
+    div.className = 'foto-thumb';
+    const img = document.createElement('img'); img.src = src; img.alt = 'Vorschau';
+    const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = '✕';
+    btn.title = 'Entfernen'; btn.onclick = () => removeFoto(idx);
+    div.append(img, btn); grid.append(div);
+  });
+  document.getElementById('foto-add').textContent =
+    pendingPhotos.length ? '📷 Weiteres Foto hinzufügen' : '📷 Foto(s) hinzufügen (optional)';
+}
+
+async function createProject() {
+  const name = document.getElementById('name').value.trim();
+  const desc = document.getElementById('desc').value.trim();
+  if (!name && !pendingPhotos.length) { document.getElementById('name').focus(); return; }
+
+  // ID EINMAL vergeben und behalten → ein Retry (nach Timeout) trifft dieselbe ID
+  // → Server legt kein zweites Board an (Idempotenz).
+  if (!clientBoardId) {
+    const base = slugify(name) || 'projekt';
+    clientBoardId = `${base}-${rand(6)}`;
+  }
+
+  document.getElementById('create-btn').disabled = true;
+  document.getElementById('overlay').classList.add('show');
+  setMsg('');
+
+  try {
+    const payload = { id: clientBoardId, name, description: desc };
+    if (pendingPhotos.length) {
+      payload.photos = pendingPhotos;
+      const gps = await getGPS().catch(() => null);
+      if (gps) Object.assign(payload, gps);
+    }
+
+    const res  = await fetch(`${API}/boards`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    document.getElementById('overlay').classList.remove('show');
+
+    if (!res.ok) {
+      document.getElementById('create-btn').disabled = false;
+      setMsg((data.message || data.error || data.detail || 'Fehler'), 'error');
+      return;
+    }
+    setMsg(`✅ "${data.name}" angelegt — KI ergänzt im Hintergrund`, 'ok');
+    setTimeout(() => { window.location.href = `/project.html?id=${encodeURIComponent(data.id)}`; }, 400);
+  } catch(e) {
+    // Netzwerk-/Timeout-Fehler: Button wieder frei, clientBoardId bleibt → Retry = idempotent.
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('create-btn').disabled = false;
+    setMsg('❌ ' + e.message + ' — nochmal tippen legt kein Doppelprojekt an', 'error');
+  }
+}
+
+function setMsg(t, cls) { const el = document.getElementById('msg'); el.textContent = t; el.className = 'msg' + (cls ? ' '+cls : ''); }
+
+async function compressImage(file, maxPx, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else       { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject; img.src = url;
+  });
+}
+
+function getGPS() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject();
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({ gps_lat: p.coords.latitude, gps_lon: p.coords.longitude,
+                     gps_alt: p.coords.altitude, gps_accuracy: p.coords.accuracy }),
+      reject, { timeout: 5000, maximumAge: 30000 }
+    );
+  });
+}
+</script>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</body>
+</html>

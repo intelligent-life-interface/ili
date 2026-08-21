@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏠 Manager – Tagesüberblick</title>
+<script src="/js/esc.js?v=20260810-manager"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  body { font-family: system-ui, sans-serif; background:var(--t-surface, #1a202c); color:var(--t-text, #e2e8f0); margin:0; }
+  .wrap { max-width:1100px; margin:0 auto; padding:1rem; }
+  h1 { font-size:1.4rem; }
+  .hint { color:var(--t-text2, #a0aec0); font-size:.85rem; margin:.2rem 0 1rem; }
+  h2 { font-size:1rem; border-bottom:1px solid var(--t-line2, #4a5568); padding-bottom:.3rem; margin-top:1.6rem; display:flex; align-items:center; gap:.5rem; justify-content:space-between; }
+  .updated { font-size:.72rem; color:var(--t-muted, #718096); font-weight:400; }
+  .card { background:var(--t-raised, #2d3748); border:1px solid var(--t-line2, #4a5568); border-radius:10px; padding:.9rem 1rem; }
+  .card h2 { border:0; margin-top:0; }
+  .card h3 { font-size:.92rem; margin:.9rem 0 .3rem; color:var(--t-text2, #a0aec0); }
+  .card h3:first-child { margin-top:0; }
+  .card ul { margin:.2rem 0 .6rem; padding-left:1.2rem; }
+  .card li { margin:.15rem 0; font-size:.9rem; }
+  .card li.bad { color:#fc8181; }
+  .card li.warn { color:#f6ad55; }
+  .card li.ok { color:#68d391; }
+  .card p { margin:.3rem 0; font-size:.9rem; }
+  .card .quote { font-size:.85rem; color:var(--t-text2, #a0aec0); border-left:3px solid var(--t-line2, #4a5568); padding-left:.6rem; margin:.3rem 0; }
+  .empty { color:var(--t-muted, #718096); font-style:italic; padding:.5rem 0; }
+  .pillrow { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.7rem; }
+  .pill-btn { background:var(--t-line2, #374151); border:1px solid var(--t-line2, #4a5568); color:var(--t-text, #e2e8f0);
+              border-radius:8px; padding:.3rem .6rem; cursor:pointer; font-size:.8rem; }
+  .pill-btn:hover { background:#4a5568; }
+  .pill-btn.active { background:#3182ce; border-color:#2b6cb0; }
+  .report-pre { white-space:pre-wrap; font-family:inherit; font-size:.88rem; margin:.4rem 0 0; }
+  .cat { font-size:.72rem; color:var(--t-text2, #a0aec0); }
+</style>
+</head>
+<body>
+<div class="ds-zones">
+<header class="ds-zone-top">
+  <h1>🏠 Manager – Tagesüberblick</h1>
+  <div class="hint">Verdichteter Stand statt Kanban-Karten: Signale, Strategie, Verlauf.
+    Aktualisiert sich alle 30&nbsp;s. <a href="/project.html?id=manager" style="color:#63b3ed">📋 Board öffnen</a> ·
+    <a href="/" style="color:#63b3ed">← Projekte</a></div>
+</header>
+<main class="ds-zone-main">
+<div class="wrap">
+
+  <h2>📡 Status <span class="updated" id="status-updated"></span></h2>
+  <div id="status-box" class="card"><div class="empty">⏳ Lade…</div></div>
+
+  <h2>🧭 Strategie <span class="updated" id="strategie-updated"></span></h2>
+  <div id="strategie-box" class="card"><div class="empty">⏳ Lade…</div></div>
+
+  <h2>📅 Tagesberichte-Verlauf</h2>
+  <div id="report-dates" class="pillrow"></div>
+  <div id="report-text" class="card"><div class="empty">⏳ Lade…</div></div>
+
+</div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = window.escHtml;
+
+// Minimaler Markdown->HTML-Renderer für state.md/STRATEGIE.md (# / ## / - / > / **bold**).
+// Kein voller Parser nötig — beide Dateien folgen einem festen, einfachen Muster.
+function inline(s){ return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
+function mdToHtml(text){
+  if(!text || !text.trim()) return '<div class="empty">— keine Daten —</div>';
+  let html = '', inList = false;
+  const closeList = () => { if(inList){ html += '</ul>'; inList=false; } };
+  for(const raw of text.split('\n')){
+    const line = raw.trimEnd();
+    let m;
+    if(!line){ closeList(); continue; }
+    if((m = line.match(/^##\s+(.*)/))){ closeList(); html += `<h3>${inline(m[1])}</h3>`; }
+    else if((m = line.match(/^#\s+(.*)/))){ closeList(); html += `<h3>${inline(m[1])}</h3>`; }
+    else if((m = line.match(/^>\s?(.*)/))){ closeList(); html += `<div class="quote">${inline(m[1])}</div>`; }
+    else if((m = line.match(/^[-*]\s+(.*)/))){
+      if(!inList){ html += '<ul>'; inList = true; }
+      const content = m[1];
+      const cls = content.includes('🔴') ? ' class="bad"' : content.includes('🟡') ? ' class="warn"' : content.includes('🟢') ? ' class="ok"' : '';
+      html += `<li${cls}>${inline(content)}</li>`;
+    }
+    else { closeList(); html += `<p>${inline(line)}</p>`; }
+  }
+  closeList();
+  return html;
+}
+
+function fmtDate(iso){
+  if(!iso) return '';
+  try{ return 'Stand: ' + new Date(iso).toLocaleString('de-CH', {dateStyle:'short', timeStyle:'short'}); }
+  catch(e){ return ''; }
+}
+
+let reports = [], selectedIdx = 0;
+
+function renderReports(){
+  $('report-dates').innerHTML = reports.length
+    ? reports.map((r,i) => `<button class="pill-btn${i===selectedIdx?' active':''}" onclick="selectReport(${i})">${esc(r.date)}</button>`).join('')
+    : '';
+  selectReport(selectedIdx);
+}
+
+function selectReport(i){
+  selectedIdx = i;
+  document.querySelectorAll('.pill-btn').forEach((el, idx) => el.classList.toggle('active', idx === i));
+  const r = reports[i];
+  $('report-text').innerHTML = r
+    ? `<div class="cat">${esc(r.date)}</div><pre class="report-pre">${esc(r.text)}</pre>`
+    : '<div class="empty">Noch keine Historie — ab dem nächsten Manager-Lauf (06:30) sammelt sich hier der Verlauf.</div>';
+}
+window.selectReport = selectReport;
+
+async function load(){
+  try{
+    const [status, strat, rep] = await Promise.all([
+      fetch('/api/manager/status').then(r => r.json()),
+      fetch('/api/manager/strategie').then(r => r.json()),
+      fetch('/api/manager/reports?limit=30').then(r => r.json())
+    ]);
+    $('status-box').innerHTML = mdToHtml(status.raw);
+    $('status-updated').textContent = fmtDate(status.updated);
+    $('strategie-box').innerHTML = mdToHtml(strat.raw);
+    $('strategie-updated').textContent = fmtDate(strat.updated);
+    reports = rep.reports || [];
+    selectedIdx = 0;
+    renderReports();
+  }catch(e){ console.error('[manager.html] load fehlgeschlagen', e); }
+}
+load();
+setInterval(load, 30000);
+</script>
+<script src="/theme.js?v=20260716b" defer></script>
+</body>
+</html>

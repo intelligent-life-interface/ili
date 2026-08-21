@@ -1,0 +1,64 @@
+{
+  "columns": [
+    {
+      "id": "backlog",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "decision-ki-quelle",
+          "title": "🟡 ENTSCHEIDUNG: Welche KI soll ili nutzen?",
+          "desc": "Alle Kanban-Grundfunktionen laufen ohne KI. Die Anbindung entscheidet nur, womit du im Projekt-Terminal arbeitest und ob KI-Funktionen im Dashboard verfügbar sind.\n\nOptionen:\n1. Keine — Kanban reicht mir\n2. Claude-Abo: Anmeldung direkt im Projekt-Terminal\n3. API-Schlüssel (Anthropic Console), Abrechnung nach Verbrauch\n4. Lokales Modell über Ollama — kostenlos, dafür schwächer",
+          "description": "Alle Kanban-Grundfunktionen laufen ohne KI. Die Anbindung entscheidet nur, womit du im Projekt-Terminal arbeitest und ob KI-Funktionen im Dashboard verfügbar sind.\n\nOptionen:\n1. Keine — Kanban reicht mir\n2. Claude-Abo: Anmeldung direkt im Projekt-Terminal\n3. API-Schlüssel (Anthropic Console), Abrechnung nach Verbrauch\n4. Lokales Modell über Ollama — kostenlos, dafür schwächer",
+          "labels": [
+            {
+              "text": "Entscheidung",
+              "color": "#d69e2e"
+            }
+          ]
+        },
+        {
+          "id": "card_k1",
+          "title": "Schlüssel eintragen",
+          "desc": "In die `.env`, danach Stack neu starten:\n\n    ANTHROPIC_API_KEY=...            # Console-Schlüssel\n    CLAUDE_CODE_OAUTH_TOKEN=...      # Abo-Token aus `claude setup-token`, 1 Jahr\n    OLLAMA_URL=http://...:11434      # lokales Modell\n\nOhne Eintrag führt dich das Terminal beim ersten Öffnen durch die Anmeldung.",
+          "description": "In die `.env`, danach Stack neu starten:\n\n    ANTHROPIC_API_KEY=...            # Console-Schlüssel\n    CLAUDE_CODE_OAUTH_TOKEN=...      # Abo-Token aus `claude setup-token`, 1 Jahr\n    OLLAMA_URL=http://...:11434      # lokales Modell\n\nOhne Eintrag führt dich das Terminal beim ersten Öffnen durch die Anmeldung.",
+          "owner": "me"
+        },
+        {
+          "id": "card_k2",
+          "title": "Modell zur Aufgabe wählen",
+          "desc": "Faustregel: das schwächste Modell, das die Aufgabe zuverlässig löst. Sortieren, Umformulieren und Aufräumen können kleine Modelle. Architektur, mehrstufige Umbauten und Sicherheitsfragen gehören auf das stärkste, das du hast — dort spart das falsche Modell nichts, es kostet Nacharbeit.",
+          "description": "Faustregel: das schwächste Modell, das die Aufgabe zuverlässig löst. Sortieren, Umformulieren und Aufräumen können kleine Modelle. Architektur, mehrstufige Umbauten und Sicherheitsfragen gehören auf das stärkste, das du hast — dort spart das falsche Modell nichts, es kostet Nacharbeit."
+        },
+        {
+          "id": "decision-ki-budget",
+          "title": "🟡 ENTSCHEIDUNG: Brauchst du eine Kostenbremse?",
+          "desc": "Eine KI, die im Hintergrund Karten abarbeitet, verbraucht auch dann, wenn du nicht hinschaust. Wer nach Verbrauch zahlt, sollte das vor dem ersten Automaten klären, nicht nach der ersten Rechnung.\n\nOptionen:\n1. Nein — Abo, feste Kosten\n2. Ja: monatliches Budget festlegen und mitzählen\n3. Ja: KI läuft nur, wenn ich sie ausdrücklich starte",
+          "description": "Eine KI, die im Hintergrund Karten abarbeitet, verbraucht auch dann, wenn du nicht hinschaust. Wer nach Verbrauch zahlt, sollte das vor dem ersten Automaten klären, nicht nach der ersten Rechnung.\n\nOptionen:\n1. Nein — Abo, feste Kosten\n2. Ja: monatliches Budget festlegen und mitzählen\n3. Ja: KI läuft nur, wenn ich sie ausdrücklich starte",
+          "labels": [
+            {
+              "text": "Entscheidung",
+              "color": "#d69e2e"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "inprogress",
+      "title": "In Bearbeitung",
+      "cards": []
+    },
+    {
+      "id": "review",
+      "title": "Überprüfen",
+      "cards": []
+    },
+    {
+      "id": "done",
+      "title": "Erledigt",
+      "cards": []
+    }
+  ],
+  "rev": 1,
+  "title": "KI-Anbindung"
+}

@@ -1,0 +1,57 @@
+{
+  "columns": [
+    {
+      "id": "backlog",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "card_b1",
+          "title": "Was gesichert werden muss",
+          "desc": "Drei Dinge, mehr nicht:\n• Volume `ili_dashboard-boards` — deine Projekte und Karten\n• Volume `ili_dashboard-data` — Anwendungsdaten\n• die Datei `.env` — deine Einstellungen und Schlüssel (steht bewusst nicht in git)\n\nLäuft das Terminal, kommt `ili_terminal-home` dazu (die Claude-Anmeldung) und dein Projektcode-Ordner.",
+          "description": "Drei Dinge, mehr nicht:\n• Volume `ili_dashboard-boards` — deine Projekte und Karten\n• Volume `ili_dashboard-data` — Anwendungsdaten\n• die Datei `.env` — deine Einstellungen und Schlüssel (steht bewusst nicht in git)\n\nLäuft das Terminal, kommt `ili_terminal-home` dazu (die Claude-Anmeldung) und dein Projektcode-Ordner."
+        },
+        {
+          "id": "decision-backup",
+          "title": "🟡 ENTSCHEIDUNG: Wie sicherst du?",
+          "desc": "Ein Backup, das man von Hand machen muss, wird nicht gemacht — deshalb lieber eine kleine automatische Lösung als eine perfekte geplante.\n\nOptionen:\n1. Von Hand, wenn ich daran denke\n2. Automatisch per Cron/systemd-Timer auf dem Host\n3. Automatisch auf ein NAS oder in eine Cloud\n4. Gar nicht — die Daten sind mir nicht wichtig genug",
+          "description": "Ein Backup, das man von Hand machen muss, wird nicht gemacht — deshalb lieber eine kleine automatische Lösung als eine perfekte geplante.\n\nOptionen:\n1. Von Hand, wenn ich daran denke\n2. Automatisch per Cron/systemd-Timer auf dem Host\n3. Automatisch auf ein NAS oder in eine Cloud\n4. Gar nicht — die Daten sind mir nicht wichtig genug",
+          "labels": [
+            {
+              "text": "Entscheidung",
+              "color": "#d69e2e"
+            }
+          ]
+        },
+        {
+          "id": "card_b2",
+          "title": "Updates einspielen",
+          "desc": "    git pull\n    docker compose build\n    docker compose down\n    docker compose up -d\n\nDeine Daten bleiben (Volumes), deine `.env` bleibt (nicht in git). Neue Einstellungen tauchen in `.env.example` auf — nach einem Update lohnt `diff .env .env.example`.",
+          "description": "    git pull\n    docker compose build\n    docker compose down\n    docker compose up -d\n\nDeine Daten bleiben (Volumes), deine `.env` bleibt (nicht in git). Neue Einstellungen tauchen in `.env.example` auf — nach einem Update lohnt `diff .env .env.example`."
+        },
+        {
+          "id": "card_b3",
+          "title": "Logs und Gesundheit im Blick",
+          "desc": "    docker compose ps                  # läuft alles?\n    docker compose logs -f api         # Backend\n    docker compose logs web | grep ili-setup   # Route + Terminal-Passwort\n\nPrüfe im Zweifel immer einen echten API-Pfad (`/boards`), nie nur die Startseite: das Frontend antwortet auch dann mit 200, wenn das Backend tot ist.",
+          "description": "    docker compose ps                  # läuft alles?\n    docker compose logs -f api         # Backend\n    docker compose logs web | grep ili-setup   # Route + Terminal-Passwort\n\nPrüfe im Zweifel immer einen echten API-Pfad (`/boards`), nie nur die Startseite: das Frontend antwortet auch dann mit 200, wenn das Backend tot ist."
+        }
+      ]
+    },
+    {
+      "id": "inprogress",
+      "title": "In Bearbeitung",
+      "cards": []
+    },
+    {
+      "id": "review",
+      "title": "Überprüfen",
+      "cards": []
+    },
+    {
+      "id": "done",
+      "title": "Erledigt",
+      "cards": []
+    }
+  ],
+  "rev": 1,
+  "title": "Betrieb: Sicherung, Updates, Logs"
+}

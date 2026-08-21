@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐙 GitHub-Status</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  :root {
+    --bg:var(--t-bg, #0f1117); --surface:var(--t-surface, #1a1d27); --border:var(--t-raised, #2a2d3e);
+    --text:var(--t-text, #e2e8f0); --muted:var(--t-muted, #8892a4); --accent:#4a9eff;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text);
+         font-family:system-ui,-apple-system,sans-serif; min-height:100vh; }
+
+  header { padding:16px 20px; background:var(--surface);
+           border-bottom:1px solid var(--border); }
+  header h1 { font-size:1.05rem; font-weight:600; }
+  header p  { font-size:0.8rem; color:var(--muted); margin-top:4px; }
+
+  .wrap { max-width:860px; margin:0 auto; padding:16px; }
+
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+             margin-bottom:14px; }
+  .toolbar input, .toolbar select {
+    background:var(--surface); color:var(--text); border:1px solid var(--border);
+    border-radius:8px; padding:7px 10px; font-size:0.82rem; font-family:inherit;
+  }
+  .toolbar input { flex:1; min-width:140px; }
+  .toolbar .count { font-size:0.78rem; color:var(--muted); margin-left:auto; white-space:nowrap; }
+  .toolbar button#refresh {
+    background:var(--surface); color:var(--text); border:1px solid var(--border);
+    border-radius:8px; padding:7px 12px; font-size:0.82rem; cursor:pointer;
+  }
+  .toolbar button#refresh:hover { background:#20242f; }
+
+  .list { display:flex; flex-direction:column; gap:8px; }
+
+  .row { display:flex; align-items:center; gap:12px; background:var(--surface);
+         border:1px solid var(--border); border-radius:10px; padding:12px 14px;
+         text-decoration:none; color:inherit; transition:background .12s,border-color .12s; }
+  a.row:hover { background:#20242f; border-color:#3a3f56; }
+
+  .icon { font-size:1.3rem; width:30px; text-align:center; flex-shrink:0; }
+  .body { min-width:0; flex:1; }
+  .name-line { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .name { font-weight:600; font-size:0.92rem; }
+  .badge { font-size:0.68rem; color:var(--muted); padding:1px 7px;
+           border-radius:20px; border:1px solid var(--border); white-space:nowrap; }
+  .badge.priv { color:#f0b429; border-color:#5a4a20; }
+  .badge.pub  { color:#68d391; border-color:#205a38; }
+  .branch { font-family:ui-monospace,monospace; font-size:0.72rem; color:var(--muted); }
+  .desc { font-size:0.78rem; color:var(--muted); margin-top:2px;
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .status-line { margin-top:4px; }
+  .status { font-size:0.72rem; padding:2px 8px; border-radius:20px; border:1px solid var(--border);
+            white-space:nowrap; display:inline-block; }
+  .status.dirty       { color:#fc8181; border-color:#5a2020; }
+  .status.unpushed    { color:#f0b429; border-color:#5a4a20; }
+  .status.behind      { color:#63b3ed; border-color:#204a5a; }
+  .status.no_upstream { color:#d6bcfa; border-color:#4a3a5a; }
+  .status.no_remote   { color:var(--muted); }
+  .status.no_local    { color:var(--muted); font-style:italic; }
+  .status.synced      { color:#68d391; border-color:#205a38; }
+
+  .when { flex-shrink:0; text-align:right; font-size:0.76rem; color:var(--muted);
+          font-family:ui-monospace,monospace; min-width:92px; }
+  .when.fresh { color:#68d391; }
+  .age { font-size:0.68rem; color:var(--muted); opacity:.7; }
+
+  .empty { text-align:center; color:var(--muted); padding:40px 0; font-size:0.85rem; }
+  .gen { text-align:center; font-size:0.72rem; color:var(--muted); margin-top:18px; }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+
+<div class="ds-zones">
+<header class="ds-zone-top">
+  <h1>🐙 GitHub-Status</h1>
+  <p>Commit- und Push-Status aller Repos — lokal (Ordner unter containers/ + Projekte/) und GitHub kombiniert.</p>
+</header>
+
+<main class="ds-zone-main">
+<div class="wrap">
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Repo suchen…">
+    <select id="status-filter">
+      <option value="">Alle Status</option>
+      <option value="not_synced">Nicht synced (Aufmerksamkeit nötig)</option>
+      <option value="dirty">🔴 Uncommitted</option>
+      <option value="unpushed">🟠 Nicht gepusht</option>
+      <option value="behind">🔵 Hinter Remote</option>
+      <option value="no_upstream">🟣 Kein Upstream-Tracking</option>
+      <option value="no_remote">⚪ Kein GitHub-Remote</option>
+      <option value="no_local">⚫ Nicht lokal ausgecheckt</option>
+      <option value="synced">🟢 Synced</option>
+    </select>
+    <select id="vis-filter">
+      <option value="">Alle</option>
+      <option value="private">Nur privat</option>
+      <option value="public">Nur öffentlich</option>
+    </select>
+    <button id="refresh" title="Cache umgehen, frisch scannen">🔄 Neu scannen</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="gen" id="gen"></div>
+</div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+
+<script>
+let allRepos = [];
+
+const STATUS_LABEL = {
+  dirty:       c => `🔴 ${c.local.changed_files} nicht committed`,
+  unpushed:    c => `🟠 ${c.local.ahead} nicht gepusht`,
+  behind:      c => `🔵 ${c.local.behind} hinter Remote`,
+  no_upstream: () => `🟣 kein Upstream-Tracking`,
+  no_remote:   () => `⚪ kein GitHub-Remote`,
+  no_local:    () => `⚫ nicht lokal ausgecheckt`,
+  synced:      () => `🟢 synced`,
+};
+
+const escapeHtml = window.escHtml;
+
+function fmtAge(ts) {
+  const d = new Date(ts);
+  if (isNaN(d)) return '';
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days < 0) return '';
+  if (days === 0) return 'heute';
+  if (days === 1) return 'gestern';
+  if (days < 30) return `vor ${days} Tagen`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `vor ${months} Monat${months === 1 ? '' : 'en'}`;
+  const years = Math.floor(days / 365);
+  return `vor ${years} Jahr${years === 1 ? '' : 'en'}`;
+}
+
+function fmtDate(ts) {
+  if (!ts) return { text: '–', cls: '' };
+  const d = new Date(ts);
+  if (isNaN(d)) return { text: ts, cls: '' };
+  const text = d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  return { text, cls: days <= 3 ? 'fresh' : '' };
+}
+
+function activityTs(r) {
+  return (r.local && r.local.last_commit_at) || r.pushed_at || '';
+}
+
+function render() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const statusSel = document.getElementById('status-filter').value;
+  const vis = document.getElementById('vis-filter').value;
+
+  const filtered = allRepos.filter(r => {
+    if (q && !r.name.toLowerCase().includes(q)) return false;
+    if (vis === 'private' && !r.private) return false;
+    if (vis === 'public' && r.private) return false;
+    if (statusSel === 'not_synced') {
+      if (['synced', 'no_local', 'no_remote'].includes(r.status)) return false;
+    } else if (statusSel && r.status !== statusSel) {
+      return false;
+    }
+    return true;
+  });
+  filtered.sort((a, b) => activityTs(b).localeCompare(activityTs(a)));
+
+  document.getElementById('count').textContent = `${filtered.length} Repo${filtered.length === 1 ? '' : 's'}`;
+
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">Keine Repos im gewählten Filter.</div>';
+    return;
+  }
+
+  for (const r of filtered) {
+    const linkable = !!r.html_url;
+    const el = document.createElement(linkable ? 'a' : 'div');
+    el.className = 'row';
+    if (linkable) {
+      el.href = r.html_url;
+      el.target = '_blank';
+      el.rel = 'noopener';
+    }
+    const ts = activityTs(r);
+    const when = fmtDate(ts);
+    const age = ts ? `<div class="age">${fmtAge(ts)}</div>` : '';
+    const desc = r.description ? `<div class="desc">${escapeHtml(r.description)}</div>` : '';
+    const visBadge = r.private === null ? '' :
+      `<span class="badge ${r.private ? 'priv' : 'pub'}">${r.private ? 'privat' : 'öffentlich'}</span>`;
+    const branch = (r.local && r.local.branch) || r.default_branch || '';
+    const statusFn = STATUS_LABEL[r.status] || (() => r.status);
+    el.innerHTML = `
+      <div class="icon">${r.private === false ? '🌐' : '🔒'}</div>
+      <div class="body">
+        <div class="name-line">
+          <span class="name">${escapeHtml(r.name)}</span>
+          ${visBadge}
+          <span class="branch">${escapeHtml(branch)}</span>
+        </div>
+        <div class="status-line"><span class="status ${r.status}">${statusFn(r)}</span></div>
+        ${desc}
+      </div>
+      <div class="when ${when.cls}">${when.text}${age}</div>`;
+    list.appendChild(el);
+  }
+}
+
+async function load(force) {
+  try {
+    document.getElementById('gen').textContent = 'Lade…';
+    const url = '/api/projects/git-status?ts=' + Date.now() + (force ? '&force=true' : '');
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    allRepos = data.repos || [];
+    render();
+    document.getElementById('gen').textContent =
+      `${data.total} Repos gesamt — ${data.remote_total} auf GitHub, ${data.local_total} lokal ausgecheckt`;
+  } catch (e) {
+    document.getElementById('list').innerHTML =
+      `<div class="empty">⚠️ Konnte Git-Status nicht laden: ${e.message}</div>`;
+    document.getElementById('gen').textContent = '';
+  }
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('status-filter').addEventListener('change', render);
+document.getElementById('vis-filter').addEventListener('change', render);
+document.getElementById('refresh').addEventListener('click', () => load(true));
+load(false);
+</script>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>❓ Offene Fragen</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  :root {
+    --bg: var(--t-bg, #0f1117); --surface: var(--t-surface, #1a1d27); --border: var(--t-raised, #2a2d3e);
+    --text: var(--t-text, #e2e8f0); --muted: var(--t-muted, #8892a4); --accent: #4a9eff;
+    --purple: #b794f4; --green: #68d391; --orange: #f6ad55; --red: #fc8181;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding-bottom: 40px; }
+  header { padding: 16px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+           display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  header h1 { font-size: 1.2rem; }
+  header a.home { color: var(--muted); text-decoration: none; font-size: .9rem; }
+  .summary { margin-left: auto; display: flex; gap: 14px; font-size: .9rem; }
+  .summary b { font-size: 1.05rem; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 20px; }
+  .group-title { margin: 22px 0 10px; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-left-width: 4px;
+          border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .card.session  { border-left-color: var(--orange); }
+  .card.decision { border-left-color: var(--purple); }
+  .card.aktiv    { border-left-color: var(--accent); opacity: .8; padding: 10px 16px;
+                    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .card.aktiv .btn.ghost { padding: 3px 10px; font-size: .78rem; }
+  .card .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .card .title { font-weight: 600; font-size: 1.02rem; }
+  .badge { font-size: .72rem; padding: 2px 8px; border-radius: 20px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .badge.kind { color: var(--purple); }
+  .ctx { margin-top: 8px; white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: .8rem;
+         color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+         padding: 8px 10px; max-height: 160px; overflow: auto; }
+  .question { margin-top: 8px; font-size: .95rem; }
+  .answer { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .answer input[type=text] { flex: 1 1 220px; min-width: 160px; padding: 8px 10px; border-radius: 8px;
+         border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: .9rem; }
+  button.btn, a.btn { text-decoration: none; padding: 7px 14px; border-radius: 8px; font-size: .88rem; font-weight: 600;
+          background: var(--accent); color: var(--accent-text, #fff); border: 1px solid var(--accent); cursor: pointer; }
+  .btn.ghost { background: transparent; color: var(--text); border-color: var(--border); font-weight: 500; }
+  .btn.key { padding: 7px 11px; background: transparent; color: var(--orange); border-color: var(--border); }
+  .btn.opt { background: transparent; color: var(--purple); border-color: var(--purple); font-weight: 500; text-align: left; }
+  .btn.opt.del { color: var(--red); border-color: var(--red); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  /* Eingebettetes Projekt-Terminal (Knopf "💻 Terminal") — klappt in der Karte auf,
+     damit man zum Antworten nicht ins Projekt wechseln muss. resize:vertical, weil
+     je nach Frage mal 3 Zeilen und mal der halbe Bildschirm gebraucht wird. */
+  .btn.ghost.active { border-color: var(--accent); color: var(--accent); }
+  .termbox { margin-top: 10px; border: 1px solid var(--border); border-radius: 8px;
+             overflow: hidden; height: 420px; resize: vertical; background: #000; }
+  .termbox[hidden] { display: none; }
+  .termbox iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .feedback { font-size: .82rem; margin-top: 6px; min-height: 1em; }
+  .feedback.ok { color: var(--green); } .feedback.err { color: var(--red); }
+  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+  .refresh { font-size: .82rem; color: var(--muted); }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); cursor: pointer; }
+  .aktiv-line { font-size: .88rem; color: var(--muted); }
+  .footer-links { margin-top: 26px; font-size: .88rem; display: flex; gap: 18px; }
+  .footer-links a { color: var(--muted); }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+<div class="ds-zones">
+<header class="ds-zone-top">
+  <a class="home" href="/" data-i18n="app.back">← ili</a>
+  <h1>❓ Offene Fragen</h1>
+  <div class="summary" id="summary"></div>
+</header>
+<main class="ds-zone-main">
+<div class="wrap">
+  <div style="display:flex; align-items:center; gap:16px; margin-bottom:6px;">
+    <label class="toggle"><input type="checkbox" id="auto" checked> Auto-Refresh (10s)</label>
+    <span class="refresh" id="stamp"></span>
+    <a class="home" href="#" id="manual" style="margin-left:auto;">↻ jetzt aktualisieren</a>
+  </div>
+  <div id="list"><div class="empty">lädt …</div></div>
+  <div class="footer-links">
+    <a href="/bots.html">🤖 Alle Sessions (bots.html)</a>
+    <a href="/automat.html">⚙️ Automat-Freigaben (automat.html)</a>
+  </div>
+</div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+<script>
+// fragen.html — EIN Ort für alles, was gerade auf Antwort wartet:
+//  (1) interaktive Claude-Sessions in tmux (state=wartet, /bot-status) — Antwort
+//      wird per POST /bot-answer direkt in die Session getippt (tmux send-keys),
+//  (2) offene Automat-Entscheidungskarten (/api/automat/decisions) — Klick auf
+//      Option ruft /api/automat/decide (Karte -> Erledigt, Board entsperrt),
+//  (3) kompakt: was gerade arbeitet (Sessions + Automat-Worker).
+const esc = window.escHtml;
+const $list = document.getElementById("list");
+
+// Texte aus der Sprachdatei (/i18n/de.js), immer mit Fallback — siehe UI-Kit-i18n.
+function T(key, fb){ return (window.I18n && window.I18n.t) ? window.I18n.t(key, fb) : fb; }
+
+function sessionCard(s){
+  const keys = ["1","2","3","Enter","Escape"].map(k =>
+    `<button class="btn key" data-act="key" data-session="${esc(s.name)}" data-key="${k}">${k==="Enter"?"↵ Enter":k==="Escape"?"Esc":k}</button>`).join("");
+  // Zwei getrennte Wege: Terminal klappt HIER auf (kein Seitenwechsel), der
+  // Projekt-Knopf fuehrt aufs Board. Frueher tat "▶ Terminal" faelschlich Letzteres.
+  const slug = s.slug || String(s.name || "").replace(/^proj-/, "");
+  const term = slug ? `<button class="btn ghost" id="fragen-btn-term-${esc(slug)}" data-act="term" data-slug="${esc(slug)}"
+                        title="${esc(T('fragen.terminal.title','Terminal hier unten ein-/ausklappen'))}">💻 ${esc(T('fragen.terminal','Terminal'))}</button>` : "";
+  const proj = s.link ? `<a class="btn ghost" id="fragen-link-projekt-${esc(slug)}" href="${esc(s.link)}" target="_blank" rel="noopener"
+                        title="${esc(T('fragen.projekt.title','Projekt-Board in neuem Tab öffnen'))}">📋 ${esc(T('fragen.projekt','Projekt'))}</a>` : "";
+  return `<div class="card session" data-name="${esc(s.name)}">
+    <div class="top">
+      <span class="title">🟡 ${esc(s.title)}</span>
+      <span class="badge kind">${esc(s.kind)}</span>
+      <span class="badge" style="margin-left:auto">${(s.tokens||0).toLocaleString("de-CH")} tok</span>
+    </div>
+    ${s.context ? `<div class="ctx">${esc(s.context)}</div>` : ""}
+    <div class="answer">
+      ${keys}
+      <input type="text" placeholder="Antwort tippen … (Enter sendet)" data-session="${esc(s.name)}">
+      <button class="btn" data-act="send" data-session="${esc(s.name)}">Senden</button>
+      ${term} ${proj}
+    </div>
+    <div class="termbox" hidden></div>
+    <div class="feedback"></div>
+  </div>`;
+}
+
+// Wahl mit diesen Wörtern = "Karte ist Rauschen -> löschen" (Spiegel zu
+// _DELETE_HINTS in app/api/automat.py). Button wird rot + 🗑️, Karte verschwindet
+// nach dem Klick sofort und wird später vom Purge endgültig entfernt.
+const DEL_RE = /rauschen|löschen|loeschen|verwerfen/i;
+function decisionCard(d, i){
+  const opts = (d.options||[]).map(o => {
+    const del = DEL_RE.test(o);
+    return `<button class="btn opt${del?' del':''}" data-act="decide" data-i="${i}" data-choice="${esc(o)}">${del?'🗑️ ':''}${esc(o)}</button>`;
+  }).join("");
+  return `<div class="card decision">
+    <div class="top">
+      <span class="title">🟣 ${esc(d.board_name)}</span>
+      <span class="badge kind">Automat</span>
+      <span class="badge" style="margin-left:auto">${esc(d.column||"")}</span>
+    </div>
+    <div class="question">${esc(d.question)}</div>
+    ${d.description ? `<div class="ctx">${esc(d.description)}</div>` : ""}
+    <div class="answer" style="flex-direction:column; align-items:stretch;">${opts}</div>
+    <div class="answer">
+      <input type="text" placeholder="Eigene Antwort … (Enter sendet)" data-i="${i}">
+      <button class="btn" data-act="decide-free" data-i="${i}">Antworten</button>
+      <a class="btn ghost" href="/project.html?id=${esc(d.board)}" target="_blank" rel="noopener">▶ Board</a>
+    </div>
+    <div class="feedback"></div>
+  </div>`;
+}
+
+let DECISIONS = [];
+
+async function load(force){
+  // Nicht neu rendern, während getippt wird (sonst verliert das Feld Fokus + Inhalt)
+  if (!force) {
+    const a = document.activeElement;
+    if (a && $list.contains(a) && a.tagName === "INPUT") return;
+    if ([...$list.querySelectorAll("input[type=text]")].some(i => i.value)) return;
+    // Offenes Terminal ueberlebt den Auto-Refresh — ein Re-Render wuerde das
+    // iframe neu aufbauen und die tmux-Verbindung mitten im Tippen wegreissen.
+    if (terminalOffen()) return;
+  }
+  try {
+    const [bs, dec, st] = await Promise.all([
+      fetch("/bot-status", {cache:"no-store"}).then(r=>r.json()),
+      fetch("/api/automat/decisions", {cache:"no-store"}).then(r=>r.json()),
+      fetch("/api/automat/status", {cache:"no-store"}).then(r=>r.json()),
+    ]);
+    DECISIONS = dec.decisions || [];
+    const waiting = (bs.sessions||[]).filter(s => s.state === "wartet");
+    const working = (bs.sessions||[]).filter(s => s.state === "arbeitet");
+    const workers = st.workers || [];
+    const openCount = waiting.length + DECISIONS.length;
+    document.getElementById("summary").innerHTML =
+      `<span style="color:var(--orange)">❓ <b>${openCount}</b> offen</span>
+       <span style="color:var(--accent)">🔄 <b>${working.length + workers.length}</b> aktiv</span>`;
+    let html = "";
+    if (waiting.length)
+      html += `<div class="group-title">🟡 Terminal-Sessions — warten auf dich (${waiting.length})</div>`
+            + waiting.map(sessionCard).join("");
+    if (DECISIONS.length)
+      html += `<div class="group-title">🟣 Automat-Entscheidungen (${DECISIONS.length})</div>`
+            + DECISIONS.map(decisionCard).join("");
+    if (!html) html = `<div class="empty">🎉 Nichts wartet auf dich.</div>`;
+    if (working.length || workers.length) {
+      html += `<div class="group-title">🔄 Gerade aktiv (${working.length + workers.length})</div>`;
+      html += working.map(s => {
+        const link = s.link ? `<a class="btn ghost" href="${esc(s.link)}" target="_blank" rel="noopener">▶ Terminal</a>` : "";
+        return `<div class="card aktiv"><span class="aktiv-line">🔄 ${esc(s.title)} <span class="badge kind">${esc(s.kind)}</span></span>${link}</div>`;
+      }).join("");
+      html += workers.map(w =>
+        `<div class="card aktiv"><span class="aktiv-line">🤖 ${esc(w.board)} — ${esc(w.card_title||"")} <span class="badge kind">Automat-Worker</span></span>`
+        + `<a class="btn ghost" href="/project.html?id=${esc(w.board)}" target="_blank" rel="noopener">▶ Board</a></div>`
+      ).join("");
+    }
+    $list.innerHTML = html;
+    document.getElementById("stamp").textContent = "Stand: " + (bs.ts||"").replace("T"," ");
+  } catch(e){
+    $list.innerHTML = `<div class="empty">Fehler beim Laden: ${esc(String(e))}</div>`;
+  }
+}
+
+// ── Terminal direkt in der Karte ────────────────────────────────────────────
+// Klappt /projterm/?arg=<slug> unter der Karte auf — dieselbe URL, die auch
+// project.html einbettet. Das iframe wird ERST beim Aufklappen erzeugt (bei ~30
+// wartenden Sessions wuerden sonst 30 ttyd-Verbindungen gleichzeitig aufgehen).
+function toggleTerminal(btn){
+  const card = btn.closest(".card");
+  const box  = card.querySelector(".termbox");
+  const open = box.hasAttribute("hidden");
+  if (open) {
+    // ⚠️ Reihenfolge: ERST sichtbar machen, DANN das iframe anhaengen. Umgekehrt
+    // startet ttyd/xterm.js in einem display:none-Kasten, misst 0x0 und bleibt
+    // schwarz, bis zufaellig ein Resize kommt.
+    box.removeAttribute("hidden");
+    if (!box.firstChild) {
+      const f = document.createElement("iframe");
+      f.src = "/projterm/?arg=" + encodeURIComponent(btn.dataset.slug);
+      f.title = "Terminal " + btn.dataset.slug;
+      f.setAttribute("allow", "clipboard-read; clipboard-write");
+      box.appendChild(f);
+      console.log("[fragen] Terminal eingebettet:", btn.dataset.slug);
+    }
+  } else {
+    box.setAttribute("hidden", "");
+    box.innerHTML = "";   // Verbindung schliessen, sonst haengt ttyd weiter dran
+    console.log("[fragen] Terminal geschlossen:", btn.dataset.slug);
+  }
+  btn.classList.toggle("active", open);
+}
+
+/** Ist irgendwo ein Terminal offen? Dann NICHT neu rendern (wuerde es wegwerfen). */
+function terminalOffen(){ return !!$list.querySelector(".termbox:not([hidden])"); }
+
+function feedback(el, msg, ok){
+  const fb = el.closest(".card").querySelector(".feedback");
+  fb.textContent = msg; fb.className = "feedback " + (ok ? "ok" : "err");
+}
+
+async function post(url, body){
+  const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+  if (!r.ok) { const j = await r.json().catch(()=>({}));
+               throw new Error(j.error || j.detail || r.status); }
+  return r.json();
+}
+
+async function sendToSession(btn, session, text, key){
+  try {
+    btn.disabled = true;
+    await post("/bot-answer", key ? {session, key} : {session, text});
+    feedback(btn, key ? `Taste ${key} gesendet ✓` : "Antwort gesendet ✓", true);
+    setTimeout(() => load(true), 2500);   // Session reagiert -> Status kippt auf "arbeitet"
+  } catch(e){ feedback(btn, "Fehler: " + e.message, false); btn.disabled = false; }
+}
+
+async function decide(el, i, choice){
+  const d = DECISIONS[i]; if (!d || !choice) return;
+  try {
+    const r = await post("/api/automat/decide", {board: d.board, card_id: d.card_id, choice});
+    feedback(el, r && r.deleted
+      ? "🗑️ Gelöscht — wird später endgültig entfernt ✓"
+      : "Entscheidung gespeichert ✓ — Board entsperrt", true);
+    setTimeout(() => load(true), 1500);
+  } catch(e){ feedback(el, "Fehler: " + e.message, false); }
+}
+
+$list.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const act = b.dataset.act;
+  if (act === "key")  sendToSession(b, b.dataset.session, "", b.dataset.key);
+  if (act === "send") {
+    const inp = b.closest(".answer").querySelector("input");
+    if (inp.value.trim()) { sendToSession(b, b.dataset.session, inp.value, ""); inp.value = ""; }
+  }
+  if (act === "term") toggleTerminal(b);
+  if (act === "decide") decide(b, +b.dataset.i, b.dataset.choice);
+  if (act === "decide-free") {
+    const inp = b.closest(".answer").querySelector("input");
+    if (inp.value.trim()) { decide(b, +b.dataset.i, inp.value.trim()); inp.value = ""; }
+  }
+});
+$list.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+  const row = e.target.closest(".answer");
+  const btn = row.querySelector("button[data-act=send], button[data-act=decide-free]");
+  if (btn) btn.click();
+});
+
+let timer = null;
+function schedule(){
+  if (timer) clearInterval(timer);
+  if (document.getElementById("auto").checked) timer = setInterval(() => load(false), 10000);
+}
+document.getElementById("auto").addEventListener("change", schedule);
+document.getElementById("manual").addEventListener("click", e => { e.preventDefault(); load(true); });
+load(true); schedule();
+</script>
+</body>
+</html>

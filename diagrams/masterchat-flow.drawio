@@ -1,0 +1,76 @@
+<mxfile host="embed.diagrams.net">
+  <diagram id="masterchat" name="Masterchat-Flow">
+    <mxGraphModel dx="1219" dy="792" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fillColor=none;strokeColor=none;" value="MASTERCHAT (DM 1:1 mit Bot)" vertex="1">
+          <mxGeometry height="40" width="600" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="in-text" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f3a5f;strokeColor=#4a9eff;fontColor=#fff;" value="📝 Text" vertex="1">
+          <mxGeometry height="60" width="160" x="40" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="in-photo" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f3a5f;strokeColor=#4a9eff;fontColor=#fff;" value="📸 Foto" vertex="1">
+          <mxGeometry height="60" width="160" x="220" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="in-voice" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f3a5f;strokeColor=#4a9eff;fontColor=#fff;" value="🎙️ Sprachnotiz" vertex="1">
+          <mxGeometry height="60" width="160" x="400" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="classifier" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#2d3748;strokeColor=#b794f4;fontColor=#fff;" value="Intent-Klassifier&#xa;(Ollama lokal)" vertex="1">
+          <mxGeometry height="100" width="220" x="220" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="photo-vision" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#374151;strokeColor=#8892a4;fontColor=#fff;" value="Vision: minicpm-v&#xa;Vokabel-Tafel? Objekt? Idee?" vertex="1">
+          <mxGeometry height="60" width="240" x="600" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="voice-whisper" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#374151;strokeColor=#8892a4;fontColor=#fff;" value="Whisper → Text" vertex="1">
+          <mxGeometry height="60" width="180" x="900" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a-lernen" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#22543d;strokeColor=#68d391;fontColor=#fff;" value="LERNEN &lt;sprache&gt;&#xa;→ Sprach-Gruppe öffnen/erstellen" vertex="1">
+          <mxGeometry height="80" width="220" x="40" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="a-projekt" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#22543d;strokeColor=#68d391;fontColor=#fff;" value="PROJEKT/IDEE&#xa;→ Kanban + Ordner" vertex="1">
+          <mxGeometry height="80" width="220" x="280" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="a-bug" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#22543d;strokeColor=#68d391;fontColor=#fff;" value="BUG&#xa;→ POST /bug-report" vertex="1">
+          <mxGeometry height="80" width="220" x="520" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="a-status" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#22543d;strokeColor=#68d391;fontColor=#fff;" value="STATUS / FRAGE&#xa;→ Ollama-Antwort" vertex="1">
+          <mxGeometry height="80" width="220" x="760" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="a-unklar" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7c2d12;strokeColor=#f6ad55;fontColor=#fff;" value="UNKLAR&#xa;→ Rückfrage mit 2-3 Optionen" vertex="1">
+          <mxGeometry height="80" width="220" x="1000" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="in-text" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#8892a4;" target="classifier">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="in-photo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#8892a4;" target="photo-vision">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="in-voice" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#8892a4;" target="voice-whisper">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="photo-vision" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#8892a4;" target="classifier">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="voice-whisper" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#8892a4;" target="classifier">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="classifier" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#68d391;" target="a-lernen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="classifier" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#68d391;" target="a-projekt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="classifier" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#68d391;" target="a-bug">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="classifier" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#68d391;" target="a-status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="classifier" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#f6ad55;" target="a-unklar">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

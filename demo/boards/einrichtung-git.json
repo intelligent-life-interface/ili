@@ -1,0 +1,58 @@
+{
+  "columns": [
+    {
+      "id": "backlog",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "card_g1",
+          "title": "Deine Instanz ist ein git-Arbeitsbaum",
+          "desc": "Du hast ili geklont — Updates holst du mit `git pull`. Alles, was du selbst änderst (eigene Karten in `demo/`, angepasste compose-Dateien), kollidiert irgendwann mit einem Update. Ein eigener Zweig oder Fork macht das beherrschbar.\n\nWas NIE in git gehört: `.env`, Schlüssel, Zugangstoken.",
+          "description": "Du hast ili geklont — Updates holst du mit `git pull`. Alles, was du selbst änderst (eigene Karten in `demo/`, angepasste compose-Dateien), kollidiert irgendwann mit einem Update. Ein eigener Zweig oder Fork macht das beherrschbar.\n\nWas NIE in git gehört: `.env`, Schlüssel, Zugangstoken."
+        },
+        {
+          "id": "decision-git-strategie",
+          "title": "🟡 ENTSCHEIDUNG: Wie hältst du deine eigenen Änderungen?",
+          "desc": "Auch die Antwort „gar nicht\" ist eine gültige Wahl — dann bleibt dein ili einfach nah am Original und Updates sind konfliktfrei.\n\nOptionen:\n1. Gar nichts anpassen — nur `git pull`, immer konfliktfrei\n2. Eigener privater Fork für meine Anpassungen\n3. Fork + Änderungen als Pull Request zurückgeben",
+          "description": "Auch die Antwort „gar nicht\" ist eine gültige Wahl — dann bleibt dein ili einfach nah am Original und Updates sind konfliktfrei.\n\nOptionen:\n1. Gar nichts anpassen — nur `git pull`, immer konfliktfrei\n2. Eigener privater Fork für meine Anpassungen\n3. Fork + Änderungen als Pull Request zurückgeben",
+          "labels": [
+            {
+              "text": "Entscheidung",
+              "color": "#d69e2e"
+            }
+          ]
+        },
+        {
+          "id": "card_g2",
+          "title": "Zugangstoken sicher ablegen",
+          "desc": "Token nie in die Remote-URL schreiben (`https://token@github.com/...`) — es landet sonst in `.git/config`, in Logs und in jedem Backup. Besser ein credential-helper oder ein Token, das nur die eine Sache darf, die du brauchst.",
+          "description": "Token nie in die Remote-URL schreiben (`https://token@github.com/...`) — es landet sonst in `.git/config`, in Logs und in jedem Backup. Besser ein credential-helper oder ein Token, das nur die eine Sache darf, die du brauchst.",
+          "owner": "me"
+        },
+        {
+          "id": "card_g3",
+          "title": "Karte → Issue → Pull Request",
+          "desc": "Der Beitragsweg ist derselbe wie die Arbeitsweise: Karte aus dem Ideen-Board nehmen, im Projekt-Terminal von deiner KI umsetzen lassen, Ergebnis als Pull Request zurückgeben. Was eine Instanz gelöst hat, müssen die anderen nicht noch einmal rechnen.\n\nBefunde und Wünsche, die kein Code sind, gehören als Issue zurück.",
+          "description": "Der Beitragsweg ist derselbe wie die Arbeitsweise: Karte aus dem Ideen-Board nehmen, im Projekt-Terminal von deiner KI umsetzen lassen, Ergebnis als Pull Request zurückgeben. Was eine Instanz gelöst hat, müssen die anderen nicht noch einmal rechnen.\n\nBefunde und Wünsche, die kein Code sind, gehören als Issue zurück."
+        }
+      ]
+    },
+    {
+      "id": "inprogress",
+      "title": "In Bearbeitung",
+      "cards": []
+    },
+    {
+      "id": "review",
+      "title": "Überprüfen",
+      "cards": []
+    },
+    {
+      "id": "done",
+      "title": "Erledigt",
+      "cards": []
+    }
+  ],
+  "rev": 1,
+  "title": "Code & Beiträge"
+}

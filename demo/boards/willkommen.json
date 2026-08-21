@@ -1,0 +1,84 @@
+{
+  "columns": [
+    {
+      "id": "backlog",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "card_w1",
+          "title": "Ein Board ist ein Projekt",
+          "desc": "Die Methodik in einem Satz: jedes Projekt bekommt ein eigenes Board, und dieses Board ist das Gedächtnis des Projekts. Wer mit einer KI arbeitet, muss ihr nicht jedes Mal von neuem erklären, worum es geht — sie liest das Board. Unterprojekte bekommen eigene Boards und hängen am Mutterprojekt.",
+          "description": "Die Methodik in einem Satz: jedes Projekt bekommt ein eigenes Board, und dieses Board ist das Gedächtnis des Projekts. Wer mit einer KI arbeitet, muss ihr nicht jedes Mal von neuem erklären, worum es geht — sie liest das Board. Unterprojekte bekommen eigene Boards und hängen am Mutterprojekt."
+        },
+        {
+          "id": "card_w2",
+          "title": "Wer macht was: das Feld owner",
+          "desc": "Jede Karte kann 👤 (owner=me) oder 🤖 (owner=ki) tragen: „das mache ich selbst\" oder „das übernimmt die KI\". Ein zweiter Klick auf das Symbol hebt es wieder auf. So bleibt auf einen Blick sichtbar, was auf dich wartet — und was eine KI abarbeiten kann, ohne dich zu fragen.",
+          "description": "Jede Karte kann 👤 (owner=me) oder 🤖 (owner=ki) tragen: „das mache ich selbst\" oder „das übernimmt die KI\". Ein zweiter Klick auf das Symbol hebt es wieder auf. So bleibt auf einen Blick sichtbar, was auf dich wartet — und was eine KI abarbeiten kann, ohne dich zu fragen.",
+          "owner": "me"
+        },
+        {
+          "id": "card_w3",
+          "title": "Entscheidungen gehören auf eine Karte",
+          "desc": "Wenn die KI etwas wissen muss, das nur du entscheiden kannst, wird daraus eine Karte statt einer Rückfrage im Chat, die niemand wiederfindet. Der Entscheid steht danach dauerhaft dort, wo das Projekt ist — und die nächste KI-Sitzung kennt ihn.",
+          "description": "Wenn die KI etwas wissen muss, das nur du entscheiden kannst, wird daraus eine Karte statt einer Rückfrage im Chat, die niemand wiederfindet. Der Entscheid steht danach dauerhaft dort, wo das Projekt ist — und die nächste KI-Sitzung kennt ihn."
+        },
+        {
+          "id": "card_w4",
+          "title": "Projekt-Terminal einschalten (optional)",
+          "desc": "Jedes Board kann eine echte Shell im Browser öffnen, mit eigener tmux-Sitzung und Claude Code darin. Standardmässig aus, weil ein Browser-Terminal vollen Shell-Zugriff bedeutet:\n\n    docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d --build\n    docker compose logs web | grep ili-setup     # zeigt das Passwort\n\nDie Anmeldung bei Claude ist optional und wird im Terminal erklärt. Details: docs/PROJECT-TERMINAL.md",
+          "description": "Jedes Board kann eine echte Shell im Browser öffnen, mit eigener tmux-Sitzung und Claude Code darin. Standardmässig aus, weil ein Browser-Terminal vollen Shell-Zugriff bedeutet:\n\n    docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d --build\n    docker compose logs web | grep ili-setup     # zeigt das Passwort\n\nDie Anmeldung bei Claude ist optional und wird im Terminal erklärt. Details: docs/PROJECT-TERMINAL.md"
+        },
+        {
+          "id": "card_w5",
+          "title": "Die Vorlage ist kein Korsett",
+          "desc": "Drei Wege stehen offen: diese Struktur unverändert übernehmen, eine ganz eigene bauen, oder eine eigene auf dieser Basis. Spalten, Kategorien und Board-Vorlagen sind Daten, nichts davon ist im Code erzwungen. Dieses Board darfst du löschen, sobald du es nicht mehr brauchst.",
+          "description": "Drei Wege stehen offen: diese Struktur unverändert übernehmen, eine ganz eigene bauen, oder eine eigene auf dieser Basis. Spalten, Kategorien und Board-Vorlagen sind Daten, nichts davon ist im Code erzwungen. Dieses Board darfst du löschen, sobald du es nicht mehr brauchst."
+        },
+        {
+          "id": "card_w6",
+          "title": "Schau ins Ideen-Board",
+          "desc": "Ein Teil der Werkzeuge kommt absichtlich als Idee statt als Code: das Board „Ideen\" enthält ausformulierte Karten, die du mit deiner eigenen KI umsetzen kannst. Das Produkt führt damit seine eigene Arbeitsweise vor.",
+          "description": "Ein Teil der Werkzeuge kommt absichtlich als Idee statt als Code: das Board „Ideen\" enthält ausformulierte Karten, die du mit deiner eigenen KI umsetzen kannst. Das Produkt führt damit seine eigene Arbeitsweise vor."
+        },
+        {
+          "id": "card_w7",
+          "title": "Dein erstes eigenes Projekt anlegen",
+          "desc": "In der Navigation oben auf „➕ Neues Projekt\". Board-Name = Projektname; der Arbeitsordner des Terminals heisst danach genauso. Danach kannst du diese Karten der Reihe nach löschen.",
+          "description": "In der Navigation oben auf „➕ Neues Projekt\". Board-Name = Projektname; der Arbeitsordner des Terminals heisst danach genauso. Danach kannst du diese Karten der Reihe nach löschen.",
+          "owner": "me"
+        },
+        {
+          "id": "card_w8",
+          "title": "Richte ili für dich ein",
+          "desc": "Das Projekt „🔧 Einrichtung\" führt durch alles, was über den ersten Start hinausgeht: wo deine Daten liegen, unter welcher Adresse ili läuft, Sicherung und Updates, KI-Anbindung und der Umgang mit dem Code. Die Karten mit 🟡 ENTSCHEIDUNG haben Antwort-Knöpfe — du wählst, deine KI setzt um.",
+          "description": "Das Projekt „🔧 Einrichtung\" führt durch alles, was über den ersten Start hinausgeht: wo deine Daten liegen, unter welcher Adresse ili läuft, Sicherung und Updates, KI-Anbindung und der Umgang mit dem Code. Die Karten mit 🟡 ENTSCHEIDUNG haben Antwort-Knöpfe — du wählst, deine KI setzt um."
+        }
+      ]
+    },
+    {
+      "id": "inprogress",
+      "title": "In Bearbeitung",
+      "cards": []
+    },
+    {
+      "id": "review",
+      "title": "Überprüfen",
+      "cards": []
+    },
+    {
+      "id": "done",
+      "title": "Erledigt",
+      "cards": [
+        {
+          "id": "card_w0",
+          "title": "✅ ili läuft — das ist deine eigene Instanz",
+          "desc": "Dieses Board wurde beim ersten Start angelegt, damit du nicht vor einer leeren Oberfläche sitzt. Alles hier ist Beispiel-Inhalt: umbenennen, umschreiben oder löschen, ohne Rücksicht. Deine Daten liegen in Docker-Volumes und überleben jedes Update.",
+          "description": "Dieses Board wurde beim ersten Start angelegt, damit du nicht vor einer leeren Oberfläche sitzt. Alles hier ist Beispiel-Inhalt: umbenennen, umschreiben oder löschen, ohne Rücksicht. Deine Daten liegen in Docker-Volumes und überleben jedes Update."
+        }
+      ]
+    }
+  ],
+  "rev": 1,
+  "title": "Willkommen"
+}

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦙 Ollama – Warteliste</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  body { font-family: system-ui, sans-serif; background:var(--t-surface, #1a202c); color:var(--t-text, #e2e8f0); margin:0; }
+  .wrap { max-width:1100px; margin:0 auto; padding:1rem; }
+  h1 { font-size:1.4rem; }
+  .hint { color:var(--t-text2, #a0aec0); font-size:.85rem; margin:.2rem 0 1rem; }
+  h2 { font-size:1rem; border-bottom:1px solid var(--t-raised, #2d3748); padding-bottom:.3rem; margin-top:1.6rem; }
+  .statrow { display:flex; gap:.9rem; flex-wrap:wrap; margin:.8rem 0; }
+  .stat { background:var(--t-raised, #2d3748); border:1px solid var(--t-line2, #4a5568); border-radius:10px;
+          padding:.6rem 1rem; min-width:110px; }
+  .stat .v { font-size:1.35rem; font-weight:700; }
+  .stat .l { font-size:.72rem; color:var(--t-text2, #a0aec0); }
+  table { width:100%; border-collapse:collapse; font-size:.84rem; }
+  th { text-align:left; color:var(--t-text2, #a0aec0); font-weight:600; font-size:.75rem;
+       padding:.35rem .5rem; border-bottom:1px solid var(--t-line2, #4a5568); }
+  td { padding:.35rem .5rem; border-bottom:1px solid var(--t-raised, #2d3748); }
+  tr:hover td { background:rgba(255,255,255,.03); }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .empty { color:var(--t-muted, #718096); font-style:italic; padding:.5rem 0; }
+  .err { color:#fc8181; }
+  .ok { color:#68d391; }
+  .prio-hi { color:#68d391; font-weight:600; }
+  .prio-mid { color:#f6e05e; }
+  .prio-bg { color:#a0aec0; }
+  .waitcard { border-left:4px solid #d69e2e; background:var(--t-raised, #2d3748);
+              border-radius:8px; padding:.5rem .8rem; margin:.4rem 0; display:flex; gap:1rem; align-items:center; }
+  .spin { display:inline-block; width:9px; height:9px; border-radius:50%; background:#3182ce;
+          margin-right:.4rem; animation:pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+  input.prio-in { width:3.5rem; background:var(--t-surface, #1a202c); border:1px solid var(--t-line2, #4a5568);
+                  color:var(--t-text, #e2e8f0); border-radius:6px; padding:.25rem .35rem; font-size:.84rem; text-align:right; }
+  button.save { background:#3182ce; border:0; color:#fff; border-radius:6px; padding:.3rem .6rem; cursor:pointer; font-size:.78rem; }
+  button.save:hover { background:#2b6cb0; }
+  .addrow { display:flex; gap:.4rem; margin:.6rem 0; flex-wrap:wrap; }
+  .addrow input[type=text] { background:var(--t-surface, #1a202c); border:1px solid var(--t-line2, #4a5568);
+                             color:var(--t-text, #e2e8f0); border-radius:6px; padding:.35rem .5rem; font-size:.84rem; }
+  .toast { position:fixed; bottom:1rem; left:50%; transform:translateX(-50%); background:#2f855a;
+           color:#fff; padding:.6rem 1rem; border-radius:8px; opacity:0; transition:opacity .3s; z-index:50; }
+  .toast.show { opacity:1; }
+  .del { color:#fc8181; cursor:pointer; font-size:.8rem; margin-left:.5rem; }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+<div class="ds-zones">
+  <header class="ds-zone-top">
+    <h1>🦙 Ollama – Warteliste</h1>
+    <div class="hint">Prioritäts-Queue des Ollama-Proxys (:11435): höchste Prio zuerst, wartende Prio-Aufträge
+      altern (+1 Stufe pro 2&nbsp;min), Prio&nbsp;0 läuft nur bei freier Kapazität.
+      Aktualisiert sich alle 5&nbsp;s. <a href="/" style="color:#63b3ed">← Projekte</a></div>
+  </header>
+  <main class="ds-zone-main" style="max-width:1100px">
+  <div class="statrow">
+    <div class="stat"><div class="v" id="st-aktiv">–</div><div class="l">aktiv / Slots</div></div>
+    <div class="stat"><div class="v" id="st-wartend">–</div><div class="l">wartend</div></div>
+    <div class="stat"><div class="v" id="st-aging">–</div><div class="l">Alterung (+1 Stufe je)</div></div>
+    <div class="stat"><div class="v" id="st-timeout">–</div><div class="l">Warte-Timeout</div></div>
+  </div>
+
+  <h2>⏳ Wartet gerade <span id="q-state" class="hint"></span></h2>
+  <div id="waiting"></div>
+
+  <h2>🎚️ Prioritäten pro Aufrufer <span class="hint">(0 = ohne Prio; Änderung wirkt sofort, kein Neustart)</span></h2>
+  <div class="addrow">
+    <input type="text" id="new-caller" placeholder="Aufrufer (z.B. mein-dienst)">
+    <input class="prio-in" type="number" id="new-prio" min="0" max="10" step="1" value="5">
+    <button class="save" onclick="addPrio()">＋ Setzen</button>
+  </div>
+  <table id="prio-table"><thead>
+    <tr><th>Aufrufer</th><th class="num">Prio</th><th></th></tr>
+  </thead><tbody></tbody></table>
+
+  <h2>📜 Letzte Aufträge</h2>
+  <div style="overflow-x:auto">
+  <table id="recent-table"><thead>
+    <tr><th>Zeit</th><th>Aufrufer</th><th>Modell</th><th class="num">Prio</th>
+        <th class="num">gewartet</th><th class="num">Dauer</th><th class="num">Tokens</th><th>Status</th></tr>
+  </thead><tbody></tbody></table>
+  </div>
+  </main>
+  <footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = window.escHtml;
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function prioClass(p) { return p >= 5 ? "prio-hi" : (p > 0 ? "prio-mid" : "prio-bg"); }
+function fmtMs(ms) {
+  if (ms == null) return "–";
+  return ms >= 60000 ? (ms / 60000).toFixed(1) + " min"
+       : ms >= 1000 ? (ms / 1000).toFixed(1) + " s" : Math.round(ms) + " ms";
+}
+
+async function loadQueue() {
+  try {
+    const q = await (await fetch("/api/ollama/queue")).json();
+    if (q.detail) throw new Error(q.detail);
+    $("st-aktiv").textContent = `${q.aktiv} / ${q.slots}`;
+    $("st-wartend").textContent = q.wartend.length;
+    $("st-aging").textContent = Math.round(q.aging_s) + " s";
+    $("st-timeout").textContent = Math.round(q.timeout_s) + " s";
+    $("q-state").textContent = "";
+    const w = $("waiting");
+    if (!q.wartend.length) {
+      w.innerHTML = q.aktiv > 0
+        ? '<div class="waitcard"><span class="spin"></span>Warteliste leer — ' + q.aktiv + ' Auftrag/Aufträge laufen bei Ollama</div>'
+        : '<div class="empty">Warteliste leer, nichts aktiv.</div>';
+      return;
+    }
+    w.innerHTML = q.wartend.map(x =>
+      `<div class="waitcard"><span class="spin"></span>
+        <b>${esc(x.caller)}</b>
+        <span class="${prioClass(x.prio)}">Prio ${x.prio}</span>
+        <span>wartet ${x.wartet_s} s</span></div>`).join("");
+  } catch (e) {
+    console.error("loadQueue:", e);
+    $("q-state").textContent = "⚠ Proxy nicht erreichbar: " + e.message;
+  }
+}
+
+async function loadPriorities() {
+  try {
+    const p = await (await fetch("/api/ollama/priorities")).json();
+    const rows = Object.entries(p.priorities).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    $("prio-table").querySelector("tbody").innerHTML = rows.map(([c, v]) => `
+      <tr><td>${esc(c)}</td>
+          <td class="num"><input class="prio-in" type="number" min="0" max="10" step="1"
+              value="${v}" data-caller="${esc(c)}" onchange="savePrio(this)"></td>
+          <td><span class="del" title="Eintrag löschen (zurück auf Default ${p.default})"
+              onclick="delPrio('${esc(c)}')">✕</span></td></tr>`).join("")
+      || '<tr><td colspan="3" class="empty">Keine Einträge — alle Aufrufer laufen mit Default.</td></tr>';
+  } catch (e) { console.error("loadPriorities:", e); }
+}
+
+async function savePrio(inp) {
+  const caller = inp.dataset.caller, prio = parseFloat(inp.value);
+  const r = await fetch("/api/ollama/priorities", { method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({caller, prio}) });
+  toast(r.ok ? `Prio ${caller} = ${prio} gespeichert` : "Fehler beim Speichern");
+  loadPriorities();
+}
+
+async function delPrio(caller) {
+  const r = await fetch("/api/ollama/priorities", { method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({caller, prio: null}) });
+  toast(r.ok ? `${caller} entfernt (Default)` : "Fehler beim Löschen");
+  loadPriorities();
+}
+
+async function addPrio() {
+  const caller = $("new-caller").value.trim();
+  if (!caller) { toast("Aufrufer-Name fehlt"); return; }
+  const prio = parseFloat($("new-prio").value);
+  const r = await fetch("/api/ollama/priorities", { method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({caller, prio}) });
+  toast(r.ok ? `Prio ${caller} = ${prio} gesetzt` : "Fehler beim Setzen");
+  $("new-caller").value = "";
+  loadPriorities();
+}
+
+async function loadRecent() {
+  try {
+    const d = await (await fetch("/api/ollama/recent?limit=40")).json();
+    $("recent-table").querySelector("tbody").innerHTML = (d.requests || []).map(r => `
+      <tr><td>${esc((r.ts || "").slice(5, 16))}</td>
+          <td>${esc(r.caller_name || "—")}</td>
+          <td>${esc(r.model || "?")}</td>
+          <td class="num ${prioClass(r.priority ?? 0)}">${r.priority ?? "–"}</td>
+          <td class="num">${fmtMs(r.queue_wait_ms)}</td>
+          <td class="num">${fmtMs(r.proxy_duration_ms)}</td>
+          <td class="num">${r.prompt_tokens ?? "–"}/${r.completion_tokens ?? "–"}</td>
+          <td class="${(r.status_code === 200) ? "ok" : "err"}">${r.status_code ?? "?"}${r.error ? " ⚠" : ""}</td></tr>`).join("")
+      || '<tr><td colspan="8" class="empty">Noch keine Aufträge geloggt.</td></tr>';
+  } catch (e) { console.error("loadRecent:", e); }
+}
+
+function refresh() { loadQueue(); loadRecent(); }
+loadPriorities();
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="app.title.project">📋 Projekt – ili</title>
+    <link rel="stylesheet" href="/css/project.css?v=20260809-headercollapse">
+    <link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<script src="/theme.js?v=20260716b" defer></script>
+</head>
+<body data-ui-autoinit="off">
+
+<!-- Platz-Fix 2026-07-07: "🏠 Home Server"-Header + statische Nav entfernt —
+     die Navigation kommt zentral aus /nav.js (war vorher DOPPELT). Übrig bleibt
+     nur die schmale Projekt-Zeile -> Board + Terminal bekommen mehr Höhe. -->
+<div class="proj-bar">
+    <span id="project-name-nav">⏳ Lade…</span>
+    <span id="save-status"></span>
+</div>
+
+<!-- Projekt-Navigation: links Hauptprojekt, rechts Geschwister-Unterprojekte -->
+<div id="project-nav-crumbs" class="project-nav-crumbs" style="display:none"></div>
+
+<!-- Ansichten-Tabs (wird befüllt wenn Board eine navigation-Spalte hat) -->
+<div id="view-tabs"></div>
+
+<!-- Projekt-Kopf (F1.4): Beschreibung, Kategorie, Eisenhower-Priorität, Stats -->
+<div id="project-head"></div>
+
+<!-- Direktlinks ins (Unter-)Projekt: Web-App, Dateien, GitHub, CLAUDE.md -->
+<div id="project-links" class="project-links"></div>
+
+<!-- Mobile Tab-Leiste (nur auf kleinen Screens sichtbar) -->
+<div class="mobile-tabs">
+    <button class="mobile-tab" id="tab-board" onclick="switchTab('board')">📋 Kanban</button>
+    <button class="mobile-tab" id="tab-brainstorm" onclick="switchTab('brainstorm')">🧠 Brainstorm</button>
+    <button class="mobile-tab active" id="tab-chat" onclick="switchTab('chat')">🖥 Terminal</button>
+</div>
+
+<div class="main-split">
+
+    <!-- Kanban Board (links) -->
+    <div class="board-panel tab-hidden">
+        <!-- Board-Werkzeuge: Karten sortieren + verwandte Projekte (Teil 3/4b) -->
+        <div class="board-tools">
+            <button class="btn" onclick="autoSortCards()" title="Karten in jeder Spalte nach Label/Tag sortieren">↕ Karten sortieren</button>
+            <button class="btn" onclick="findRelated()" title="Verwandte Projekte über Tags finden">🔗 Verwandte Projekte</button>
+            <button class="btn" onclick="cleanupBoard(this)" title="Aufräumer auslösen: teilt dieses Board in thematische Unterprojekte auf (wenn es zu gross/gemischt ist) — derselbe Vorgang wie der wöchentliche Timer. Zeigt zuerst eine Vorschau.">🧹 Aufräumen</button>
+            <button class="btn" onclick="openAttModal()" title="Dateien zu diesem Projekt anhängen (→ OneDrive)">📎 Anhänge <span id="att-proj-count"></span></button>
+            <button class="btn" id="brainstorm-toggle" onclick="toggleBrainstorm()" title="Brainstorming-Modus ein-/ausblenden: KI-Dialog zum Ausarbeiten von Ideen — jede Antwort kann zur Karte oder zum Unterprojekt werden. Das Terminal weicht solange.">🧠 Brainstorm</button>
+            <button class="btn" id="auto-dev-btn" onclick="toggleAuto()" title="Projekt für den Kanban-Automaten freigeben: der stündliche Watchdog arbeitet dann offene Karten autonom ab (headless Claude). Erneut klicken = sperren.">🤖 Auto-Entwicklung: …</button>
+            <button class="btn" id="test-first-btn" onclick="toggleTestFirst()" title="Testversion zuerst: neue Versionen werden zuerst in einen Testcontainer (<name>-test, Port +10000) deployed statt direkt in Prod. Klick wechselt: erbt → AN → AUS → erbt. Unterprojekte ohne eigene Einstellung erben vom Mutterprojekt.">🧪 Testversion: …</button>
+            <button class="btn" id="auto-batch-btn" onclick="toggleBatch()" title="API batch mode: der Automat holt für offene Karten dieses Projekts über die Message Batches API günstige Text-Vorschläge (parallel zum Abo, kein Datei-Editieren). Wirkt nur zusätzlich zum globalen Schalter batch_enabled=1 und einem Kostenlimit der Projektgruppe. Erneut klicken = aus.">📦 API batch mode: …</button>
+            <!-- 🧠 Soll-Modell des Kanban-Automaten für dieses Projekt (Manifest-Feld `model`).
+                 Bei mehreren gleichzeitig laufenden Projekten entwickelt eine Stufe tiefer und
+                 das hier gewählte Modell prüft anschliessend nach. -->
+            <label class="btn model-pick" id="model-pick" title="Modell, mit dem der Kanban-Automat dieses Projekt bearbeitet. Laufen mehrere Projekte gleichzeitig, entwickelt eine Stufe tiefer und dieses Modell prüft die Arbeit anschliessend.">🧠 Modell:
+                <select id="model-select" onchange="setBoardModel(this.value)">
+                    <option value="">Standard (Sonnet 5)</option>
+                    <option value="claude-haiku-4-5">Haiku 4.5 — einfach/Doku</option>
+                    <option value="claude-sonnet-5">Sonnet 5 — Standard</option>
+                    <option value="claude-opus-4-8">Opus 4.8 — komplex</option>
+                    <option value="claude-fable-5">Fable 5 — sehr lange Läufe</option>
+                </select>
+            </label>
+            <button class="btn" onclick="addColumn()" title="Neue Spalte anlegen">＋ Spalte</button>
+            <span id="related-status" style="font-size:0.8rem;color:#718096"></span>
+        </div>
+        <div id="related-panel" class="related-panel" style="display:none"></div>
+        <div class="board-wrap">
+            <div class="board" id="board">
+                <div style="color:#4a5568;padding:2rem">⏳ Lade…</div>
+            </div>
+        </div>
+
+        <!-- Rollup: Alle Karten aus Sub-Boards -->
+        <div class="rollup-panel collapsed" id="rollup-panel">
+            <div class="rollup-header" onclick="toggleRollup()">
+                <span class="rollup-label">📊 Alle Karten <span id="rollup-count" style="font-weight:400;color:#4a5568"></span></span>
+                <span id="rollup-toggle-icon" style="font-size:0.75rem;color:#4a5568">▶ ausklappen</span>
+            </div>
+            <div class="rollup-filters" id="rollup-filters"></div>
+            <div class="rollup-body" id="rollup-body"></div>
+        </div>
+    </div>
+
+    <!-- Brainstorm Panel — KI-Dialog zum Ausarbeiten von Ideen zum aktuellen Projekt
+         tab-hidden = auf Mobile versteckt (sichtbar auf Brainstorm-Tab), auf Desktop optional sichtbar -->
+    <div class="brainstorm-panel tab-hidden">
+        <div class="brainstorm-header">
+            <span class="brainstorm-header-label">🧠 Brainstorming-Modus</span>
+            <span class="brainstorm-help" title="KI fragt aktiv nach, gibt eigene Ideen dazu und hilft beim Ausarbeiten deiner Gedanken">?</span>
+        </div>
+        <!-- Ganz-Gespräch-Aktionen: aus dem kompletten Verlauf eine Beschreibung
+             bzw. mehrere Karten ableiten (nicht pro Einzelantwort). -->
+        <div class="brainstorm-tools" id="brainstorm-tools">
+            <button class="bs-tool" onclick="convoToDescription()"
+                title="Aus dem ganzen Gespräch eine Projekt-Beschreibung generieren und ins Projekt schreiben (ersetzt die bisherige).">📖 Als Beschreibung</button>
+            <button class="bs-tool" onclick="convoToCards()"
+                title="Aus dem ganzen Gespräch mehrere Aufgaben-Karten ableiten und ins aktuelle Board legen.">📋 Plan → Karten</button>
+            <span class="bs-tool-status" id="brainstorm-tool-status"></span>
+        </div>
+        <div class="brainstorm-messages" id="brainstorm-messages">
+            <div class="brainstorm-welcome">
+                <strong>Willkommen zum Brainstorming!</strong><br>
+                Schreib eine Idee oder eine Frage, und die KI wird aktiv nachfragen, Ideen dazugeben und dir helfen, sie weiterzuentwickeln.
+            </div>
+        </div>
+        <div class="brainstorm-input-area">
+            <textarea id="brainstorm-input" placeholder="Deine Idee oder Frage eingeben…" rows="3"></textarea>
+            <button id="brainstorm-send" class="btn" title="Brainstorming-Dialog starten">💭 Gedanke absenden</button>
+        </div>
+    </div>
+
+    <!-- Terminal Panel (rechts) — ersetzt den früheren KI-Chat: echtes Terminal mit
+         Claude Code im Projektordner (eigene tmux-Session pro Board).
+         MOBILE-Startzustand = Terminal (Default-Tab, „Terminal wichtiger als Kanban"):
+         darum liegt tab-hidden jetzt auf .board-panel statt hier. Auf Desktop sind
+         beide im Split sichtbar (tab-hidden wirkt nur in der Mobile-Media-Query). -->
+    <div class="chat-panel">
+        <div class="chat-header">
+            <div class="chat-header-top">
+                <span class="chat-header-label">🖥 Terminal</span>
+                <div class="chat-send-row">
+                    <button class="btn" id="term-theme-btn" onclick="ptCycleTheme()" title="Farbmodus von Claude Code umschalten (6 Modi)">🌙</button>
+                    <button class="btn" id="term-touch-btn" onclick="ptToggleTouch()" title="Touch-Modus: natives Scrollen/Kopieren/Einfügen am Handy/Tablet ein/aus (schaltet tmux-Maus für diese Session)">📱</button>
+                    <button class="btn" id="term-kbd-btn" onclick="ptToggleKbd()" title="Bildschirm-Tastatur ein/aus (Sonderzeichen + QWERTZ, unabhängig von der iOS-Tastatur)">⌨</button>
+                    <button class="btn" id="term-zoom-out" onclick="setTerminalZoom(-1)" title="Schrift kleiner — mehr Spalten/Zeilen (wie ein grösseres Fenster)">A−</button>
+                    <button class="btn" id="term-zoom-in" onclick="setTerminalZoom(1)" title="Schrift grösser">A+</button>
+                    <button class="btn" id="term-wide-btn" onclick="toggleTerminalWidth()" title="Terminal verbreitern (mehr Spalten) — Karten bleiben sichtbar">↔</button>
+                    <button class="btn" id="term-fs-btn" onclick="toggleTerminalFullscreen()" title="Terminal auf den ganzen Bildschirm (Esc beendet)">⛶</button>
+                    <button class="btn" id="term-reload-btn" onclick="reloadTerminal()" title="Terminal heilen + neu laden — behebt Mosaik/Geistertext (löst Doppel-Clients) und tote bash (startet claude --continue, Konversation läuft weiter)">↻</button>
+                    <!-- Live-Modell der LAUFENDEN Terminal-Session umschalten (tippt /model ins
+                         Terminal). Getrennt vom Automat-Soll-Modell (#model-select in den
+                         Board-Tools oben — das steuert nur den Kanban-Automaten, nicht diese Session). -->
+                    <select class="btn" id="pt-model-select" title="Claude-Modell der LAUFENDEN Terminal-Session umschalten (tippt /model ins Terminal). Nur wirksam, wenn claude im Vordergrund läuft; am Bash-Prompt landet es als Eingabe.">
+                        <option value="">🧠 Modell…</option>
+                        <option value="default">Standard (Sonnet)</option>
+                        <option value="sonnet">Sonnet</option>
+                        <option value="claude-opus-5">Opus 5</option>
+                        <option value="claude-opus-4-8">Opus 4.8</option>
+                        <option value="haiku">Haiku</option>
+                        <option value="fable">Fable</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chat-model-row">
+                <span class="chat-model-label" id="term-cwd-hint">Claude Code · eigene Session je Projekt</span>
+            </div>
+        </div>
+
+        <div class="terminal-frame-wrap">
+            <div id="pt-header-handle" title="Header ein-/ausklappen (tippen oder wischen)"></div>
+            <iframe id="proj-terminal" class="terminal-frame" title="Projekt-Terminal"
+                    allow="clipboard-read; clipboard-write"></iframe>
+        </div>
+
+        <!-- Eingabe-Zeile ("Eingabemodus", 2026-07-18): normales Textfeld mit der
+             NATIVEN iPhone-Tastatur (Autokorrektur/Diktat/Einfügen). Enter oder
+             „Senden" schickt den Text über den Daten-Kanal (window.term) ins
+             Terminal → so funktioniert auch Einfügen zuverlässig. ⤶ = ob Enter
+             einen Zeilenumbruch anhängt (Befehl ausführen / Nachricht abschicken). -->
+        <div id="pt-inputline">
+          <input id="pt-input" type="text" autocomplete="off" autocorrect="on" autocapitalize="sentences"
+                 spellcheck="true" enterkeyhint="send" placeholder="Text tippen / einfügen — Enter → ins Terminal">
+          <label id="pt-input-nl" title="Enter hängt einen Zeilenumbruch an (Befehl ausführen / Nachricht senden)">
+            <input type="checkbox" id="pt-input-cr" checked>⤶
+          </label>
+          <button id="pt-input-send" title="Text ins Terminal senden">Senden</button>
+        </div>
+
+        <!-- ══ Mobile-Tastatur (Sonderzeichen + QWERTZ) fürs Projekt-Terminal ══════
+             Senden läuft über den Daten-Kanal (window.term.triggerDataEvent), NICHT
+             über KeyboardEvents (die erreichen dieses xterm/ttyd nicht, verifiziert
+             2026-07-18). Sonderleiste (#pt-keys) + volle QWERTZ (#pt-kbd via ⌨ Tasten). -->
+        <style>
+          #pt-inputline { display:none; gap:6px; align-items:center; padding:6px;
+                          background:#1b1b1f; border-top:1px solid #000; }
+          #pt-inputline.show { display:flex; }
+          #pt-input { flex:1; min-width:0; background:#0d1117; color:#e6edf3;
+                      border:1px solid #30363d; border-radius:8px; padding:10px;
+                      font-size:16px; outline:none; }   /* 16px → kein iOS-Auto-Zoom beim Fokus */
+          #pt-input:focus { border-color:#3b82f6; }
+          #pt-input-nl { color:#8b949e; font-size:18px; display:flex; align-items:center; gap:3px; user-select:none; }
+          #pt-input-send { background:#238636; color:#fff; border:0; border-radius:8px;
+                           padding:0 14px; height:40px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
+          #pt-keys, #pt-kbd { background:#1b1b1f; border-top:1px solid #000; flex:0 0 auto;
+                              -webkit-user-select:none; user-select:none; }
+          #pt-keys { padding:5px; display:none; }
+          #pt-keys.show { display:block; }
+          #pt-keys .keyrow { display:flex; gap:4px; margin-top:4px; }
+          #pt-keys .keyrow:first-child { margin-top:0; }
+          #pt-keys .keyrow button { flex:1; background:#26262c; color:#e6e6e6; border:none;
+                              border-radius:7px; padding:9px 0; font-size:14px; font-weight:600;
+                              cursor:pointer; min-width:0; line-height:1.1; }
+          #pt-keys .keyrow button:active { background:#3b82f6; }
+          #pt-keys .keyrow button.mod.on { background:#3b82f6; }
+          #pt-keys .keyrow button.wide { flex:1.6; }
+          #pt-keys .keyrow button.narrow { flex:.7; }
+          #pt-keys.collapsed .extra { display:none; }
+          #pt-kbd { padding:4px; display:none; }
+          #pt-kbd.show { display:block; }
+          #pt-kbd .krow { display:flex; gap:4px; margin-top:4px; justify-content:center; }
+          #pt-kbd .krow:first-child { margin-top:0; }
+          #pt-kbd button { flex:1; background:#33333b; color:#e6e6e6; border:none; border-radius:6px;
+                              padding:11px 0; font-size:16px; font-weight:600; cursor:pointer;
+                              min-width:0; line-height:1; }
+          #pt-kbd button:active { background:#3b82f6; }
+          #pt-kbd button.spc { flex:5; }
+          #pt-kbd button.fn  { flex:1.5; background:#26262c; font-size:13px; }
+          /* Fehltipp-Schutz (2026-07-18): Totzone vor Enter + Abstand zur ⌫-Reihe darüber,
+             Enter farblich markant — verhindert versehentliches Absenden beim Löschen/Leertippen. */
+          .kgap { flex:.7; pointer-events:none; }
+          #pt-kbd .krow.bottomrow { margin-top:10px; }
+          #pt-keys button.enterkey, #pt-kbd button.enterkey { background:#3b82f6; color:#fff; }
+          #pt-kbd button.fn.on { background:#3b82f6; }
+          #pt-kbd .layer { display:none; }
+          #pt-kbd .layer.show { display:block; }
+          #term-touch-btn.on, #term-kbd-btn.on { background:#3b82f6; color:#fff; }
+          /* Live-Modell-Dropdown in der Terminal-Toolbar (wie .btn, aber als Select). */
+          #pt-model-select { -webkit-appearance:none; appearance:none; cursor:pointer; padding-right:8px; }
+        </style>
+
+        <div id="pt-keys" class="collapsed">
+          <div class="keyrow">
+            <button data-key="Escape">Esc</button>
+            <button data-key="Tab">Tab</button>
+            <button data-key="ShiftTab" title="Shift+Tab (Back-Tab) — z.B. Modus umschalten in Claude Code">⇧⇥</button>
+            <button class="mod" data-mod="ctrl">Ctrl</button>
+            <button class="mod" data-mod="alt">Alt</button>
+            <button data-key="ArrowLeft">&#8592;</button>
+            <button data-key="ArrowUp">&#8593;</button>
+            <button data-key="ArrowDown">&#8595;</button>
+            <button data-key="ArrowRight">&#8594;</button>
+            <button id="pt-morebtn" class="narrow" title="Mehr Tasten">&#9776;</button>
+          </div>
+          <div class="keyrow extra">
+            <button data-ch="|">|</button><button data-ch="/">/</button><button data-ch="\">\</button>
+            <button data-ch="~">~</button><button data-ch="-">-</button><button data-ch="_">_</button>
+            <button data-ch="*">*</button><button data-ch="$">$</button><button data-ch="#">#</button>
+            <button data-ch="&quot;">"</button>
+          </div>
+          <div class="keyrow extra">
+            <button data-ch="{">{</button><button data-ch="}">}</button><button data-ch="[">[</button>
+            <button data-ch="]">]</button><button data-ch="(">(</button><button data-ch=")">)</button>
+            <button data-ch="&amp;">&amp;</button><button data-ch="!">!</button><button data-ch="=">=</button>
+            <button data-ch=".">.</button>
+          </div>
+          <div class="keyrow extra">
+            <button data-key="Home">Pos1</button><button data-key="End">Ende</button>
+            <button data-key="PageUp">Bild&#8593;</button><button data-key="PageDown">Bild&#8595;</button>
+            <button data-key="Backspace">&#9003;</button>
+            <span class="kgap"></span>
+            <button class="wide enterkey" data-key="Enter">&#9166; Enter</button>
+          </div>
+          <div class="keyrow extra">
+            <button data-key="c" data-ctrl="1">^C</button><button data-key="d" data-ctrl="1">^D</button>
+            <button data-key="z" data-ctrl="1">^Z</button><button data-key="l" data-ctrl="1">^L</button>
+            <button data-key="r" data-ctrl="1">^R</button><button data-key="a" data-ctrl="1">^A</button>
+            <button data-key="e" data-ctrl="1">^E</button><button data-key="k" data-ctrl="1">^K</button>
+            <button data-key="u" data-ctrl="1">^U</button>
+          </div>
+        </div>
+
+        <div id="pt-kbd">
+          <div class="layer lay-abc show">
+            <div class="krow">
+              <button data-ch="1">1</button><button data-ch="2">2</button><button data-ch="3">3</button>
+              <button data-ch="4">4</button><button data-ch="5">5</button><button data-ch="6">6</button>
+              <button data-ch="7">7</button><button data-ch="8">8</button><button data-ch="9">9</button>
+              <button data-ch="0">0</button>
+            </div>
+            <div class="krow">
+              <button class="ltr" data-ch="q">q</button><button class="ltr" data-ch="w">w</button>
+              <button class="ltr" data-ch="e">e</button><button class="ltr" data-ch="r">r</button>
+              <button class="ltr" data-ch="t">t</button><button class="ltr" data-ch="z">z</button>
+              <button class="ltr" data-ch="u">u</button><button class="ltr" data-ch="i">i</button>
+              <button class="ltr" data-ch="o">o</button><button class="ltr" data-ch="p">p</button>
+            </div>
+            <div class="krow">
+              <button class="ltr" data-ch="a">a</button><button class="ltr" data-ch="s">s</button>
+              <button class="ltr" data-ch="d">d</button><button class="ltr" data-ch="f">f</button>
+              <button class="ltr" data-ch="g">g</button><button class="ltr" data-ch="h">h</button>
+              <button class="ltr" data-ch="j">j</button><button class="ltr" data-ch="k">k</button>
+              <button class="ltr" data-ch="l">l</button>
+            </div>
+            <div class="krow">
+              <button class="fn" id="pt-shiftbtn">&#8679;</button>
+              <button class="ltr" data-ch="y">y</button><button class="ltr" data-ch="x">x</button>
+              <button class="ltr" data-ch="c">c</button><button class="ltr" data-ch="v">v</button>
+              <button class="ltr" data-ch="b">b</button><button class="ltr" data-ch="n">n</button>
+              <button class="ltr" data-ch="m">m</button>
+              <button class="fn" data-key="Backspace">&#9003;</button>
+            </div>
+          </div>
+          <div class="layer lay-sym">
+            <div class="krow">
+              <button data-ch="!">!</button><button data-ch="@">@</button><button data-ch="#">#</button>
+              <button data-ch="$">$</button><button data-ch="%">%</button><button data-ch="^">^</button>
+              <button data-ch="&amp;">&amp;</button><button data-ch="*">*</button><button data-ch="(">(</button>
+              <button data-ch=")">)</button>
+            </div>
+            <div class="krow">
+              <button data-ch="-">-</button><button data-ch="_">_</button><button data-ch="=">=</button>
+              <button data-ch="+">+</button><button data-ch="[">[</button><button data-ch="]">]</button>
+              <button data-ch="{">{</button><button data-ch="}">}</button><button data-ch="\">\</button>
+              <button data-ch="|">|</button>
+            </div>
+            <div class="krow">
+              <button data-ch=";">;</button><button data-ch=":">:</button><button data-ch="'">'</button>
+              <button data-ch="&quot;">"</button><button data-ch="`">`</button><button data-ch="~">~</button>
+              <button data-ch="/">/</button><button data-ch="?">?</button><button data-ch="&lt;">&lt;</button>
+              <button data-ch="&gt;">&gt;</button>
+            </div>
+            <div class="krow">
+              <button data-ch=",">,</button><button data-ch=".">.</button>
+              <button data-key="Backspace" class="fn">&#9003;</button>
+            </div>
+          </div>
+          <!-- Totzone (.kgap) vor Enter + Extra-Abstand (.bottomrow): Enter lag direkt
+               neben Leer und unter ⌫ → Fehl-Absenden beim Tippen/Korrigieren. -->
+          <div class="krow bottomrow">
+            <button class="fn" id="pt-symbtn">#+=</button>
+            <button data-key="Escape" class="fn">Esc</button>
+            <button data-key="Tab" class="fn">Tab</button>
+            <button data-ch=" " class="spc">Leer</button>
+            <span class="kgap"></span>
+            <button data-key="Enter" class="fn enterkey">&#9166;</button>
+          </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Unterprojekte — bewusst AUSSERHALB von .main-split: volle Seitenbreite statt
+     nur die linke Board-Spalte, Terminal liegt darum strukturell darüber. -->
+<div class="subprojects-panel tab-hidden">
+    <div class="subprojects-header">
+        <span id="subprojects-label" class="subprojects-label">📂 Unterprojekte</span>
+        <div class="subprojects-actions">
+            <input type="file" id="sub-photo-input" accept="image/*" capture="environment" style="display:none"
+                   onchange="createSubprojectFromPhoto(this.files[0]); this.value=''">
+            <button class="btn" onclick="document.getElementById('sub-photo-input').click()" title="Unterprojekt via Foto">📸</button>
+            <button class="btn" onclick="createSubprojectText()" title="Unterprojekt via Text">＋ Text</button>
+        </div>
+    </div>
+    <div class="subprojects-list" id="subprojects-list"></div>
+</div>
+
+<!-- Karten-Modal -->
+<div class="modal-overlay" id="card-modal">
+    <div class="modal">
+        <h2 id="modal-title">Karte</h2>
+        <div class="modal-title-row">
+            <label>Idee / Aufgabe</label>
+            <button id="title-suggest-btn" onclick="suggestTitle()" title="KI generiert Kurztitel aus deinem Text">🤖 Titel generieren</button>
+        </div>
+        <textarea id="card-input-title" placeholder="Schreib einfach drauflos — 🤖 macht daraus einen Kurztitel…" maxlength="500"></textarea>
+        <label>Beschreibung <span style="color:#4a5568">(optional, wird auto-befüllt)</span></label>
+        <textarea id="card-input-desc" placeholder="Details, Links, Notizen…"></textarea>
+        <details id="card-interface-details" style="margin:0.5rem 0">
+            <summary style="cursor:pointer;color:#a0aec0;font-size:0.85rem;user-select:none">⚙️ Schnittstelle (Input / Aufgabe / Output)</summary>
+            <div style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.5rem">
+                <label>📥 Input <span style="color:#4a5568">(Was kommt rein?)</span></label>
+                <textarea id="card-input-input" placeholder="z.B. Board-ID, Webhook-Payload, Dateiname…" style="min-height:50px"></textarea>
+                <label>⚙️ Aufgabe <span style="color:#4a5568">(Was wird gemacht?)</span></label>
+                <textarea id="card-input-task" placeholder="z.B. Ollama analysiert Karten und erstellt KI-Vorschläge…" style="min-height:50px"></textarea>
+                <label>📤 Output <span style="color:#4a5568">(Was kommt raus?)</span></label>
+                <textarea id="card-input-output" placeholder="z.B. 3 neue KI-Karten im Backlog, gespeichertes Board-JSON…" style="min-height:50px"></textarea>
+                <label>🤖 Modell</label>
+                <select id="card-input-model" style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;padding:0.3rem 0.5rem">
+                    <option value="">— keins —</option>
+                    <option value="ollama">Ollama (lokal)</option>
+                    <option value="claude">Claude (API)</option>
+                    <option value="ollama+claude">Ollama + Claude</option>
+                </select>
+            </div>
+        </details>
+        <label>Label</label>
+        <div class="label-picker" id="label-picker"></div>
+        <label style="margin-top:0.6rem">📎 Anhänge</label>
+        <div id="edit-att-area">
+            <div class="att-uploadbar"><button type="button" class="btn" onclick="addEditCardFiles()">＋ Datei hochladen</button></div>
+            <div id="edit-att-list" class="att-list"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal()">Abbrechen</button>
+            <button class="btn primary" onclick="saveCard()">Speichern</button>
+        </div>
+    </div>
+</div>
+
+<!-- Detail-Ansicht (read-only, dynamisch) -->
+<div class="modal-overlay" id="detail-modal" onclick="if(event.target===this)closeDetail()">
+    <div class="modal detail-modal">
+        <div class="detail-head">
+            <h2 id="detail-title">Karte</h2>
+            <button class="detail-close" onclick="closeDetail()" title="Schliessen">✕</button>
+        </div>
+        <div id="detail-body" class="detail-body"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="deleteFromDetail()" style="margin-right:auto;color:#fc8181">🗑 Löschen</button>
+            <button class="btn" onclick="closeDetail()">Schliessen</button>
+            <button class="btn primary" onclick="editFromDetail()">✏️ Bearbeiten</button>
+        </div>
+    </div>
+</div>
+
+<!-- Projekt-Anhänge Modal (Dateien → OneDrive) -->
+<div class="modal-overlay" id="att-modal" onclick="if(event.target===this)closeAttModal()">
+    <div class="modal detail-modal">
+        <div class="detail-head">
+            <h2>📎 Projekt-Anhänge</h2>
+            <button class="detail-close" onclick="closeAttModal()" title="Schliessen">✕</button>
+        </div>
+        <div class="att-hint">Dateien werden lokal gespeichert und in den OneDrive-Ordner
+            <code>Dashboard-Anhaenge</code> synchronisiert (max 100 MB).</div>
+        <div class="att-uploadbar">
+            <button class="btn primary" onclick="pickFiles(null)">＋ Datei hochladen</button>
+        </div>
+        <div id="att-modal-list" class="att-list"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeAttModal()">Schliessen</button>
+        </div>
+    </div>
+</div>
+
+<!-- Versteckter File-Input für alle Anhang-Uploads (Projekt + Karte) -->
+<input type="file" id="att-file-input" multiple style="display:none" onchange="handleAttFiles()">
+
+<!-- Board Picker Modal (verschieben / anheften) -->
+<div class="modal-overlay" id="board-picker-modal">
+    <div class="modal">
+        <h2 id="picker-modal-title">Projekt auswählen</h2>
+        <div class="board-picker-list" id="picker-board-list"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeBoardPicker()">Abbrechen</button>
+            <button class="btn primary" onclick="confirmBoardPicker()">Bestätigen</button>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Processing Overlay -->
+<div class="photo-overlay" id="sub-photo-overlay">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+    <div class="photo-overlay-text">📸 Foto wird analysiert…</div>
+</div>
+
+<script src="/js/api.js?v=20260611b"></script>
+<!-- Auto-Reconnect fürs Projekt-Terminal-iframe (eine Pflege-Datei, s. web-terminal CLAUDE.md) -->
+<script src="/terminal-watchdog.js?v=20260718b"></script>
+<!-- project.js (3423 Z.) am 2026-07-24 in Module aufgeteilt (Kanban arch_6cb5b87e65).
+     Klassik-Scripts, gemeinsamer globaler Scope → Ladereihenfolge ZWINGEND wie hier. -->
+<script src="/js/project-core.js?v=20260809-escxss"></script>
+<script src="/js/project-board.js?v=20260809-escxss"></script>
+<!-- Antwort-Knöpfe auf Entscheidungskarten (nutzt render()/loadBoard() von oben) -->
+<script src="/js/project-decisions.js?v=20260801-entscheidung"></script>
+<!-- Spiegel-Karten: Link auf die Master-Karte + Deep-Link-Ziel ?card=<id> -->
+<script src="/js/project-mirror.js?v=20260801-master"></script>
+<script src="/js/project-detail.js?v=20260809-escxss"></script>
+<script src="/js/project-chat-terminal.js?v=20260809-headercollapse"></script>
+<script src="/js/project-subprojects.js?v=20260809-escxss"></script>
+<script src="/js/project-head.js?v=20260728-subprojheight"></script>
+<script src="/js/project-terminal-fit.js?v=20260727-ptmodel"></script>
+<!-- Schwebendes Prioritäten-Widget: Karten dieses Projekts, selbständig nach Priorität geordnet -->
+<script src="/js/project-prio-widget.js?v=20260809-escxss" defer></script>
+
+<!-- Brainstorming-Modus: KI-Dialog zum Ausarbeiten von Ideen -->
+<script src="/js/project-brainstorm.js?v=20260727-convoactions" defer></script>
+
+</body>
+</html>

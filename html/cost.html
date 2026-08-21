@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💸 KI Nutzung & Kosten</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--t-bg, #0f1117); color: var(--t-text, #e2e8f0);
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.8rem 1.5rem; border-bottom: 1px solid var(--t-raised, #2d3748);
+        }
+        header h1 { font-size: 1.2rem; color: var(--accent-soft, #90cdf4); }
+        nav {
+            display: flex; gap: 0.5rem; align-items: center;
+            padding: 0.6rem 1.5rem; border-bottom: 1px solid var(--t-raised, #2d3748); flex-wrap: wrap;
+        }
+        nav a {
+            padding: 0.5rem 1.2rem; border-radius: 8px; text-decoration: none;
+            font-size: 0.9rem; font-weight: 600; color: var(--t-muted, #718096); border: 1px solid var(--t-raised, #2d3748);
+        }
+        nav a:hover { border-color: var(--t-line2, #4a5568); color: var(--t-text, #e2e8f0); }
+        nav a.active { background: var(--accent-deep, #2b4c7e); border-color: var(--accent, #4a90d9); color: var(--accent-soft, #90cdf4); }
+
+        main { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+
+        /* ── Summary ── */
+        .summary {
+            display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: baseline;
+            padding: 0.9rem 1.2rem; background: var(--t-surface, #1a202c);
+            border: 1px solid var(--t-raised, #2d3748); border-radius: 10px; font-size: 0.88rem;
+        }
+        .summary-item { display: flex; align-items: baseline; gap: 0.4rem; }
+        .summary-label { color: var(--t-muted, #718096); }
+        .summary-value { font-weight: 700; font-size: 1.05rem; }
+        .summary-value.red    { color: #fc8181; }
+        .summary-value.orange { color: #f6ad55; }
+        .summary-value.green  { color: #68d391; }
+        .summary-value.blue   { color: var(--accent-soft, #90cdf4); }
+        .summary-sep { color: var(--t-raised, #2d3748); }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;
+        }
+        .toolbar input, .toolbar select {
+            padding: 0.4rem 0.7rem; border-radius: 7px; border: 1px solid var(--t-raised, #2d3748);
+            background: var(--t-surface, #1a202c); color: var(--t-text, #e2e8f0); font-size: 0.85rem;
+        }
+        .toolbar input:focus, .toolbar select:focus { outline: none; border-color: var(--accent, #4a90d9); }
+        .toolbar input[type=date] { color-scheme: dark; }
+        .toolbar-label { font-size: 0.82rem; color: var(--t-muted, #718096); }
+
+        /* ── View-Filter Buttons ── */
+        .view-btns { display: flex; gap: 0.4rem; }
+        .view-btn {
+            padding: 0.35rem 0.9rem; border-radius: 7px; border: 1px solid var(--t-raised, #2d3748);
+            background: var(--t-surface, #1a202c); color: var(--t-muted, #718096); font-size: 0.85rem; font-weight: 700; cursor: pointer;
+        }
+        .view-btn.active { background: var(--accent-deep, #2b4c7e); border-color: var(--accent, #4a90d9); color: var(--accent-soft, #90cdf4); }
+        .view-btn:hover:not(.active) { border-color: var(--t-line2, #4a5568); color: var(--t-text, #e2e8f0); }
+
+        .btn-csv {
+            margin-left: auto; padding: 0.4rem 1rem; border-radius: 7px;
+            border: 1px solid #2f855a; background: #0d2018; color: #68d391;
+            font-size: 0.85rem; font-weight: 700; cursor: pointer;
+        }
+        .btn-csv:hover { background: #1a3a2a; }
+        #row-count { font-size: 0.82rem; color: var(--t-muted, #718096); }
+
+        /* ── Table ── */
+        .table-wrap { overflow-x: auto; border: 1px solid var(--t-raised, #2d3748); border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 900px; }
+        thead th {
+            padding: 0.4rem 0.5rem; text-align: left; background: var(--t-surface2, #161b27);
+            color: var(--t-muted, #718096); font-size: 0.68rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--t-raised, #2d3748); white-space: nowrap;
+            cursor: pointer; user-select: none; width: 1%;
+        }
+        thead th.col-ctx { width: 30%; min-width: 280px; }
+        thead th:hover { color: var(--t-text, #e2e8f0); }
+        thead th.sort-asc::after  { content: " ▲"; color: var(--accent, #4a90d9); }
+        thead th.sort-desc::after { content: " ▼"; color: var(--accent, #4a90d9); }
+
+        tbody tr { border-bottom: 1px solid var(--t-surface, #1a202c); transition: background 0.1s; }
+        tbody tr:hover { background: var(--t-surface, #1a202c); }
+        tbody td { padding: 0.3rem 0.5rem; white-space: nowrap; vertical-align: top; }
+
+        .td-ts    { color: var(--t-text2, #a0aec0); font-family: "SF Mono", monospace; font-size: 0.72rem; white-space: nowrap; }
+        .td-model { color: var(--accent-soft, #90cdf4); font-size: 0.72rem; white-space: nowrap; }
+        .td-num   { text-align: right; font-family: "SF Mono", monospace; color: var(--t-muted, #718096); font-size: 0.72rem; white-space: nowrap; }
+        .td-tok   { text-align: right; font-family: "SF Mono", monospace; color: #9ae6b4; font-size: 0.72rem; white-space: nowrap; }
+        .td-cost  { text-align: right; font-family: "SF Mono", monospace; font-weight: 700; font-size: 0.72rem; white-space: nowrap; }
+        .td-cost.high   { color: #fc8181; }
+        .td-cost.medium { color: #f6ad55; }
+        .td-cost.low    { color: #68d391; }
+        .td-cost.none   { color: var(--t-line2, #4a5568); }
+        .td-na { text-align: right; color: var(--t-raised, #2d3748); font-size: 0.72rem; white-space: nowrap; }
+
+        /* ── Kontext-Spalte ── */
+        .td-ctx {
+            white-space: normal; word-break: break-word;
+            font-size: 0.78rem; color: #c0cadc;
+            max-width: 480px; min-width: 200px; padding: 0.3rem 0.5rem;
+        }
+        .ctx-text {
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow: hidden;
+            max-height: 2.8em;   /* ~2 Zeilen */
+            position: relative;
+            cursor: pointer;
+        }
+        .ctx-text::after {
+            content: " …";
+            position: absolute;
+            right: 0; bottom: 0;
+            background: linear-gradient(to right, transparent 0%, var(--t-surface2, #161b27) 40%);
+            padding-left: 1.5em;
+            color: var(--accent, #4a90d9);
+            font-weight: 700;
+        }
+        .ctx-text.expanded {
+            max-height: none;
+            cursor: default;
+        }
+        .ctx-text.expanded::after { display: none; }
+        .ctx-text.no-overflow { cursor: default; }
+        .ctx-text.no-overflow::after { display: none; }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-block; padding: 0.1rem 0.45rem; border-radius: 4px;
+            font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+        }
+        .badge-claude  { background: var(--accent-deep, #2b4c7e); color: var(--accent-soft, #90cdf4); }
+        .badge-ollama  { background: #1a2d20; color: #68d391; }
+        .badge-code    { background: #1e3a5f; color: #63b3ed; }
+        .badge-dash    { background: #553c7e; color: #d6bcfa; }
+        .badge-advisor { background: #2a4a2e; color: #9ae6b4; }
+        .badge-explain { background: #3a2a4e; color: #c4b5fd; }
+        .badge-monitor { background: #4a3a1e; color: #fbd38d; }
+        .badge-vision  { background: #2a3a4e; color: var(--accent-soft, #90cdf4); }
+
+        tfoot td {
+            padding: 0.55rem 0.8rem; background: var(--t-surface2, #161b27);
+            border-top: 2px solid var(--t-line2, #4a5568); font-weight: 700; font-size: 0.83rem;
+        }
+        .tfoot-total { text-align: right; font-family: "SF Mono", monospace; color: #f6ad55; }
+        .tfoot-tok   { text-align: right; font-family: "SF Mono", monospace; color: #9ae6b4; }
+
+        #loading { text-align: center; padding: 3rem; color: var(--t-muted, #718096); }
+
+        /* Ollama-Zeilen leicht eingefärbt */
+        tr.row-ollama { background: #0f1a12; }
+        tr.row-ollama:hover { background: #152018; }
+
+        /* ── Aggregat-Tabellen (Projekt/Loop) ── */
+        .agg-tables { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .agg-table-box {
+            flex: 1 1 320px; min-width: 280px;
+            background: var(--t-surface, #1a202c); border: 1px solid var(--t-raised, #2d3748);
+            border-radius: 10px; padding: 0.8rem 1rem;
+        }
+        .agg-table-box h2 { font-size: 0.85rem; color: var(--t-muted, #718096); margin-bottom: 0.5rem; }
+        table.agg-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        table.agg-table td { padding: 0.25rem 0.3rem; border-bottom: 1px solid var(--t-surface2, #161b27); }
+        table.agg-table td.agg-name { color: var(--t-text, #e2e8f0); }
+        table.agg-table td.agg-num  { text-align: right; font-family: "SF Mono", monospace; color: #9ae6b4; white-space: nowrap; }
+        table.agg-table td.agg-cost { text-align: right; font-family: "SF Mono", monospace; font-weight: 700; color: #f6ad55; white-space: nowrap; }
+        table.agg-table tr:last-child td { border-bottom: none; }
+    </style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+<div class="ds-zones">
+<header class="ds-zone-top">
+    <h1>💸 KI Nutzung & Kosten</h1>
+    <span id="last-updated" style="font-size:0.78rem;color:#4a5568"></span>
+</header>
+
+<nav>
+    <a href="/">← Projekte</a>
+    <a href="/project.html?id=home-stack">📋 Übersicht</a>
+    <a href="/ki-advisor.html">🤖 KI-Advisor</a>
+    <a href="/swipe.html">🤔 JEIN Tool</a>
+    <a href="/whitelist.html">📱 Whitelist</a>
+    <a href="/cost.html" class="active">💸 Kosten</a>
+    <a href="/ai-settings.html">⚙️ KI-Einstellungen</a>
+</nav>
+
+<main class="ds-zone-main">
+    <div class="summary" id="summary">⏳ Lade…</div>
+
+    <div class="toolbar">
+        <span class="toolbar-label">Von:</span>
+        <input type="date" id="filter-from">
+        <span class="toolbar-label">Bis:</span>
+        <input type="date" id="filter-to">
+        <select id="filter-model"><option value="">Alle Modelle</option></select>
+        <select id="filter-source">
+            <option value="">Alle Quellen</option>
+            <option value="claude-code">Claude Code</option>
+            <option value="dashboard">Dashboard</option>
+            <option value="ki_advisor">KI-Advisor</option>
+            <option value="ki_explain_worker">KI-Erklärung</option>
+            <option value="session_monitor">Session-Monitor</option>
+        </select>
+        <div class="view-btns">
+            <button id="cost-btn-view-all" data-i18n="cost.view.all" class="view-btn active" data-view="all"     onclick="setView('all')">Alle</button>
+            <button id="cost-btn-view-claude" data-i18n="cost.view.claude" class="view-btn"        data-view="claude"  onclick="setView('claude')">☁️ Claude</button>
+            <button id="cost-btn-view-ollama" data-i18n="cost.view.ollama" class="view-btn"        data-view="ollama"  onclick="setView('ollama')">🤖 Ollama</button>
+        </div>
+        <span id="row-count"></span>
+        <button id="cost-btn-csv" data-i18n="cost.csv" class="btn-csv" onclick="exportCSV()">⬇ CSV</button>
+    </div>
+
+    <div id="loading">⏳ Lade Daten…</div>
+
+    <div id="agg-wrap" style="display:none">
+        <div class="agg-tables">
+            <div class="agg-table-box">
+                <h2>📁 Kosten pro Projekt</h2>
+                <table class="agg-table" id="agg-project"><tbody></tbody></table>
+            </div>
+            <div class="agg-table-box">
+                <h2>🔁 Kosten pro Loop</h2>
+                <table class="agg-table" id="agg-loop"><tbody></tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-wrap" id="table-wrap" style="display:none">
+        <table id="main-table">
+            <thead>
+                <tr>
+                    <th data-col="ts">Zeit</th>
+                    <th data-col="_kind">Typ</th>
+                    <th data-col="model">Modell</th>
+                    <th data-col="context" class="col-ctx">Kontext / Funktion</th>
+                    <th data-col="_in">Prompt / Input</th>
+                    <th data-col="_out">Eval / Output</th>
+                    <th data-col="cache_read_tokens">Cache R</th>
+                    <th data-col="cache_write_tokens">Cache W</th>
+                    <th data-col="cost_usd">Kosten $</th>
+                    <th data-col="source">Quelle</th>
+                    <th data-col="project">Projekt</th>
+                    <th data-col="loop">Loop</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+            <tfoot id="table-foot"></tfoot>
+        </table>
+    </div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+
+<script>
+const CHF_RATE = 1.12;
+let allRows = [];   // unified [{...entry, _kind:'claude'|'ollama', _in, _out}]
+let sortCol = 'ts';
+let sortDir = -1;
+let viewMode = 'all';
+
+function fmtNum(n) { return n ? n.toLocaleString('de-CH') : '—'; }
+function fmtUSD(v) { return '$' + v.toFixed(4); }
+function costClass(v) { return v >= 0.10 ? 'high' : v >= 0.02 ? 'medium' : 'low'; }
+
+function setView(v) {
+    viewMode = v;
+    document.querySelectorAll('.view-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.view === v));
+    render();
+    console.log('[Cost] View:', v);
+}
+
+function srcBadge(row) {
+    if (row._kind === 'ollama') {
+        const s = row.source || '';
+        if (s === 'ki_advisor')        return '<span class="badge badge-advisor">KI-Advisor</span>';
+        if (s === 'ki_explain_worker') return '<span class="badge badge-explain">KI-Erklärung</span>';
+        if (s === 'session_monitor')   return '<span class="badge badge-monitor">Session-Mon.</span>';
+        if (s === 'vision')            return '<span class="badge badge-vision">Vision</span>';
+        return '<span class="badge badge-ollama">Lokal</span>';
+    }
+    return row.source === 'claude-code'
+        ? '<span class="badge badge-code">Claude Code</span>'
+        : '<span class="badge badge-dash">Dashboard</span>';
+}
+
+function aggRow(name, v) {
+    return `<tr><td class="agg-name">${name}</td>` +
+        `<td class="agg-num">${fmtNum(v.tokens)}</td>` +
+        `<td class="agg-cost">${fmtUSD(v.cost_usd)}</td></tr>`;
+}
+
+function renderAgg(byProject, byLoop) {
+    const projectRows = Object.entries(byProject || {}).map(([name, v]) => aggRow(name, v)).join('');
+    const loopRows = Object.entries(byLoop || {}).map(([name, v]) => aggRow(name, v)).join('');
+    document.querySelector('#agg-project tbody').innerHTML = projectRows || '<tr><td colspan="3">— keine Daten —</td></tr>';
+    document.querySelector('#agg-loop tbody').innerHTML = loopRows || '<tr><td colspan="3">— keine Daten —</td></tr>';
+    document.getElementById('agg-wrap').style.display = '';
+}
+
+function ctxCell(ctx) {
+    if (!ctx || ctx === '—') return '<td class="td-ctx"><span style="color:#4a5568">—</span></td>';
+    const safe = ctx.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const longEnough = ctx.length > 60;
+    const cls = longEnough ? 'ctx-text' : 'ctx-text no-overflow';
+    const onclick = longEnough ? 'onclick="this.classList.add(\'expanded\')"' : '';
+    return `<td class="td-ctx"><div class="${cls}" ${onclick}>${safe}</div></td>`;
+}
+
+async function loadAll() {
+    console.log('[Cost] Lade Claude + Ollama…');
+    try {
+        const [rc, ro] = await Promise.all([
+            fetch('/claude-cost'),
+            fetch('/ollama-usage'),
+        ]);
+        if (!rc.ok) throw new Error('Claude: HTTP ' + rc.status);
+        if (!ro.ok) throw new Error('Ollama: HTTP ' + ro.status);
+        const dc = await rc.json();
+        const dol = await ro.json();
+
+        // ── Unified rows ──
+        const claudeRows = (dc.calls || []).map(c => ({
+            ...c,
+            _kind: 'claude',
+            _in:   c.input_tokens  || 0,
+            _out:  c.output_tokens || 0,
+        }));
+        const ollamaRows = (dol.calls || []).map(c => ({
+            ...c,
+            _kind:    'ollama',
+            _in:      c.prompt_tokens || 0,
+            _out:     c.eval_tokens   || 0,
+            cost_usd: null,
+        }));
+        allRows = [...claudeRows, ...ollamaRows];
+
+        // ── Summary ──
+        const todayStr = new Date().toISOString().slice(0,10);
+        const todayUSD  = dc.today_usd || 0;
+        const totalUSD  = dc.total_usd || 0;
+        const todayTok  = dol.today_tokens || 0;
+        const totalTok  = dol.total_tokens || 0;
+        const todayClass = todayUSD >= 50 ? 'red' : todayUSD >= 10 ? 'orange' : 'green';
+        const cacheSaved = dc.cache_savings_usd || 0;
+        document.getElementById('summary').innerHTML = `
+            <div class="summary-item">
+                <span class="summary-label">☁️ Heute:</span>
+                <span class="summary-value ${todayClass}">$${todayUSD.toFixed(2)}</span>
+                <span class="summary-label">(${(todayUSD/CHF_RATE).toFixed(2)} CHF)</span>
+            </div>
+            <span class="summary-sep">|</span>
+            <div class="summary-item">
+                <span class="summary-label">Gesamt:</span>
+                <span class="summary-value">$${totalUSD.toFixed(2)}</span>
+            </div>
+            <span class="summary-sep">|</span>
+            <div class="summary-item">
+                <span class="summary-label">💾 Cache spart:</span>
+                <span class="summary-value green">$${cacheSaved.toFixed(2)}</span>
+                <span class="summary-label">(${fmtNum(dc.cache_read_total||0)} cache-read Tok)</span>
+            </div>
+            <span class="summary-sep">|</span>
+            <div class="summary-item">
+                <span class="summary-label">🤖 Heute:</span>
+                <span class="summary-value green">${fmtNum(todayTok)}</span>
+                <span class="summary-label">Tokens</span>
+            </div>
+            <span class="summary-sep">|</span>
+            <div class="summary-item">
+                <span class="summary-label">Gesamt:</span>
+                <span class="summary-value blue">${fmtNum(totalTok)}</span>
+                <span class="summary-label">Tokens lokal</span>
+            </div>
+            <span class="summary-sep">|</span>
+            <div class="summary-item">
+                <span class="summary-label">Calls heute:</span>
+                <span class="summary-value">${dc.calls_today} ☁️ / ${dol.calls_today} 🤖</span>
+            </div>`;
+
+        // ── Modell-Filter ──
+        const models = [...new Set(allRows.map(r => r.model))].filter(Boolean).sort();
+        const sel = document.getElementById('filter-model');
+        sel.innerHTML = '<option value="">Alle Modelle</option>';
+        models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m; opt.textContent = m; sel.appendChild(opt);
+        });
+
+        // Datumfilter: heute
+        const today = new Date().toISOString().slice(0,10);
+        if (!document.getElementById('filter-from').value)
+            document.getElementById('filter-from').value = today;
+        if (!document.getElementById('filter-to').value)
+            document.getElementById('filter-to').value = today;
+
+        document.getElementById('last-updated').textContent =
+            'Stand: ' + new Date().toLocaleTimeString('de-CH');
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('table-wrap').style.display = '';
+        renderAgg(dc.by_project, dc.by_loop);
+        render();
+        console.log('[Cost] Geladen: Claude=' + claudeRows.length + ' Ollama=' + ollamaRows.length);
+    } catch(e) {
+        document.getElementById('loading').textContent = '⚠️ Fehler: ' + e.message;
+        console.error('[Cost] Ladefehler:', e);
+    }
+}
+
+function filtered() {
+    const from   = document.getElementById('filter-from').value;
+    const to     = document.getElementById('filter-to').value;
+    const model  = document.getElementById('filter-model').value;
+    const source = document.getElementById('filter-source').value;
+
+    return allRows.filter(r => {
+        if (viewMode === 'claude' && r._kind !== 'claude') return false;
+        if (viewMode === 'ollama' && r._kind !== 'ollama') return false;
+        const date = (r.ts || '').slice(0,10);
+        if (from && date < from) return false;
+        if (to   && date > to)   return false;
+        if (model && r.model !== model)   return false;
+        if (source && r.source !== source) return false;
+        return true;
+    });
+}
+
+function render() {
+    const rows = filtered();
+
+    rows.sort((a, b) => {
+        let va, vb;
+        if (sortCol === '_in')  { va = a._in;  vb = b._in; }
+        else if (sortCol === '_out') { va = a._out; vb = b._out; }
+        else { va = a[sortCol] ?? 0; vb = b[sortCol] ?? 0; }
+        if (typeof va === 'string') return sortDir * va.localeCompare(vb);
+        return sortDir * ((va||0) - (vb||0));
+    });
+
+    document.querySelectorAll('#main-table thead th').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.col === sortCol)
+            th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+    });
+
+    document.getElementById('table-body').innerHTML = rows.map(r => {
+        const ts  = (r.ts || '').replace('T',' ').replace('Z','').slice(0,19);
+        const typBadge = r._kind === 'ollama'
+            ? '<span class="badge badge-ollama">🤖</span>'
+            : '<span class="badge badge-claude">☁️</span>';
+
+        const inCell  = r._kind === 'ollama'
+            ? `<td class="td-tok">${fmtNum(r._in)}</td>`
+            : `<td class="td-num">${fmtNum(r._in)}</td>`;
+        const outCell = r._kind === 'ollama'
+            ? `<td class="td-tok">${fmtNum(r._out)}</td>`
+            : `<td class="td-num">${fmtNum(r._out)}</td>`;
+
+        const cacheR = r._kind === 'ollama' ? '<td class="td-na">—</td>'
+            : `<td class="td-num">${fmtNum(r.cache_read_tokens)}</td>`;
+        const cacheW = r._kind === 'ollama' ? '<td class="td-na">—</td>'
+            : `<td class="td-num">${fmtNum(r.cache_write_tokens)}</td>`;
+
+        const costCell = r._kind === 'ollama'
+            ? '<td class="td-cost none">lokal</td>'
+            : (() => {
+                const c = r.cost_usd || 0;
+                return `<td class="td-cost ${costClass(c)}">${fmtUSD(c)}</td>`;
+              })();
+
+        return `<tr class="${r._kind === 'ollama' ? 'row-ollama' : ''}">
+            <td class="td-ts">${ts}</td>
+            <td>${typBadge}</td>
+            <td class="td-model">${r.model || '—'}</td>
+            ${ctxCell(r.context || '—')}
+            ${inCell}
+            ${outCell}
+            ${cacheR}
+            ${cacheW}
+            ${costCell}
+            <td>${srcBadge(r)}</td>
+            <td class="td-num">${r.project || '—'}</td>
+            <td class="td-num">${r.loop || '—'}</td>
+        </tr>`;
+    }).join('');
+
+    // Foot
+    const sumUSD  = rows.filter(r=>r._kind==='claude').reduce((s,r)=>s+(r.cost_usd||0), 0);
+    const sumIn   = rows.filter(r=>r._kind==='claude').reduce((s,r)=>s+(r._in||0), 0);
+    const sumOut  = rows.filter(r=>r._kind==='claude').reduce((s,r)=>s+(r._out||0), 0);
+    const sumTok  = rows.filter(r=>r._kind==='ollama').reduce((s,r)=>s+(r.total_tokens||0), 0);
+    const nC = rows.filter(r=>r._kind==='claude').length;
+    const nO = rows.filter(r=>r._kind==='ollama').length;
+
+    document.getElementById('table-foot').innerHTML = `<tr>
+        <td colspan="4" style="color:#a0aec0">
+            Σ ${rows.length} Einträge
+            <span style="color:#718096;font-size:0.8em">(${nC} ☁️ Claude, ${nO} 🤖 Ollama)</span>
+        </td>
+        <td class="tfoot-total">${fmtNum(sumIn)}</td>
+        <td class="tfoot-total">${fmtNum(sumOut)}</td>
+        <td colspan="2"></td>
+        <td class="tfoot-total" style="color:#f6ad55">${fmtUSD(sumUSD)}</td>
+        <td class="tfoot-tok">${fmtNum(sumTok)} Tok.</td>
+        <td colspan="2"></td>
+    </tr>`;
+
+    document.getElementById('row-count').textContent = rows.length + ' Zeilen';
+    console.log('[Cost] Render:', rows.length, 'Zeilen (Claude=' + nC + ' Ollama=' + nO + ')');
+}
+
+function exportCSV() {
+    const rows = filtered();
+    const hdr = ['Zeit','Typ','Modell','Kontext','Prompt/Input','Eval/Output',
+                 'Cache Read','Cache Write','Kosten USD','Quelle','Projekt','Loop'];
+    const lines = [hdr.join(';')];
+    rows.forEach(r => lines.push([
+        (r.ts||'').replace('T',' ').replace('Z','').slice(0,19),
+        r._kind,
+        r.model||'',
+        (r.context||'').replace(/;/g,','),
+        r._in||0, r._out||0,
+        r.cache_read_tokens||0, r.cache_write_tokens||0,
+        r._kind==='claude' ? (r.cost_usd||0).toFixed(6) : 'lokal',
+        r.source||'',
+        r.project||'',
+        r.loop||'',
+    ].join(';')));
+    const blob = new Blob(['﻿' + lines.join('\n')], {type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `ki-nutzung-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    console.log('[Cost] CSV exportiert:', rows.length, 'Zeilen');
+}
+
+document.querySelectorAll('#main-table thead th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (sortCol === col) sortDir *= -1;
+        else { sortCol = col; sortDir = -1; }
+        render();
+    });
+});
+['filter-from','filter-to','filter-model','filter-source'].forEach(id =>
+    document.getElementById(id).addEventListener('change', render));
+
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

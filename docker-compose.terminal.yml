@@ -1,0 +1,50 @@
+# docker-compose.terminal.yml — schaltet das Projekt-Terminal zu.
+#
+# Browser-Terminal mit einer tmux-Session pro Kanban-Board und Claude Code darin.
+# Bewusst eine EIGENE Datei statt eines compose-Profils: ein Browser-Terminal ist
+# voller Shell-Zugriff, und aeltere podman-compose-Versionen (1.0.3 in Debian 12)
+# ignorieren `profiles:` stillschweigend — der Terminal-Container waere dort trotz
+# Profil immer mitgestartet. Eine zweite Datei wirkt in jeder Version.
+#
+# Start:
+#     docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d --build
+#
+# Bequemer: einmal COMPOSE_FILE in die .env schreiben, dann genuegt weiterhin
+# `docker compose up -d` (siehe .env.example).
+#
+# Es wird KEIN Port veroeffentlicht: das Terminal ist nur ueber die
+# passwortgeschuetzte Route /projterm/ des web-Containers erreichbar.
+
+name: ili
+
+services:
+  terminal:
+    build:
+      context: .
+      dockerfile: deploy/Containerfile.terminal
+    image: ili-terminal:latest
+    container_name: ili-terminal
+    restart: unless-stopped
+    expose:
+      - "7690"
+    environment:
+      # Claude-Anmeldung — alles optional. Ist nichts gesetzt, fuehrt das Terminal
+      # beim ersten Oeffnen durch den Login (Code aus dem Browser
+      # zurueckkopieren). Details: docs/PROJECT-TERMINAL.md
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
+      PROJECTS_DIR: /projects
+      BOARDS_DIR: /boards
+    volumes:
+      # /root haelt die Claude-Anmeldung (.claude/ + .claude.json) — dieses Volume
+      # behalten, sonst ist nach jedem Neustart ein neuer Login faellig.
+      - terminal-home:/root
+      # Arbeitsordner: pro Board ein Unterordner (Konvention Projekt = Board).
+      # Eigenen Code-Ordner einhaengen: ILI_PROJECTS_DIR=/pfad/zu/code in .env
+      - ${ILI_PROJECTS_DIR:-./projects}:/projects:Z
+      # Boards nur lesen — das Terminal prueft damit, ob ein Board existiert.
+      - dashboard-boards:/boards:ro
+
+volumes:
+  dashboard-boards:
+  terminal-home:

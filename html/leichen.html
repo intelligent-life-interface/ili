@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leichen – Inaktive Projekte</title>
+<style>
+  :root {
+    --bg:var(--t-bg, #0f1117); --surface:var(--t-surface, #1a1d27); --border:var(--t-raised, #2a2d3e);
+    --text:var(--t-text, #e2e8f0); --muted:var(--t-muted, #8892a4); --accent:#4a9eff;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text);
+         font-family:system-ui,-apple-system,sans-serif; min-height:100vh; }
+
+  header { padding:16px 20px; background:var(--surface);
+           border-bottom:1px solid var(--border); }
+  header h1 { font-size:1.05rem; font-weight:600; }
+  header p  { font-size:0.8rem; color:var(--muted); margin-top:4px; }
+
+  .wrap { max-width:1200px; margin:0 auto; padding:16px; }
+
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+             margin-bottom:14px; }
+  .toolbar input {
+    background:var(--surface); color:var(--text); border:1px solid var(--border);
+    border-radius:8px; padding:7px 10px; font-size:0.82rem; font-family:inherit;
+  }
+  .btn { background:var(--accent); color:white; border:none; border-radius:8px;
+         padding:7px 12px; font-size:0.82rem; cursor:pointer; font-weight:600;
+         transition:background 0.12s; }
+  .btn:hover { background:#3a8dd9; }
+  .count { font-size:0.78rem; color:var(--muted); margin-left:auto; }
+
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; }
+  thead { background:var(--surface); border-bottom:2px solid var(--border); }
+  th, td { padding:12px 14px; text-align:left; font-size:0.85rem; border-bottom:1px solid var(--border); }
+  th { font-weight:600; color:var(--text); cursor:pointer; user-select:none; }
+  th:hover { background:#20242f; }
+  th.sort-asc::after { content:' ▲'; font-size:0.7rem; }
+  th.sort-desc::after { content:' ▼'; font-size:0.7rem; }
+
+  tbody tr { transition:background 0.12s; }
+  tbody tr:hover { background:#20242f; }
+
+  .title { font-weight:600; color:var(--accent); }
+  .days { font-family:monospace; font-weight:600; color:#d4a574; }
+  .timestamp { font-size:0.78rem; color:var(--muted); font-family:monospace; }
+  .tags { font-size:0.75rem; color:var(--muted); display:flex; gap:4px; flex-wrap:wrap; }
+  .tag { background:var(--surface); padding:2px 6px; border-radius:3px; border:1px solid var(--border); }
+
+  .actions { display:flex; gap:6px; flex-wrap:wrap; }
+  .action-btn { background:#2d3748; color:var(--text); border:1px solid var(--border);
+                border-radius:6px; padding:5px 10px; font-size:0.75rem; cursor:pointer;
+                transition:background 0.12s; white-space:nowrap; }
+  .action-btn:hover { background:#3a4258; border-color:var(--accent); }
+  .action-btn.primary { background:var(--accent); border-color:var(--accent); color:white; }
+  .action-btn.primary:hover { background:#3a8dd9; }
+
+  .status-select { background:var(--surface); color:var(--text); border:1px solid var(--border);
+                    border-radius:6px; padding:5px 8px; font-size:0.78rem; font-family:inherit;
+                    cursor:pointer; max-width:150px; }
+
+  .empty { text-align:center; color:var(--muted); padding:40px 0; font-size:0.85rem; }
+  .error { background:#4a2a2a; border:1px solid #8a3a3a; color:#f4a4a4;
+           padding:12px 14px; border-radius:8px; margin-bottom:14px; }
+  .info { background:#2a4a4a; border:1px solid #3a7a7a; color:#a4e4f4;
+          padding:12px 14px; border-radius:8px; margin-bottom:14px; font-size:0.82rem; }
+  .footer { text-align:center; font-size:0.72rem; color:var(--muted); margin-top:20px; }
+
+  @media (max-width: 768px) {
+    .table-wrap { font-size:0.75rem; }
+    th, td { padding:8px 10px; }
+    .actions { flex-direction:column; }
+    .action-btn { width:100%; text-align:center; }
+  }
+
+  /* ── Karten-verschieben-Modal (Klassen übernommen aus css/project.css, */
+  /* bewusst lokal statt per <link> — dessen bare body{}-Selektor würde  */
+  /* mit dem body-Styling dieser Seite kollidieren) ──────────────────── */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+                   z-index:100; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+           padding:1.5rem; width:480px; max-width:95vw; max-height:85vh; overflow-y:auto; }
+  .modal h2 { font-size:1rem; color:var(--accent); margin-bottom:1rem; }
+  .modal label { font-size:0.8rem; color:var(--muted); display:block; margin-bottom:0.25rem; margin-top:0.75rem; }
+  .modal select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px;
+                  color:var(--text); padding:0.45rem 0.6rem; font-size:0.85rem; font-family:inherit; }
+  .modal-actions { display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.2rem; }
+
+  .card-move-list { max-height:280px; overflow-y:auto; border:1px solid var(--border);
+                     border-radius:6px; padding:0.5rem 0.75rem; }
+  .card-move-col-title { font-size:0.75rem; font-weight:600; color:var(--muted);
+                          text-transform:uppercase; margin:0.6rem 0 0.2rem; }
+  .card-move-col-title:first-child { margin-top:0; }
+  .card-move-item { display:flex; align-items:center; gap:0.5rem; padding:0.3rem 0;
+                     font-size:0.85rem; cursor:pointer; }
+  .card-move-empty { color:var(--muted); font-size:0.82rem; text-align:center; padding:1rem 0; }
+</style>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+</head>
+<body data-ui-autoinit="off">
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/api.js"></script>
+<script src="/js/leichen-cards.js" defer></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+
+<div class="ds-zones">
+<header class="ds-zone-top">
+  <h1>💀 Leichen – Inaktive Projekte</h1>
+  <p id="threshold-desc">Projekte, die länger als 30 Tage nicht bearbeitet wurden (Hybrid: Git-Commit UND Kanban-Board-Update beide älter).</p>
+</header>
+
+<main class="ds-zone-main">
+<div class="wrap">
+  <div id="error" class="error" style="display:none;"></div>
+  <div id="info" class="info" style="display:none;"></div>
+
+  <div class="toolbar">
+    <input type="number" id="threshold" min="1" max="365" placeholder="Tage">
+    <button class="btn" onclick="loadProjects()">🔄 Laden</button>
+    <div id="preset-buttons"></div>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('title')">Projekt</th>
+          <th onclick="sortBy('inactivity_days')" style="width:100px;">Inaktiv (Tage)</th>
+          <th onclick="sortBy('last_activity')" style="width:140px;">Letzte Aktivität</th>
+          <th style="width:160px;">Status</th>
+          <th style="width:240px;">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr><td colspan="5" class="empty">Laden…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer" id="footer"></div>
+</div>
+
+<div class="modal-overlay" id="card-move-overlay">
+  <div class="modal">
+    <h2 id="card-move-title">Karten verschieben</h2>
+    <div id="card-move-list" class="card-move-list">Lädt…</div>
+    <label for="card-move-target">Ziel-Projekt</label>
+    <select id="card-move-target"></select>
+    <div class="modal-actions">
+      <button class="action-btn" onclick="closeCardMoveModal()">Abbrechen</button>
+      <button class="btn" onclick="confirmCardMove()">Verschieben</button>
+    </div>
+  </div>
+</div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+
+<script>
+// ── Konstanten ──────────────────────────────────────────────────────────────
+const INACTIVITY_DEFAULT_DAYS = 30;
+const INACTIVITY_PRESETS = [
+  { days: 30, key: 'leichen.preset.30' },
+  { days: 60, key: 'leichen.preset.60' },
+  { days: 90, key: 'leichen.preset.90' }
+];
+
+// ── i18n Helper ──────────────────────────────────────────────────────────────
+// Nutzt window.I18N (aus i18n/de.js) + window.t (aus ui-kit i18n.js, wenn vorhanden)
+function getText(key, fallback) {
+  if (typeof window.t === 'function') return window.t(key, fallback);
+  return (window.I18N && window.I18N[key]) || fallback;
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+let allProjects = [];
+let sortColumn = 'inactivity_days';
+let sortDir = 'desc'; // längste zuerst
+let statusMeta = {}; // aus /statuses — {key: {label, color, emoji}}
+
+const escapeHtml = window.escHtml;
+
+async function loadStatusMeta() {
+  try {
+    const r = await API.get('/statuses');
+    statusMeta = r.statuses || {};
+    console.log('[Leichen] Status-Optionen geladen:', Object.keys(statusMeta));
+  } catch (e) {
+    console.error('[Leichen] /statuses nicht ladbar:', e);
+  }
+}
+
+function statusSelectHtml(projectId, currentStatus) {
+  // "active" ist der Service-interne Default für Boards ohne gesetztes status-Feld
+  // (kein gültiger STATUSES-Key) — dafür muss die Leer-Option ausgewählt sein, sonst
+  // zeigt der Browser fälschlich die erste echte Option ("Entwurf") als gesetzt an.
+  const isKnown = Object.prototype.hasOwnProperty.call(statusMeta, currentStatus);
+  const opts = ['<option value=""' + (isKnown ? '' : ' selected') + '>— kein Status —</option>'].concat(
+    Object.entries(statusMeta).map(([key, s]) =>
+      `<option value="${escapeHtml(key)}" ${key === currentStatus ? 'selected' : ''}>${s.emoji} ${escapeHtml(s.label)}</option>`)
+  ).join('');
+  return `<select class="status-select" onchange="setRowStatus('${escapeHtml(projectId)}', this.value)">${opts}</select>`;
+}
+
+async function setRowStatus(projectId, key) {
+  console.log('[Leichen] setRowStatus:', projectId, '→', key);
+  try {
+    await API.patchBoard(projectId, { status: key });
+    const p = allProjects.find(x => x.id === projectId);
+    if (p) p.status = key;
+  } catch (e) {
+    console.error('[Leichen] Status-Änderung fehlgeschlagen:', projectId, e);
+    alert(`Status konnte nicht gespeichert werden: ${e.message}`);
+    render(); // Dropdown auf Server-Stand zurücksetzen
+  }
+}
+
+// Schwellwert aus URL-Query lesen (?threshold=60) — macht Ansichten mit
+// abweichendem Schwellwert teil-/verlinkbar statt nur über den Zahlen-Input erreichbar.
+function getInitialThreshold() {
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = parseInt(params.get('threshold'), 10);
+  if (Number.isFinite(fromUrl) && fromUrl > 0) return fromUrl;
+  return INACTIVITY_DEFAULT_DAYS;
+}
+
+function renderPresetButtons() {
+  const container = document.getElementById('preset-buttons');
+  container.innerHTML = '';
+  INACTIVITY_PRESETS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'action-btn';
+    btn.onclick = () => setThresholdPreset(p.days);
+    btn.textContent = getText(p.key, p.days + ' Tage');
+    container.appendChild(btn);
+  });
+}
+
+function setThresholdPreset(days) {
+  console.log('[Leichen] Schwellwert-Preset gewählt:', days);
+  document.getElementById('threshold').value = days;
+  loadProjects();
+}
+
+function sortBy(col) {
+  const th = event.target;
+  if (sortColumn === col) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortColumn = col;
+    sortDir = col === 'inactivity_days' ? 'desc' : 'asc';
+  }
+  // CSS-Klasse für Sortier-Pfeil aktualisieren
+  document.querySelectorAll('th').forEach(e => e.classList.remove('sort-asc', 'sort-desc'));
+  th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  render();
+}
+
+function render() {
+  const sorted = [...allProjects].sort((a, b) => {
+    let av = a[sortColumn], bv = b[sortColumn];
+    if (sortColumn === 'inactivity_days') {
+      av = parseInt(av, 10);
+      bv = parseInt(bv, 10);
+    } else if (sortColumn === 'last_activity') {
+      av = new Date(av).getTime();
+      bv = new Date(bv).getTime();
+    }
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const count = sorted.length;
+  document.getElementById('count').textContent = `${count} Projekt${count === 1 ? '' : 'e'}`;
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  if (!count) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">✅ Keine inaktiven Projekte!</td></tr>';
+    return;
+  }
+
+  for (const p of sorted) {
+    const tr = document.createElement('tr');
+    // /projterm/?arg=<board-id> ist der einzige ttyd-Mechanismus, der wirklich ins
+    // Projektverzeichnis wechselt (tmux-project.sh löst arg -> Arbeitsverzeichnis auf,
+    // startet dort Claude Code). Ein direkter Terminal-Link ohne /projterm/-Prefix wäre
+    // eine FIXE, geteilte tmux-Session ohne jedes Query-Param-Handling — ein ?path= dort
+    // wäre wirkungslos.
+    const terminalUrl = `/projterm/?arg=${encodeURIComponent(p.id)}`;
+    const projectUrl = `/project.html?id=${encodeURIComponent(p.id)}`;
+
+    const tagsHtml = p.tags && p.tags.length
+      ? `<div class="tags">${p.tags.slice(0, 3).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>`
+      : '';
+
+    const lastActivity = new Date(p.last_activity);
+    const dateStr = lastActivity.toLocaleDateString('de-CH', { year: '2-digit', month: '2-digit', day: '2-digit' });
+    const timeStr = lastActivity.toTimeString().slice(0, 5);
+
+    tr.innerHTML = `
+      <td><strong class="title">${escapeHtml(p.title)}</strong><br>${tagsHtml}</td>
+      <td><span class="days">${p.inactivity_days}</span></td>
+      <td><span class="timestamp">${dateStr} ${timeStr}</span></td>
+      <td>${statusSelectHtml(p.id, p.status)}</td>
+      <td>
+        <div class="actions">
+          <a href="${terminalUrl}" target="_blank" class="action-btn">⌨️ Terminal</a>
+          <a href="${projectUrl}" class="action-btn primary">📂 Projekt</a>
+          <button class="action-btn" onclick="openCardMoveModal('${p.id}')">🔀 Karten verschieben</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+async function loadProjects() {
+  const threshold = parseInt(document.getElementById('threshold').value, 10);
+  const errorDiv = document.getElementById('error');
+  const infoDiv = document.getElementById('info');
+  const tbody = document.getElementById('table-body');
+
+  errorDiv.style.display = 'none';
+  infoDiv.style.display = 'none';
+  tbody.innerHTML = '<tr><td colspan="5" class="empty">Laden…</td></tr>';
+
+  try {
+    const url = `/api/projects/inactive?threshold_days=${threshold}&ts=${Date.now()}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+
+    allProjects = data.projects || [];
+    console.log(`[Leichen] ${data.count} inaktive Projekte geladen (Schwellwert ${threshold} Tage)`);
+    infoDiv.textContent = `${data.count} Projekt${data.count === 1 ? '' : 'e'} ohne Aktivität seit ${threshold} Tagen`;
+    infoDiv.style.display = 'block';
+    document.getElementById('footer').textContent = `Daten aktualisiert: ${new Date().toLocaleTimeString('de-CH')}`;
+    sortDir = 'desc';
+    render();
+
+    // URL mit aktuellem Schwellwert synchronisieren, damit die Ansicht teil-/bookmarkbar ist.
+    const shareUrl = new URL(window.location);
+    shareUrl.searchParams.set('threshold', threshold);
+    history.replaceState(null, '', shareUrl);
+    console.log('[Leichen] URL synchronisiert:', shareUrl.toString());
+  } catch (e) {
+    console.error('[Leichen] Laden fehlgeschlagen:', e);
+    errorDiv.textContent = `⚠️ Fehler beim Laden: ${e.message}`;
+    errorDiv.style.display = 'block';
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">Fehler beim Laden der Daten</td></tr>`;
+  }
+}
+
+// Initial load — Schwellwert ggf. aus URL übernehmen (?threshold=60)
+document.getElementById('threshold').value = getInitialThreshold();
+renderPresetButtons();
+
+// review: threshold_desc NICHT über den i18n-Dict-Lookup — window.t()/window.I18n
+// unterstützen keine Platzhalter-Interpolation (nur flacher Key→String-Lookup, s.
+// ui-kit i18n.js), ein dict-Eintrag mit fester Zahl ("N Tage") würde die korrekt
+// interpolierte Zahl also nach dem deferred i18n-Load stumm überschreiben.
+const descEl = document.getElementById('threshold-desc');
+if (descEl) {
+  descEl.textContent = `Projekte, die länger als ${INACTIVITY_DEFAULT_DAYS} Tage nicht bearbeitet wurden (Hybrid: Git-Commit UND Kanban-Board-Update beide älter).`;
+}
+
+loadStatusMeta().then(loadProjects);
+
+// Auto-refresh alle 5 Minuten
+setInterval(() => {
+  if (!document.hidden) loadProjects();
+}, 300000);
+</script>
+</body>
+</html>

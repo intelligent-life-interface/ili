@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🗄 Datenbanken</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--t-bg, #0f1117); color: var(--t-text, #e2e8f0);
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.8rem 1.5rem; border-bottom: 1px solid var(--t-raised, #2d3748);
+        }
+        header h1 { font-size: 1.2rem; color: var(--accent-soft, #90cdf4); }
+        main { flex: 1; padding: 1.25rem 1.5rem 2.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 1200px; width: 100%; margin: 0 auto; }
+
+        /* Toolbar */
+        .toolbar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+        .toolbar input {
+            flex: 1; min-width: 200px; padding: 0.55rem 0.9rem; border-radius: 8px;
+            border: 1px solid var(--t-raised, #2d3748); background: var(--t-surface, #1a202c);
+            color: var(--t-text, #e2e8f0); font-size: 0.9rem;
+        }
+        .stats { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--t-muted, #718096); }
+        .stats b { color: var(--t-text, #e2e8f0); font-size: 1.05rem; }
+
+        .hint {
+            padding: 0.7rem 1rem; background: var(--t-surface, #1a202c);
+            border: 1px solid var(--t-raised, #2d3748); border-left: 3px solid var(--accent, #4a90d9);
+            border-radius: 8px; font-size: 0.85rem; color: var(--t-muted, #a0aec0);
+        }
+
+        .group h2 {
+            font-size: 1rem; color: var(--accent-soft, #90cdf4); margin-bottom: 0.7rem;
+            padding-bottom: 0.4rem; border-bottom: 1px solid var(--t-raised, #2d3748);
+        }
+        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0.8rem; }
+        .card {
+            background: var(--t-surface, #1a202c); border: 1px solid var(--t-raised, #2d3748);
+            border-radius: 10px; padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.5rem;
+        }
+        .card-top { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .card-name { font-weight: 700; font-size: 0.98rem; }
+        .badge {
+            font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 20px;
+            background: var(--accent-deep, #2b4c7e); color: var(--accent-soft, #90cdf4);
+            border: 1px solid var(--accent, #4a90d9); white-space: nowrap;
+        }
+        .card-detail { font-size: 0.82rem; color: var(--t-muted, #a0aec0); line-height: 1.4; }
+        .card-path {
+            font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.72rem;
+            color: var(--t-muted, #718096); word-break: break-all;
+            background: var(--t-bg, #0f1117); padding: 0.3rem 0.5rem; border-radius: 6px;
+        }
+        .apps { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.1rem; }
+        .apps a {
+            font-size: 0.78rem; font-weight: 600; text-decoration: none; padding: 0.28rem 0.7rem;
+            border-radius: 7px; color: var(--t-text, #e2e8f0);
+            background: var(--t-raised, #2d3748); border: 1px solid var(--t-line2, #4a5568);
+        }
+        .apps a:hover { background: var(--accent-deep, #2b4c7e); border-color: var(--accent, #4a90d9); color: var(--accent-soft, #90cdf4); }
+        .apps .none { font-size: 0.75rem; color: var(--t-muted, #718096); font-style: italic; }
+        .group.hidden, .card.hidden { display: none; }
+        footer { padding: 1rem 1.5rem; font-size: 0.75rem; color: var(--t-muted, #718096); border-top: 1px solid var(--t-raised, #2d3748); }
+    </style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+  <div class="ds-zones">
+    <header class="ds-zone-top">
+        <h1>🗄 Datenbanken &amp; Apps</h1>
+    </header>
+    <main class="ds-zone-main" style="max-width:1200px">
+        <div class="hint" id="cb-hint">Lade …</div>
+        <div class="toolbar">
+            <input id="search" type="search" placeholder="🔍 Suchen (Name, Typ, Zweck, Pfad, App) …" autocomplete="off">
+            <div class="stats">
+                <span><b id="stat-dbs">–</b> Datenbanken</span>
+                <span><b id="stat-groups">–</b> Kategorien</span>
+            </div>
+        </div>
+        <div id="groups"></div>
+    </main>
+    <footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span><span id="foot">—</span></footer>
+  </div>
+
+    <script>
+    (function () {
+        'use strict';
+        const $ = (s, r=document) => r.querySelector(s);
+        const esc = window.escHtml;
+
+        function render(data) {
+            console.log('[datenbanken] geladen:', data.groups?.length, 'Gruppen');
+            $('#cb-hint').innerHTML = '🗄 ' + esc(data.cloudbeaver_hint || '');
+            const wrap = $('#groups');
+            let total = 0;
+            const html = (data.groups || []).map(g => {
+                const cards = (g.dbs || []).map(db => {
+                    total++;
+                    const apps = (db.apps && db.apps.length)
+                        ? db.apps.map(a => `<a href="${esc(a.u)}" target="_blank" rel="noopener">${esc(a.l)}</a>`).join('')
+                        : '<span class="none">keine Anzeige-App (nur Betrieb)</span>';
+                    const hay = [db.name, db.type, db.detail, db.path, ...(db.apps||[]).map(a=>a.l)].join(' ').toLowerCase();
+                    return `<div class="card" data-hay="${esc(hay)}">
+                        <div class="card-top"><span class="card-name">${esc(db.name)}</span><span class="badge">${esc(db.type)}</span></div>
+                        <div class="card-detail">${esc(db.detail || '')}</div>
+                        <div class="card-path">${esc(db.path || '')}</div>
+                        <div class="apps">${apps}</div>
+                    </div>`;
+                }).join('');
+                return `<section class="group"><h2>${esc(g.name)}</h2><div class="cards">${cards}</div></section>`;
+            }).join('');
+            wrap.innerHTML = html;
+            $('#stat-dbs').textContent = total;
+            $('#stat-groups').textContent = (data.groups || []).length;
+            $('#foot').textContent = `Quelle: html/datenbanken.json · Stand ${esc(data.generated || '')} · kuratiert`;
+        }
+
+        function filter(q) {
+            q = q.trim().toLowerCase();
+            document.querySelectorAll('.group').forEach(g => {
+                let visible = 0;
+                g.querySelectorAll('.card').forEach(c => {
+                    const match = !q || c.dataset.hay.includes(q);
+                    c.classList.toggle('hidden', !match);
+                    if (match) visible++;
+                });
+                g.classList.toggle('hidden', visible === 0);
+            });
+        }
+
+        // Cross-Subdomain-Links stehen im JSON mit {{BASE}}-Token statt echter
+        // Domain (keine Domain im Repo); Basis = eigener Hostname ohne erstes Label
+        // (dashboard.intranet.example.org → intranet.example.org).
+        const _h = location.hostname;
+        const _base = _h.includes('.') ? _h.slice(_h.indexOf('.') + 1) : _h;
+        fetch('/datenbanken.json')
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+            .then(text => {
+                console.debug('[datenbanken] Basis-Domain für Links:', _base);
+                const data = JSON.parse(text.replaceAll('{{BASE}}', _base));
+                render(data); $('#search').addEventListener('input', e => filter(e.target.value));
+            })
+            .catch(err => {
+                console.error('[datenbanken] Fehler:', err);
+                $('#groups').innerHTML = `<div class="hint" style="border-left-color:#e53e3e">⚠️ Konnte datenbanken.json nicht laden: ${esc(err.message)}</div>`;
+            });
+    })();
+    </script>
+</body>
+</html>

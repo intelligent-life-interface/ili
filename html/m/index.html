@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<!-- iPhone: feste Breite, kein Zoom-Sprung, Safe-Area beachten -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0f1623">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ili">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/img/favicon-64.png">
+<title>ili mobil</title>
+<link rel="stylesheet" href="/m/m.css?v=20260723-parentnav">
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body>
+
+<!-- Kopf -->
+<header class="topbar">
+  <div class="topbar-row">
+    <h1 id="view-title">Projekte</h1>
+    <div class="topbar-actions">
+      <a id="db-link" class="icon-btn" href="/datenbanken.html" title="Datenbanken &amp; Apps" aria-label="Datenbanken">🗄️</a>
+      <a id="desktop-link" class="icon-btn" href="/?desktop=1" title="Desktop-Version" aria-label="Desktop-Version" onclick="try{localStorage.setItem('force_desktop','1')}catch(e){console.warn('[m] localStorage nicht verfuegbar',e)}">🖥</a>
+      <button id="reload-btn" class="icon-btn" title="Neu laden" aria-label="Neu laden">↻</button>
+    </div>
+  </div>
+  <input id="search" class="search" type="search" placeholder="🔎 Projekt suchen…" autocomplete="off">
+  <!-- Kategorie-Chips (horizontal scrollbar) -->
+  <div id="cat-chips" class="chips" role="tablist"></div>
+  <!-- Eisenhower-Prio-Chips (Filter, horizontal scrollbar) -->
+  <div id="prio-chips" class="chips prio-chips" role="tablist"></div>
+  <!-- Auto-Entwicklung-Status-Chips (Filter, horizontal scrollbar) -->
+  <div id="auto-chips" class="chips prio-chips" role="tablist"></div>
+</header>
+
+<!-- Hauptbereich -->
+<main id="main">
+  <!-- Projekt-Übersicht -->
+  <section id="view-overview" class="view">
+    <div id="project-list" class="proj-list"></div>
+    <p id="overview-empty" class="empty hidden">Keine Projekte gefunden.</p>
+  </section>
+
+  <!-- Board-Detail: Kanban-Liste + Terminal -->
+  <section id="view-board" class="view hidden">
+    <div class="board-head">
+      <button class="back-btn" id="back-btn">‹ Zurück</button>
+      <div class="seg" id="board-seg">
+        <button class="seg-btn active" data-mode="list">📋 Liste</button>
+        <button class="seg-btn" data-mode="term">⌨️ Terminal</button>
+      </div>
+      <!-- Terminal-Werkzeuge (nur im Terminal-Modus sichtbar): Bildschirm-Tastatur + Neu laden -->
+      <div class="term-tools">
+        <button id="term-theme-btn" class="icon-btn" title="Darstellung umschalten (Dunkel/Kontrast/Hell)" aria-label="Darstellung umschalten">🌙</button>
+        <button id="touchbtn" class="icon-btn" title="Touch-Modus: natives Scrollen/Kopieren/Einfügen am Handy ein/aus" aria-label="Touch-Modus">📱</button>
+        <button id="kbdbtn" class="icon-btn" title="Bildschirm-Tastatur ein/aus" aria-label="Bildschirm-Tastatur">⌨</button>
+        <button id="term-reload" class="icon-btn" title="Terminal neu laden" aria-label="Terminal neu laden">↻</button>
+      </div>
+    </div>
+
+    <!-- Projekt-Hierarchie: ⬅ Mutterprojekt, danach die eigenen Unterprojekte.
+         Ohne das kommt man am Handy nur über „Zurück" in die Übersicht und
+         erreicht Unterprojekte gar nicht (die Übersicht zeigt nur Top-Level). -->
+    <div id="board-crumbs" class="board-crumbs"></div>
+
+    <!-- Direktlinks (FileBrowser/Web-App) — im Terminal sind Pfade nicht klickbar,
+         darum hier als Chips. 🗂 Daten springt direkt in den data/-Ordner. -->
+    <div id="board-links" class="board-links"></div>
+
+    <!-- Modus: Kanban als Liste — zwei Panels: 🎯 Prioritäten + 📋 Spalten.
+         Je nach Platz nebeneinander (Tablet/quer, ≥700px) oder untereinander (Handy). -->
+    <div id="board-list" class="board-panels">
+      <section class="panel" id="panel-prio">
+        <h3 class="panel-title">🎯 Prioritäten</h3>
+        <div id="prio-groups"></div>
+      </section>
+      <section class="panel" id="panel-cols">
+        <h3 class="panel-title">📋 Spalten</h3>
+        <div id="col-groups"></div>
+      </section>
+    </div>
+
+    <!-- Modus: Projekt-Terminal (Claude Code) -->
+    <div id="board-term" class="hidden">
+      <div class="term-wrap"><iframe id="m-term" class="term-frame" title="Projekt-Terminal"></iframe></div>
+
+      <!-- Eingabe-Zeile (2026-07-18): normales Textfeld mit NATIVER iPhone-Tastatur
+           (Autokorrektur/Diktat/Einfügen). Enter oder „Senden" schickt den Text über
+           den Daten-Kanal (window.term) ins Terminal → so klappt auch Einfügen. -->
+      <!-- Shortcut-Leiste (2026-07-18): fertige Prompts per Tipp ins Terminal.
+           Quelle = /terminal-shortcuts.js (window.TERM_SHORTCUTS), gerendert in m.js. -->
+      <div id="m-shortcuts"></div>
+
+      <div id="m-inputline">
+        <input id="m-input" type="text" autocomplete="off" autocorrect="on" autocapitalize="sentences"
+               spellcheck="true" enterkeyhint="send" placeholder="Text tippen / einfügen — Enter → ins Terminal">
+        <label id="m-input-nl" title="Enter hängt einen Zeilenumbruch an (Befehl ausführen / Nachricht senden)">
+          <input type="checkbox" id="m-input-cr" checked>⤶
+        </label>
+        <button id="m-input-send" title="Text ins Terminal senden">Senden</button>
+      </div>
+
+      <!-- Sonder-Tastenleiste (volles Set aus terminals.html). data-key = benannte Taste;
+           data-ch = wortwörtliches Zeichen; data-ctrl/data-alt = feste Modifier; data-mod = Sticky. -->
+      <div id="keys" class="collapsed">
+        <!-- Reihe 1: immer sichtbar -->
+        <div class="keyrow">
+          <button data-key="Escape">Esc</button>
+          <button data-key="Tab">Tab</button>
+          <button class="mod" data-mod="ctrl">Ctrl</button>
+          <button class="mod" data-mod="alt">Alt</button>
+          <button data-key="ArrowLeft">←</button>
+          <button data-key="ArrowUp">↑</button>
+          <button data-key="ArrowDown">↓</button>
+          <button data-key="ArrowRight">→</button>
+          <button class="wide" data-key="Enter">⏎</button>
+          <button id="morebtn" class="narrow" title="Mehr Tasten">☰</button>
+        </div>
+        <!-- Reihe 2 (extra): Programmier-Symbole -->
+        <div class="keyrow extra">
+          <button data-ch="|">|</button>
+          <button data-ch="/">/</button>
+          <button data-ch="\">\</button>
+          <button data-ch="~">~</button>
+          <button data-ch="-">-</button>
+          <button data-ch="_">_</button>
+          <button data-ch="*">*</button>
+          <button data-ch="$">$</button>
+          <button data-ch="#">#</button>
+          <button data-ch="&quot;">"</button>
+        </div>
+        <!-- Reihe 3 (extra): Klammern + Sonderzeichen -->
+        <div class="keyrow extra">
+          <button data-ch="{">{</button>
+          <button data-ch="}">}</button>
+          <button data-ch="[">[</button>
+          <button data-ch="]">]</button>
+          <button data-ch="(">(</button>
+          <button data-ch=")">)</button>
+          <button data-ch="&amp;">&amp;</button>
+          <button data-ch="!">!</button>
+          <button data-ch="=">=</button>
+          <button data-ch=".">.</button>
+        </div>
+        <!-- Reihe 4 (extra): Navigation + Löschen -->
+        <div class="keyrow extra">
+          <button data-key="Home">Pos1</button>
+          <button data-key="End">Ende</button>
+          <button data-key="PageUp">Bild↑</button>
+          <button data-key="PageDown">Bild↓</button>
+          <button class="wide" data-key="Backspace">⌫</button>
+        </div>
+        <!-- Reihe 5 (extra): häufige Ctrl-Kürzel -->
+        <div class="keyrow extra">
+          <button data-key="c" data-ctrl="1">^C</button>
+          <button data-key="d" data-ctrl="1">^D</button>
+          <button data-key="z" data-ctrl="1">^Z</button>
+          <button data-key="l" data-ctrl="1">^L</button>
+          <button data-key="r" data-ctrl="1">^R</button>
+          <button data-key="a" data-ctrl="1">^A</button>
+          <button data-key="e" data-ctrl="1">^E</button>
+          <button data-key="k" data-ctrl="1">^K</button>
+          <button data-key="u" data-ctrl="1">^U</button>
+        </div>
+      </div>
+
+      <!-- Volle QWERTZ-Tastatur (aufklappbar via ⌨-Knopf im Kopf). Unabhängig von der
+           iOS-Tastatur/Autokorrektur — jede Taste sendet ihr Zeichen direkt an xterm. -->
+      <div id="kbd">
+        <!-- Buchstaben-/Ziffern-Ebene -->
+        <div class="layer lay-abc show">
+          <div class="krow">
+            <button data-ch="1">1</button><button data-ch="2">2</button><button data-ch="3">3</button>
+            <button data-ch="4">4</button><button data-ch="5">5</button><button data-ch="6">6</button>
+            <button data-ch="7">7</button><button data-ch="8">8</button><button data-ch="9">9</button>
+            <button data-ch="0">0</button>
+          </div>
+          <div class="krow">
+            <button class="ltr" data-ch="q">q</button><button class="ltr" data-ch="w">w</button>
+            <button class="ltr" data-ch="e">e</button><button class="ltr" data-ch="r">r</button>
+            <button class="ltr" data-ch="t">t</button><button class="ltr" data-ch="z">z</button>
+            <button class="ltr" data-ch="u">u</button><button class="ltr" data-ch="i">i</button>
+            <button class="ltr" data-ch="o">o</button><button class="ltr" data-ch="p">p</button>
+          </div>
+          <div class="krow">
+            <button class="ltr" data-ch="a">a</button><button class="ltr" data-ch="s">s</button>
+            <button class="ltr" data-ch="d">d</button><button class="ltr" data-ch="f">f</button>
+            <button class="ltr" data-ch="g">g</button><button class="ltr" data-ch="h">h</button>
+            <button class="ltr" data-ch="j">j</button><button class="ltr" data-ch="k">k</button>
+            <button class="ltr" data-ch="l">l</button>
+          </div>
+          <div class="krow">
+            <button class="fn" id="shiftbtn">⇧</button>
+            <button class="ltr" data-ch="y">y</button><button class="ltr" data-ch="x">x</button>
+            <button class="ltr" data-ch="c">c</button><button class="ltr" data-ch="v">v</button>
+            <button class="ltr" data-ch="b">b</button><button class="ltr" data-ch="n">n</button>
+            <button class="ltr" data-ch="m">m</button>
+            <button class="fn" data-key="Backspace">⌫</button>
+          </div>
+        </div>
+        <!-- Symbol-Ebene -->
+        <div class="layer lay-sym">
+          <div class="krow">
+            <button data-ch="!">!</button><button data-ch="@">@</button><button data-ch="#">#</button>
+            <button data-ch="$">$</button><button data-ch="%">%</button><button data-ch="^">^</button>
+            <button data-ch="&amp;">&amp;</button><button data-ch="*">*</button><button data-ch="(">(</button>
+            <button data-ch=")">)</button>
+          </div>
+          <div class="krow">
+            <button data-ch="-">-</button><button data-ch="_">_</button><button data-ch="=">=</button>
+            <button data-ch="+">+</button><button data-ch="[">[</button><button data-ch="]">]</button>
+            <button data-ch="{">{</button><button data-ch="}">}</button><button data-ch="\">\</button>
+            <button data-ch="|">|</button>
+          </div>
+          <div class="krow">
+            <button data-ch=";">;</button><button data-ch=":">:</button><button data-ch="'">'</button>
+            <button data-ch="&quot;">"</button><button data-ch="`">`</button><button data-ch="~">~</button>
+            <button data-ch="/">/</button><button data-ch="?">?</button><button data-ch="&lt;">&lt;</button>
+            <button data-ch="&gt;">&gt;</button>
+          </div>
+          <div class="krow">
+            <button data-ch=",">,</button><button data-ch=".">.</button>
+            <button data-key="Backspace" class="fn">⌫</button>
+          </div>
+        </div>
+        <!-- gemeinsame untere Reihe. Totzone (.kgap) vor Enter + Extra-Abstand (.bottomrow):
+             Enter lag direkt neben Leer und unter ⌫ → Fehl-Absenden beim Tippen/Korrigieren. -->
+        <div class="krow bottomrow">
+          <button class="fn" id="symbtn">#+=</button>
+          <button data-key="Escape" class="fn">Esc</button>
+          <button data-key="Tab" class="fn">Tab</button>
+          <button data-ch=" " class="spc">Leer</button>
+          <span class="kgap"></span>
+          <button data-key="Enter" class="fn enterkey">⏎</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Untere Navigationsleiste -->
+<nav class="tabbar">
+  <button class="tab active" data-tab="overview">🗂️<span>Projekte</span></button>
+  <button class="tab" data-tab="capture">➕<span>Idee</span></button>
+  <button class="tab" data-tab="photo">📷<span>Foto</span></button>
+</nav>
+
+<!-- Schnell-Erfassung: Text-Idee -->
+<div id="sheet-capture" class="sheet hidden">
+  <div class="sheet-inner">
+    <div class="sheet-head"><h2>➕ Neue Idee</h2><button class="icon-btn" data-close>✕</button></div>
+    <label>Titel
+      <input id="cap-name" type="text" placeholder="Kurzer Projektname…" autocomplete="off">
+    </label>
+    <label>Beschreibung (optional)
+      <textarea id="cap-desc" rows="4" placeholder="Worum geht's?"></textarea>
+    </label>
+    <button id="cap-submit" class="primary">Idee anlegen</button>
+    <p class="hint">Erstellt ein neues Projekt-Board (KI ergänzt Tags/Beschreibung im Hintergrund).</p>
+  </div>
+</div>
+
+<!-- Schnell-Erfassung: Foto -->
+<div id="sheet-photo" class="sheet hidden">
+  <div class="sheet-inner">
+    <div class="sheet-head"><h2>📷 Foto-Idee</h2><button class="icon-btn" data-close>✕</button></div>
+    <label>Notiz (optional)
+      <input id="photo-note" type="text" placeholder="z.B. Inspiration, Standort…" autocomplete="off">
+    </label>
+    <input id="photo-input" type="file" accept="image/*" capture="environment" hidden>
+    <button id="photo-pick" class="primary">📸 Foto aufnehmen / wählen</button>
+    <p class="hint">Ollama erkennt Titel + Tags automatisch. GPS wird – falls erlaubt – mitgespeichert.</p>
+  </div>
+</div>
+
+<!-- Karten-Detail (Tap auf eine Kanban-Karte): volle Beschreibung + Meta -->
+<div id="sheet-card" class="sheet hidden">
+  <div class="sheet-inner">
+    <div class="sheet-head"><h2 id="card-title">Karte</h2><button class="icon-btn" data-close>✕</button></div>
+    <div id="card-meta" class="card-meta-badges"></div>
+    <p id="card-desc" class="card-desc-full"></p>
+  </div>
+</div>
+
+<!-- Overlay / Toast -->
+<div id="overlay" class="overlay hidden"><div class="spinner"></div><p id="overlay-text">Lädt…</p></div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="/terminal-shortcuts.js?v=20260718"></script>
+<!-- Auto-Reconnect fürs Mobile-Terminal-iframe (eine Pflege-Datei, s. web-terminal CLAUDE.md) -->
+<script src="/terminal-watchdog.js?v=20260718b"></script>
+<script src="/js/api.js?v=20260811-apijs" defer></script>
+<script src="/m/m.js?v=20260811-apijs"></script>
+</body>
+</html>

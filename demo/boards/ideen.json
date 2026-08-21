@@ -1,0 +1,87 @@
+{
+  "columns": [
+    {
+      "id": "backlog",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "card_i1",
+          "title": "Container-Übersicht",
+          "desc": "Eine Seite, die die laufenden Container zeigt (Name, Status, Ports, Logs) und Start/Stop erlaubt. Datenquelle ist die Docker- bzw. Podman-Socket-API. Nimm diese Karte, setze deine KI daran und schicke das Ergebnis als Pull Request zurück — dann müssen es die anderen Instanzen nicht ein zweites Mal bauen.",
+          "description": "Eine Seite, die die laufenden Container zeigt (Name, Status, Ports, Logs) und Start/Stop erlaubt. Datenquelle ist die Docker- bzw. Podman-Socket-API. Nimm diese Karte, setze deine KI daran und schicke das Ergebnis als Pull Request zurück — dann müssen es die anderen Instanzen nicht ein zweites Mal bauen.",
+          "priority": "hoch",
+          "effort": "mittel",
+          "owner": "ki",
+          "github_issue": "https://github.com/Toa1984/ili-release/issues/1"
+        },
+        {
+          "id": "card_i2",
+          "title": "Netzwerk-Scan im eigenen LAN",
+          "desc": "Welche Geräte sind da, welche Ports antworten? Ergebnis als Liste im Dashboard, wiederholbar als Hintergrundlauf. Achtung beim Bauen: rootless Container dürfen kein ICMP, ein TCP-Connect-Scan kommt weiter.",
+          "description": "Welche Geräte sind da, welche Ports antworten? Ergebnis als Liste im Dashboard, wiederholbar als Hintergrundlauf. Achtung beim Bauen: rootless Container dürfen kein ICMP, ein TCP-Connect-Scan kommt weiter.",
+          "priority": "mittel",
+          "effort": "mittel",
+          "owner": "ki",
+          "github_issue": "https://github.com/Toa1984/ili-release/issues/2"
+        },
+        {
+          "id": "card_i3",
+          "title": "Automat: Karten von der KI abarbeiten lassen",
+          "desc": "Ein Hintergrundlauf, der sich die oberste Karte eines Boards nimmt, sie an eine KI gibt und das Ergebnis zurück auf die Karte schreibt. Wichtig sind die Bremsen: Token-Budget, ein Aus-Schalter, und die Regel, dass Entscheidungen nie autonom getroffen werden.",
+          "description": "Ein Hintergrundlauf, der sich die oberste Karte eines Boards nimmt, sie an eine KI gibt und das Ergebnis zurück auf die Karte schreibt. Wichtig sind die Bremsen: Token-Budget, ein Aus-Schalter, und die Regel, dass Entscheidungen nie autonom getroffen werden.",
+          "priority": "hoch",
+          "effort": "hoch",
+          "owner": "ki",
+          "github_issue": "https://github.com/Toa1984/ili-release/issues/3"
+        },
+        {
+          "id": "card_i4",
+          "title": "Kosten-Auswertung der KI-Nutzung",
+          "desc": "Was kostet die Arbeit pro Projekt? Aufrufe, Tokens und Preise mitschreiben und pro Board auswerten. Nützlich, um zu sehen, welches Projekt viel Rechenzeit frisst und wenig Ergebnis bringt.",
+          "description": "Was kostet die Arbeit pro Projekt? Aufrufe, Tokens und Preise mitschreiben und pro Board auswerten. Nützlich, um zu sehen, welches Projekt viel Rechenzeit frisst und wenig Ergebnis bringt.",
+          "priority": "mittel",
+          "effort": "niedrig",
+          "owner": "ki",
+          "github_issue": "https://github.com/Toa1984/ili-release/issues/4"
+        },
+        {
+          "id": "card_i5",
+          "title": "GitHub-Status-Monitor",
+          "desc": "Dashboard-Widget, das aktuelle Daten aus den Repos abruft: offene Issues (pro Label/Milestone), PR-Status (grün/rot nach CI), letzter Commit, Release-Info. Ein Karo auf der Startseite zeigt den Snapshot.",
+          "description": "Dashboard-Widget, das aktuelle Daten aus den Repos abruft: offene Issues (pro Label/Milestone), PR-Status (grün/rot nach CI), letzter Commit, Release-Info. Ein Karo auf der Startseite zeigt den Snapshot.",
+          "priority": "mittel",
+          "effort": "mittel",
+          "owner": "ki",
+          "github_issue": "https://github.com/Toa1984/ili-release/issues/5"
+        },
+        {
+          "id": "card_i6",
+          "title": "Log-Scanner: Anomalien und Fehler",
+          "desc": "Suchmaschine über Container-Logs: Fehlerquoten pro Service, Muster erkennen (z.B. Timeout-Häufung), Alerts bei Schwellwerten. Nur lokalgespeicherte Logs analysieren (keine Archivsuche). Ergebnis als Dashboard-View mit Zeitreihen und Listen.",
+          "description": "Suchmaschine über Container-Logs: Fehlerquoten pro Service, Muster erkennen (z.B. Timeout-Häufung), Alerts bei Schwellwerten. Nur lokalgespeicherte Logs analysieren (keine Archivsuche). Ergebnis als Dashboard-View mit Zeitreihen und Listen.",
+          "priority": "niedrig",
+          "effort": "mittel",
+          "owner": "ki",
+          "github_issue": "https://github.com/Toa1984/ili-release/issues/6"
+        }
+      ]
+    },
+    {
+      "id": "inprogress",
+      "title": "In Bearbeitung",
+      "cards": []
+    },
+    {
+      "id": "review",
+      "title": "Überprüfen",
+      "cards": []
+    },
+    {
+      "id": "done",
+      "title": "Erledigt",
+      "cards": []
+    }
+  ],
+  "rev": 1,
+  "title": "Ideen"
+}

@@ -1,0 +1,79 @@
+/* token-spikes.css — Verlaufsansicht Token-Wächter (SVG-Balkendiagramm).
+ * CSS-Variablen wie cost.html/ki-advisor.css (Theme kommt aus theme.js). */
+
+* { box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--t-bg, #0f1117); color: var(--t-text, #e2e8f0);
+    margin: 0; min-height: 100vh;
+}
+header h1 { font-size: 1.2rem; color: var(--accent-soft, #90cdf4); margin: 0; }
+.ds-zone-top { display: flex; justify-content: space-between; align-items: center; }
+.tg-updated { font-size: 0.78rem; color: var(--t-muted, #718096); }
+
+main { display: flex; flex-direction: column; gap: 1rem; }
+
+.tg-summary {
+    padding: 0.9rem 1.2rem; background: var(--t-surface, #1a202c);
+    border: 1px solid var(--t-raised, #2d3748); border-radius: 10px; font-size: 0.88rem;
+    display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: baseline;
+}
+.tg-summary b { color: var(--accent-soft, #90cdf4); }
+
+.toolbar { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+.toolbar select {
+    padding: 0.4rem 0.7rem; border-radius: 7px; border: 1px solid var(--t-raised, #2d3748);
+    background: var(--t-surface, #1a202c); color: var(--t-text, #e2e8f0); font-size: 0.85rem;
+}
+.toolbar-label { font-size: 0.82rem; color: var(--t-muted, #718096); }
+#row-count { font-size: 0.82rem; color: var(--t-muted, #718096); margin-left: auto; }
+
+#loading { text-align: center; padding: 3rem; color: var(--t-muted, #718096); }
+
+/* ── Legende (Status nie nur über Farbe: Icon + Label) ── */
+.tg-legend { display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center; font-size: 0.82rem; color: var(--t-muted, #718096); }
+.tg-legend-item { display: flex; align-items: center; gap: 0.4rem; }
+.tg-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.tg-dot-good { background: #0ca30c; }
+.tg-dot-critical { background: #d03b3b; }
+.tg-line-sample { width: 18px; height: 0; border-top: 2px dashed var(--t-line2, #4a5568); display: inline-block; }
+
+/* ── Chart ── */
+.tg-chart-scroll {
+    overflow-x: auto; border: 1px solid var(--t-raised, #2d3748); border-radius: 10px;
+    background: var(--t-surface, #1a202c); padding: 0.6rem;
+}
+.tg-svg { display: block; }
+.tg-bar { cursor: pointer; }
+.tg-bar-good { fill: #0ca30c; }
+.tg-bar-critical { fill: #d03b3b; }
+.tg-bar:hover { opacity: 0.8; }
+.tg-axis-label { fill: var(--t-muted, #718096); font-size: 10px; }
+.tg-threshold-line { stroke: var(--t-line2, #4a5568); stroke-width: 2; stroke-dasharray: 5 4; }
+.tg-spike-icon { font-size: 11px; }
+
+.tg-tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: var(--t-surface2, #161b27); border: 1px solid var(--t-raised, #2d3748);
+    border-radius: 8px; padding: 0.5rem 0.7rem; font-size: 0.78rem; line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4); max-width: 280px;
+}
+.tg-tooltip b { color: var(--accent-soft, #90cdf4); }
+.tg-tooltip .tg-tt-spike { color: #ec835a; font-weight: 700; }
+
+/* ── Tabellen-Fallback ── */
+.table-wrap { overflow-x: auto; border: 1px solid var(--t-raised, #2d3748); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+thead th {
+    padding: 0.4rem 0.6rem; text-align: left; background: var(--t-surface2, #161b27);
+    color: var(--t-muted, #718096); font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--t-raised, #2d3748); white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--t-surface, #1a202c); }
+tbody tr:hover { background: var(--t-surface, #1a202c); }
+tbody td { padding: 0.35rem 0.6rem; white-space: nowrap; }
+.td-ts { color: var(--t-text2, #a0aec0); font-family: "SF Mono", monospace; font-size: 0.72rem; }
+.td-num { text-align: right; font-family: "SF Mono", monospace; }
+.td-status-good { color: #0ca30c; font-weight: 700; }
+.td-status-critical { color: #d03b3b; font-weight: 700; }

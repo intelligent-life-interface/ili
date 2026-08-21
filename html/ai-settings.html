@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>⚙️ KI-Einstellungen</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  :root {
+    --bg: var(--t-bg, #0f1117); --surface: var(--t-surface, #1a1d27); --surface2: #12151f; --border: #2a2d3a;
+    --text: var(--t-text, #e2e8f0); --muted: var(--t-muted, #718096); --accent: #4a90d9;
+    --green: #48bb78; --yellow: #ecc94b; --red: #fc8181; --purple: #9f7aea;
+    --orange: #f6ad55;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; }
+
+  /* ── Nav ── */
+  nav { display: flex; gap: 6px; padding: 10px 20px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  nav a { color: var(--muted); text-decoration: none; padding: 5px 12px; border-radius: 6px; border: 1px solid transparent; font-size: 0.83rem; transition: all .15s; }
+  nav a:hover { color: var(--text); border-color: var(--t-line2, #4a5568); }
+  nav a.active { background: var(--t-raised, #1a2a3a); border-color: var(--accent); color: var(--accent-soft, #90cdf4); }
+
+  /* ── Content ── */
+  .content { padding: 24px; max-width: 1300px; }
+  h1 { font-size: 1.3rem; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); margin-bottom: 20px; font-size: 0.83rem; }
+
+  .section-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 10px; margin-top: 24px; }
+
+  /* ── Model cards ── */
+  .model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-bottom: 8px; }
+  .model-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .model-name { font-weight: 600; font-size: 0.84rem; margin-bottom: 3px; }
+  .model-meta { font-size: 0.72rem; color: var(--muted); margin-bottom: 5px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 3px; }
+  .tag { font-size: 0.66rem; padding: 1px 6px; border-radius: 8px; font-weight: 500; }
+  .t-fast  { background: #1a3a2a; color: var(--green); }
+  .t-med   { background: #3a3010; color: var(--yellow); }
+  .t-slow  { background: #3a1a1a; color: var(--red); }
+  .t-hi  { background: var(--t-raised, #1a2a3a); color: var(--accent); }
+  .t-mid { background: #2a2a3a; color: var(--t-text2, #a0aec0); }
+  .t-type{ background: #2a1a3a; color: var(--purple); }
+  .t-api { background: #1a1a3a; color: var(--orange); }
+
+  /* ── Settings table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 8px 14px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); border-bottom: 2px solid var(--border); white-space: nowrap; }
+  td { padding: 10px 14px; border-bottom: 1px solid #1c1f2e; vertical-align: middle; }
+  tr:hover td { background: rgba(255,255,255,.018); }
+
+  .fn-name { font-weight: 600; font-size: 0.87rem; }
+  .fn-desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .badge { font-size: 0.66rem; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
+  .b-ollama { background: #1a3a2a; color: var(--green); }
+  .b-claude { background: var(--t-raised, #1a2a3a); color: var(--accent); }
+  .b-multi  { background: #2a1a3a; color: var(--purple); }
+
+  select, .panel-input {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 8px; font-size: 0.82rem; cursor: pointer;
+  }
+  select { min-width: 170px; }
+  select:focus, .panel-input:focus { outline: none; border-color: var(--accent); }
+  select.changed, .panel-input.changed { border-color: var(--yellow); }
+
+  /* Effort pills */
+  .effort-group { display: flex; gap: 0; }
+  .effort-btn {
+    padding: 4px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    background: var(--surface); color: var(--muted); border: 1px solid var(--border);
+    transition: all .12s;
+  }
+  .effort-btn:first-child { border-radius: 6px 0 0 6px; }
+  .effort-btn:last-child  { border-radius: 0 6px 6px 0; border-left: none; }
+  .effort-btn:not(:first-child):not(:last-child) { border-left: none; }
+  .effort-btn:hover { color: var(--text); }
+  .effort-btn.active-low    { background: #1a3a2a; color: var(--green);  border-color: var(--green);  }
+  .effort-btn.active-medium { background: #3a3010; color: var(--yellow); border-color: var(--yellow); }
+  .effort-btn.active-high   { background: #3a1a1a; color: var(--orange); border-color: var(--orange); }
+
+  .rec-ok  { font-size: 0.72rem; color: var(--green); }
+  .rec-tip { font-size: 0.72rem; color: var(--muted); }
+  .rec-tip strong { color: var(--accent-soft, #90cdf4); }
+
+  .reason { font-size: 0.72rem; color: var(--muted); line-height: 1.4; max-width: 240px; }
+
+  .panel-wrap { display: flex; flex-direction: column; gap: 4px; }
+  .panel-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .panel-chip {
+    font-size: 0.72rem; padding: 3px 8px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    user-select: none; transition: all .12s;
+  }
+  .panel-chip.selected { background: var(--t-raised, #1a2a3a); color: var(--accent); border-color: var(--accent); }
+
+  /* Actions */
+  .actions { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
+  .btn { padding: 8px 22px; border-radius: 7px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+  .btn-save { background: var(--accent); color: var(--accent-text, white); }
+  .btn-save:hover { opacity: .85; }
+  .btn-reset { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  .btn-reset:hover { color: var(--text); }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .toast.ok    { background: #1a3a2a; color: var(--green); border: 1px solid var(--green); }
+  .toast.err   { background: #3a1a1a; color: var(--red);   border: 1px solid var(--red); }
+
+  .status-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 0.8rem; color: var(--muted); margin-bottom: 20px; }
+  .status-bar span { color: var(--text); font-weight: 600; }
+
+  /* F2 Claude-Budget-Bedienelemente, jetzt Teil von .limits-wrap (🚦 Claude-Limit) */
+  .budget-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .budget-bar-label { width: 130px; font-size: 0.78rem; color: var(--muted); }
+  .budget-bar-label span { color: var(--text); font-weight: 600; }
+  .budget-bar { position: relative; flex: 1; height: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .budget-bar-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 6px; transition: width .4s; }
+  .budget-bar-fill.warn { background: #d29922; }
+  .budget-bar-fill.crit { background: #e5534b; }
+  .budget-bar-target { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--text); box-shadow: 0 0 0 1px rgba(0,0,0,.55); z-index: 2; pointer-events: none; transition: left .4s; }
+  .budget-fields { display: flex; flex-direction: column; gap: 8px; min-width: 220px; }
+  .budget-fields label { font-size: 0.75rem; color: var(--muted); display: flex; flex-direction: column; gap: 3px; }
+  .budget-fields input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 5px 8px; font-size: 0.83rem; width: 160px; }
+  .budget-fields input[type=number]:focus { outline: none; border-color: var(--accent); }
+  .budget-check { flex-direction: row !important; align-items: center; gap: 7px !important; margin-top: 4px; }
+
+  /* Claude-Limit-Watcher (5h/7d) */
+  .limits-wrap { display: flex; gap: 24px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .limits-bars { flex: 1 1 320px; min-width: 280px; }
+  .limits-meta { font-size: 0.72rem; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .limits-term-wrap { flex: 1 1 280px; min-width: 260px; position: relative; }
+  .limits-term { background: #05070c; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.78rem; color: #8ee08e; white-space: pre-wrap; min-height: 100px; }
+  .limits-copy-btn { position: absolute; top: 8px; right: 8px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 0.72rem; cursor: pointer; }
+  .limits-copy-btn:hover { color: var(--text); }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+
+<nav>
+  <a href="/">← Projekte</a>
+  <a href="/project.html?id=home-stack">📋 Übersicht</a>
+  <a href="/ki-advisor.html">🤖 KI-Advisor</a>
+  <a href="/swipe.html">🤔 JEIN Tool</a>
+  <a href="/whitelist.html">📱 Whitelist</a>
+  <a href="/cost.html">💸 Kosten</a>
+  <a href="/ai-settings.html" class="active">⚙️ KI-Einstellungen</a>
+</nav>
+
+<div class="content">
+  <h1>KI-Einstellungen</h1>
+  <p class="subtitle">Modell und Effort pro Funktion — Änderungen wirken sofort ohne Neustart</p>
+
+  <div id="status-bar" class="status-bar">Lade…</div>
+
+  <!-- Modell-Referenz -->
+  <div class="section-title">Verfügbare Modelle</div>
+  <div id="model-grid" class="model-grid"></div>
+
+  <!-- Einstellungen -->
+  <div class="section-title">Konfiguration pro Funktion</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Funktion</th>
+          <th>Typ</th>
+          <th>Modell</th>
+          <th>Effort</th>
+          <th>Empfehlung</th>
+          <th>Begründung</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Claude-Limit-Watcher: 5h-/7d-Plan-Auslastung (InfluxDB claude_limits, alle 15min) —
+       einziges Budget-Panel (2026-08-14 zusammengeführt): zeigt die ECHTEN Anthropic-Werte
+       statt der früheren lokalen Token-Schätzung; Bedienelemente (Wochenbudget etc.) stammen
+       aus der alten "💰 Claude-Budget"-Sektion und steuern weiterhin budget_service/check_allowance. -->
+  <div class="section-title">🚦 Claude-Limit (5h / 7 Tage)</div>
+  <div class="limits-wrap">
+    <div class="limits-bars">
+      <div class="budget-bar-row">
+        <span class="budget-bar-label">5h-Fenster <span id="lim-5h-pct">–</span></span>
+        <div class="budget-bar"><div class="budget-bar-fill" id="lim-5h-fill"></div></div>
+      </div>
+      <div class="budget-bar-row">
+        <span class="budget-bar-label">7-Tage <span id="lim-7d-pct">–</span></span>
+        <div class="budget-bar"><div class="budget-bar-fill" id="lim-7d-fill"></div><div class="budget-bar-target" id="lim-7d-target" title="Soll (linear über die Kalenderwoche, Näherung — Anthropics rollierendes 7-Tage-Fenster ist nicht exakt Mo–So)"></div></div>
+      </div>
+      <div class="limits-meta" id="lim-meta">Lade Claude-Limit-Status…</div>
+      <div class="limits-meta" id="bud-gate-meta">Lade Budget-Status…</div>
+    </div>
+    <div class="budget-fields">
+      <label>Wochenbudget (gewichtete Tokens)
+        <input type="number" id="bud-week-tokens" min="0" step="1000000" onchange="markChanged(this)"
+               title="Input-Token-Äquivalente: Output×5, Cache-Write×1.25, Cache-Read×0.1 (Preisverhältnis). Gleiche Skala wie die Prozentanzeige der Claude-App — 100% Abo ≈ 140M (kalibriert 05.08.26 gegen die App).">
+      </label>
+      <label>Fenster 0–8h max % (Nacht)
+        <input type="number" id="bud-win0-pct" min="0" max="100" onchange="markChanged(this)">
+      </label>
+      <label>Fenster 8–16h max % (Morgen)
+        <input type="number" id="bud-win1-pct" min="0" max="100" onchange="markChanged(this)">
+      </label>
+      <label>Fenster 16–24h max % (Abend)
+        <input type="number" id="bud-win2-pct" min="0" max="100" onchange="markChanged(this)"
+               title="Kumulativ gegen den Tagesverbrauch — 100% heisst: ab hier ist die volle Tages-Tranche verfügbar (Drittel-Aufteilung, Entscheidung 08.08.26).">
+      </label>
+      <label>Reserve-Tage (Puffer fürs Wochenende / eigene Projekte)
+        <input type="number" id="bud-reserve-days" min="0" max="6" step="1" onchange="markChanged(this)">
+      </label>
+      <label class="budget-check">
+        <input type="checkbox" id="bud-enforce"> Budget durchsetzen (sonst nur Anzeige)
+      </label>
+    </div>
+    <div class="limits-term-wrap">
+      <button class="limits-copy-btn" onclick="copyClaudeLimits()">📋 Kopieren</button>
+      <div class="limits-term" id="lim-term">–</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="ai-btn-speichern" data-i18n="ai.speichern" class="btn btn-save" onclick="save()">💾 Speichern</button>
+    <button id="ai-btn-zuruecksetzen" data-i18n="ai.zuruecksetzen" class="btn btn-reset" onclick="load()">↺ Zurücksetzen</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// Claude-Modelle werden NICHT mehr hier hartkodiert, sondern aus
+// /claude-models.json geladen (Skript jobs/update_claude_models.py, weekly-Timer,
+// Quelle: Anthropic Models API + kuratierte Preis-Map). load() füllt CLAUDE_MODELS
+// und merged die Claude-Meta in MODEL_META.
+let CLAUDE_MODELS = [];
+
+const MODEL_META = {
+  'gemma3:12b':                { sz: '8 GB', spd: 'med',  ql: 'hi',  tags: ['Reasoning','Deutsch','Allgemein'] },
+  'qwen3:8b':                  { sz: '5 GB', spd: 'med',  ql: 'hi',  tags: ['Code','Reasoning','Multilingual'] },
+  'qwen2.5-coder:latest':      { sz: '4 GB', spd: 'fast', ql: 'mid', tags: ['Code','Analyse','Schnell'] },
+  'mistral:latest':            { sz: '4 GB', spd: 'fast', ql: 'mid', tags: ['Allgemein','Schnell'] },
+  'llama3.1:latest':           { sz: '4 GB', spd: 'fast', ql: 'mid', tags: ['Allgemein'] },
+  'custom-assistant:latest':     { sz: '4 GB', spd: 'fast', ql: 'mid', tags: ['Custom'] },
+  'minicpm-v:latest':          { sz: '5 GB', spd: 'med',  ql: 'hi',  tags: ['Vision','Bilder'] },
+  'moondream:latest':          { sz: '1 GB', spd: 'fast', ql: 'mid', tags: ['Vision','Sehr schnell'] },
+};
+
+const EFFORT_MAP = { low: 0.2, medium: 0.5, high: 0.8 };
+const EFFORT_LABELS = { low: 'Niedrig', medium: 'Standard', high: 'Hoch' };
+
+const FUNCTIONS = [
+  { key: 'chat_model',           effortKey: 'chat_effort',            type: 'ollama',
+    name: 'Kanban Chat',         rec: 'gemma3:12b',   recEffort: 'medium',
+    desc: 'Chat auf Boards — Fragen beantworten, Karten &amp; Boards erstellen (Tool-Use)',
+    why: 'Ollama und Claude unterstützen beide Tool-Use. gemma3:12b empfohlen — kostenlos und schnell.' },
+  { key: 'ki_advisor_model',     effortKey: 'ki_advisor_effort',      type: 'ollama',
+    name: 'KI-Advisor',          rec: 'gemma3:12b',   recEffort: 'high',
+    desc: 'Analysiert Boards und schlägt nächste Schritte vor',
+    why: 'Hoher Effort = kreativere, vielfältigere Vorschläge.' },
+  { key: 'ki_advisor_panel_models', effortKey: null,                  type: 'multi',
+    name: 'KI-Advisor Panel',    rec: 'gemma3:12b,qwen3:8b', recEffort: null,
+    desc: 'Mehrere Modelle diskutieren in Runden',
+    why: 'Kombination aus Reasoning (gemma3) und Code-Fokus (qwen3).' },
+  { key: 'vision_title_model',   effortKey: null,                     type: 'ollama',
+    name: 'Vision / Foto-Titel', rec: 'minicpm-v:latest', recEffort: null,
+    desc: 'Erkennt Projektinhalte aus Fotos',
+    why: 'Nur minicpm-v und moondream können Bilder verarbeiten.' },
+  { key: 'ki_critique_model',    effortKey: 'ki_critique_effort',     type: 'ollama',
+    name: 'KI-Kritik',           rec: 'qwen2.5-coder:latest', recEffort: 'low',
+    desc: 'Generiert 3 Gegenargumente zu Vorschlägen',
+    why: 'Strukturiertes JSON-Array. Niedriger Effort = schnell und präzise.' },
+  { key: 'ki_explain_model',     effortKey: 'ki_explain_effort',      type: 'ollama',
+    name: 'KI-Erklärung',        rec: 'gemma3:12b',   recEffort: 'medium',
+    desc: 'Erklärt Vorschläge ausführlich (Streaming)',
+    why: 'Erklärqualität wichtiger als Geschwindigkeit.' },
+  { key: 'session_monitor_model', effortKey: 'session_monitor_effort', type: 'ollama',
+    name: 'Session Monitor',     rec: 'qwen2.5-coder:latest', recEffort: 'low',
+    desc: 'Analysiert teure Claude-CLI-Sessions',
+    why: 'Code-Analyse braucht Präzision, kein hohes Effort.' },
+  { key: 'bug_model',            effortKey: 'bug_effort',             type: 'ollama',
+    name: 'Bug-Analyser',        rec: 'qwen2.5-coder:latest', recEffort: 'medium',
+    desc: 'Analysiert Fehler im Bug-Viewer — erklärt Ursache und Lösung',
+    why: 'Code-Modell bevorzugt — kennt Tracebacks, Python-Fehler und Systemlogs.' },
+  { key: 'project_ideas_model',  effortKey: null,                     type: 'claude',
+    name: 'Doku-Erstellung',     rec: 'claude-haiku-4-5', recEffort: null,
+    desc: 'CLAUDE.md-Generierung bei neuen Projekten/Ideen (Claude-Abo-Bridge, kein Ollama)',
+    why: 'Einfache Doku-Texte — Haiku reicht, spart Abo-Budget gegenüber Sonnet/Opus.' },
+];
+
+let allModels = [];  // Ollama + Claude
+let cfg = {};
+let panelSelected = new Set();
+
+// ── Model grid ─────────────────────────────────────────────────────────────
+function renderModelGrid() {
+  const g = document.getElementById('model-grid');
+  g.innerHTML = allModels.map(m => {
+    const meta = MODEL_META[m.id] || { sz: '?', spd: 'med', ql: 'mid', tags: [] };
+    const spdCls = { fast: 't-fast', med: 't-med', slow: 't-slow' }[meta.spd] || 't-med';
+    const spdLbl = { fast: 'Schnell', med: 'Mittel', slow: 'Langsam' }[meta.spd] || 'Mittel';
+    const qlCls  = meta.ql === 'hi' ? 't-hi' : 't-mid';
+    const qlLbl  = meta.ql === 'hi' ? 'Hohe Qualität' : 'Mittlere Qualität';
+    const apiCls = m.id.startsWith('claude') ? ' style="border-color:#2a3a5a"' : '';
+    return `<div class="model-card"${apiCls}>
+      <div class="model-name">${m.id}</div>
+      <div class="model-meta">${meta.sz}${m.id.startsWith('claude') ? '' : ' VRAM'}</div>
+      <div class="tags">
+        <span class="tag ${spdCls}">${spdLbl}</span>
+        <span class="tag ${qlCls}">${qlLbl}</span>
+        ${meta.tags.map(t => `<span class="tag ${m.id.startsWith('claude') ? 't-api' : 't-type'}">${t}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Settings table ─────────────────────────────────────────────────────────
+function renderTable() {
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = FUNCTIONS.map(fn => {
+    const isMulti = fn.type === 'multi';
+    const typeBadge = { ollama: '<span class="badge b-ollama">Ollama</span>',
+                        multi:  '<span class="badge b-multi">Multi</span>',
+                        claude: '<span class="badge b-claude">Claude API</span>' }[fn.type];
+
+    // Model cell
+    let modelCell;
+    if (isMulti) {
+      const cur = cfg[fn.key] || [];
+      panelSelected = new Set(cur);
+      const chips = allModels.map(m => {
+        const sel = cur.includes(m.id) ? ' selected' : '';
+        return `<span class="panel-chip${sel}" data-id="${m.id}" onclick="togglePanel(this)">${m.id.split(':')[0]}</span>`;
+      }).join('');
+      modelCell = `<div class="panel-wrap">
+        <div class="panel-chips" id="panel-chips">${chips}</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">Mehrfach auswählen</div>
+      </div>`;
+    } else {
+      const opts = allModels.map(m =>
+        `<option value="${m.id}"${m.id === cfg[fn.key] ? ' selected' : ''}>${m.id}</option>`
+      ).join('');
+      modelCell = `<select id="sel-${fn.key}" onchange="markChanged(this)">${opts}</select>`;
+    }
+
+    // Effort cell
+    let effortCell = '<span style="color:var(--muted);font-size:0.75rem">—</span>';
+    if (fn.effortKey) {
+      const cur = cfg[fn.effortKey] || 'medium';
+      effortCell = `<div class="effort-group" id="eff-${fn.effortKey}">
+        ${['low','medium','high'].map(v => {
+          const active = v === cur ? ` active-${v}` : '';
+          return `<button class="effort-btn${active}" onclick="setEffort('${fn.effortKey}','${v}',this)">${EFFORT_LABELS[v]}</button>`;
+        }).join('')}
+      </div>`;
+    }
+
+    // Recommendation
+    const modelOk = isMulti
+      ? fn.rec.split(',').every(r => (cfg[fn.key]||[]).includes(r))
+      : cfg[fn.key] === fn.rec;
+    const effortOk = !fn.effortKey || cfg[fn.effortKey] === fn.recEffort;
+    let rec;
+    if (modelOk && effortOk) {
+      rec = '<span class="rec-ok">✓ Optimal</span>';
+    } else {
+      const tips = [];
+      if (!modelOk) tips.push(`Modell: <strong>${fn.rec}</strong>`);
+      if (!effortOk && fn.recEffort) tips.push(`Effort: <strong>${fn.recEffort}</strong>`);
+      rec = `<span class="rec-tip">${tips.join('<br>')}</span>`;
+    }
+
+    return `<tr>
+      <td><div class="fn-name">${fn.name}</div><div class="fn-desc">${fn.desc}</div></td>
+      <td>${typeBadge}</td>
+      <td>${modelCell}</td>
+      <td>${effortCell}</td>
+      <td>${rec}</td>
+      <td><div class="reason">${fn.why}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function togglePanel(el) {
+  el.classList.toggle('selected');
+}
+
+function setEffort(key, val, btn) {
+  const grp = document.getElementById('eff-' + key);
+  grp.querySelectorAll('.effort-btn').forEach(b => b.className = 'effort-btn');
+  btn.classList.add('active-' + val);
+}
+
+function markChanged(el) { el.classList.add('changed'); }
+
+// ── Load ────────────────────────────────────────────────────────────────────
+async function load() {
+  try {
+    const [mr, cr, clr] = await Promise.all([
+      fetch('/api/models'),
+      fetch('/api/ai-config'),
+      fetch('/claude-models.json?v=' + Date.now()),  // vom Skript aktuell gehalten
+    ]);
+    const md = await mr.json();
+    cfg = cr.ok ? await cr.json() : {};
+
+    // Claude-Modelle aus der generierten JSON (Fallback: leer)
+    let claudeDoc = {};
+    try { claudeDoc = clr.ok ? await clr.json() : {}; } catch(_) {}
+    const claudeList = claudeDoc.models || [];
+    CLAUDE_MODELS = claudeList.map(m => ({ id: m.id, name: m.name || m.id }));
+    // Claude-Meta in MODEL_META mergen (Ollama-Meta bleibt statisch)
+    for (const m of claudeList) {
+      MODEL_META[m.id] = { sz: m.sz || 'API', spd: m.spd || 'med', ql: m.ql || 'hi', tags: m.tags || ['Claude'] };
+    }
+
+    // Combine Ollama (data array) + Claude models
+    const ollamaModels = (md.data || []).map(m => ({ id: m.id || m.name, name: m.name || m.id }));
+    allModels = [...ollamaModels, ...CLAUDE_MODELS];
+
+    renderModelGrid();
+    renderTable();
+    renderBudgetFields();
+    refreshBudgetStatus();
+    refreshClaudeLimits();
+
+    const claudeStamp = claudeDoc.generated_at ? claudeDoc.generated_at.slice(0,10) : '—';
+    document.getElementById('status-bar').innerHTML =
+      `Konfiguration geladen — <span>${Object.keys(cfg).length} Schlüssel</span> | Ollama: <span>${ollamaModels.length}</span> | Claude: <span>${CLAUDE_MODELS.length}</span> (Stand ${claudeStamp})`;
+  } catch(e) {
+    toast('Fehler: ' + e.message, true);
+  }
+}
+
+// ── Save ────────────────────────────────────────────────────────────────────
+async function save() {
+  const payload = {};
+  for (const fn of FUNCTIONS) {
+    if (fn.type === 'multi') {
+      const chips = document.querySelectorAll('#panel-chips .panel-chip.selected');
+      payload[fn.key] = [...chips].map(c => c.dataset.id);
+    } else {
+      const sel = document.getElementById('sel-' + fn.key);
+      if (sel) payload[fn.key] = sel.value;
+    }
+    if (fn.effortKey) {
+      const grp = document.getElementById('eff-' + fn.effortKey);
+      if (grp) {
+        const active = grp.querySelector('.effort-btn[class*="active-"]');
+        if (active) {
+          const val = active.className.replace(/.*active-(\w+).*/, '$1');
+          payload[fn.effortKey] = val;
+        }
+      }
+    }
+  }
+  Object.assign(payload, collectBudgetFields());
+  try {
+    const r = await fetch('/api/ai-config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    cfg = data.config || payload;
+    // localStorage synchronisieren damit project.html sofort das neue Modell nutzt
+    if (payload.chat_model) localStorage.setItem('chat_model_pref', payload.chat_model);
+    renderTable();
+    renderBudgetFields();
+    refreshBudgetStatus();
+    refreshClaudeLimits();
+    toast('Gespeichert ✓');
+  } catch(e) {
+    toast('Fehler: ' + e.message, true);
+  }
+}
+
+// ── F2 Claude-Budget ────────────────────────────────────────────────────────
+// Feste Drittel-Aufteilung (Entscheidung 08.08.26, ~/containers/kanban-automat/CLAUDE.md
+// "⏱️ Stunden-Fenster + Sonntag-Burndown"): 0-8h/8-16h/16-24h, nur max_pct ist einstellbar.
+// NIE auf ein 2-Fenster-Tag/Nacht-Modell zurückbauen — das kollabierte hier am 14.08.26
+// bereits einmal eine gespeicherte 3er-Config auf 2 Fenster und liess budget_service auf
+// den Fallback {0-24h,100%} zurückfallen (falsche Freigabe/Sperre je nach Tageszeit).
+const BUDGET_WINDOW_BOUNDS = [[0, 8], [8, 16], [16, 24]];
+const BUDGET_WINDOW_DEFAULT_PCT = [34, 67, 100];
+const BUDGET_WINDOW_FIELD_IDS = ['bud-win0-pct', 'bud-win1-pct', 'bud-win2-pct'];
+
+function renderBudgetFields() {
+  const wins = Array.isArray(cfg.budget_windows) ? cfg.budget_windows : [];
+  document.getElementById('bud-week-tokens').value = cfg.budget_week_tokens ?? 100000000;
+  BUDGET_WINDOW_BOUNDS.forEach(([from, to], i) => {
+    const w = wins.find(w => w.from === from && w.to === to);
+    document.getElementById(BUDGET_WINDOW_FIELD_IDS[i]).value = w ? w.max_pct : BUDGET_WINDOW_DEFAULT_PCT[i];
+  });
+  document.getElementById('bud-reserve-days').value = cfg.budget_reserve_days ?? 1;
+  document.getElementById('bud-enforce').checked   = cfg.budget_enforce !== false;
+}
+
+function collectBudgetFields() {
+  return {
+    budget_week_tokens: parseInt(document.getElementById('bud-week-tokens').value, 10) || 0,
+    budget_windows: BUDGET_WINDOW_BOUNDS.map(([from, to], i) => ({
+      from, to,
+      max_pct: parseInt(document.getElementById(BUDGET_WINDOW_FIELD_IDS[i]).value, 10) || 0,
+    })),
+    budget_reserve_days: parseInt(document.getElementById('bud-reserve-days').value, 10) || 0,
+    budget_enforce: document.getElementById('bud-enforce').checked,
+  };
+}
+
+function setBar(fillId, pct) {
+  const el = document.getElementById(fillId);
+  el.style.width = Math.min(pct, 100) + '%';
+  el.className = 'budget-bar-fill' + (pct >= 95 ? ' crit' : pct >= 70 ? ' warn' : '');
+}
+
+// Soll-Linie "7-Tage": linearer Verbrauch über die Kalenderwoche (Mo 00:00–So 24:00).
+// Näherung, KEIN exaktes Abbild von Anthropics rollierendem 7-Tage-Fenster — dessen
+// resets_at ist Freitext aus dem /usage-Pane (claude-limit-watcher/parse.py, z.B.
+// "Wed at 9am (Europe/Zurich)") und nicht robust in einen Zeitpunkt parsebar.
+function weekSollPct(now = new Date()) {
+  const dayIdx = (now.getDay() + 6) % 7; // Mo=0 … So=6
+  const msSinceMonday = dayIdx * 86400000
+    + now.getHours() * 3600000 + now.getMinutes() * 60000
+    + now.getSeconds() * 1000 + now.getMilliseconds();
+  return Math.min(100, msSinceMonday / (7 * 86400000) * 100);
+}
+
+function setSevenDayTarget() {
+  const soll = weekSollPct();
+  const el = document.getElementById('lim-7d-target');
+  el.style.left = `calc(${soll.toFixed(1)}% - 1px)`;
+  el.title = `Soll (linear, Kalenderwoche-Näherung): ${soll.toFixed(0)}% der Woche vergangen`;
+  return soll;
+}
+
+// Nur noch Gate-Status (erlaubt/gedrosselt + Tages-Tranche) — die Ist/Soll-Balken
+// selbst zeigen jetzt die echten Anthropic-Werte aus refreshClaudeLimits().
+async function refreshBudgetStatus() {
+  try {
+    const r = await fetch('/api/budget');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const b = await r.json();
+    const fmt = n => (n || 0).toLocaleString('de-CH');
+    document.getElementById('bud-gate-meta').innerHTML =
+      `Fenster ${b.window.from}–${b.window.to}h (max ${b.window.max_pct}%) · ` +
+      `heute ${fmt(b.today_used)} / Tranche ${fmt(b.day_allowance_tokens)} gew. Tokens ` +
+      `<span title="Input-Äquivalente: Output×5, Cache-Write×1.25, Cache-Read×0.1 — gleiche Skala wie die Claude-App">ℹ️</span> · ` +
+      `${b.allowed ? '✅ Claude erlaubt' : '⛔ ' + b.reason}${b.enforce ? '' : ' (nur Anzeige)'}`;
+  } catch (e) {
+    console.error('[budget] Status-Refresh fehlgeschlagen', e);
+    document.getElementById('bud-gate-meta').textContent = 'Budget-Status nicht verfügbar: ' + e.message;
+  }
+}
+setInterval(refreshBudgetStatus, 60000);
+
+// ── Claude-Limit-Watcher (5h/7d) — echte Anthropic-Werte, einzige Ist-Anzeige ──────
+let lastClaudeLimits = null;
+
+async function refreshClaudeLimits() {
+  try {
+    const r = await fetch('/api/claude-limits');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    lastClaudeLimits = d;
+    const fh = d.five_hour, sd = d.seven_day;
+
+    if (fh) {
+      document.getElementById('lim-5h-pct').textContent = fh.used_pct + '%';
+      setBar('lim-5h-fill', fh.used_pct);
+    }
+    if (sd) {
+      const soll = setSevenDayTarget();
+      const diff = sd.used_pct - soll;
+      const diffLabel = diff > 0.5 ? `⚠️ ${diff.toFixed(0)} Pkt. über Soll`
+                       : diff < -0.5 ? `${Math.abs(diff).toFixed(0)} Pkt. unter Soll`
+                       : 'im Soll';
+      document.getElementById('lim-7d-pct').textContent = `${sd.used_pct}% (Soll ${soll.toFixed(0)}%, ${diffLabel})`;
+      setBar('lim-7d-fill', sd.used_pct);
+    }
+    const stamp = (fh && fh.ts) ? new Date(fh.ts).toLocaleTimeString('de-CH') : '–';
+    document.getElementById('lim-meta').textContent =
+      `Stand ${stamp} · aktualisiert alle 15min via claude-limit-watcher.timer`;
+    document.getElementById('lim-term').textContent = formatClaudeLimitsText(d);
+  } catch (e) {
+    console.error('[claude-limits] Refresh fehlgeschlagen', e);
+    document.getElementById('lim-meta').textContent = 'Claude-Limit-Status nicht verfügbar: ' + e.message;
+  }
+}
+
+function formatClaudeLimitsText(d) {
+  const fh = d.five_hour, sd = d.seven_day;
+  const line = (label, b) => b
+    ? `${label}: ${b.used_pct}% used · Resets ${b.resets_at}`
+    : `${label}: keine Daten`;
+  return [line('5h-Fenster', fh), line('7-Tage', sd)].join('\n');
+}
+
+function copyClaudeLimits() {
+  if (!lastClaudeLimits) return;
+  navigator.clipboard.writeText(formatClaudeLimitsText(lastClaudeLimits))
+    .then(() => toast('Claude-Limit-Daten kopiert ✓'))
+    .catch(e => toast('Kopieren fehlgeschlagen: ' + e.message, true));
+}
+
+setInterval(refreshClaudeLimits, 60000);
+
+function toast(msg, isErr=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (isErr ? 'err' : 'ok');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+load();
+</script>
+</body>
+</html>

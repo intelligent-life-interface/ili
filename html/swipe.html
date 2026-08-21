@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🤔 JEIN Tool – KI-Vorschläge</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--t-bg, #0f1117); color: var(--t-text, #e2e8f0);
+    height: 100dvh; display: flex; flex-direction: column;
+    overflow: hidden; user-select: none;
+}
+
+header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.7rem 1.2rem; border-bottom: 1px solid var(--t-raised, #2d3748); flex-shrink: 0;
+}
+header h1 { font-size: 1rem; color: #9f7aea; }
+.counter {
+    font-size: 0.8rem; color: var(--t-line2, #4a5568); background: var(--t-surface, #1a202c);
+    padding: 0.25rem 0.7rem; border-radius: 999px; border: 1px solid var(--t-raised, #2d3748);
+}
+
+/* ── Stack-Bereich ───────────────────────────────────────── */
+.stack-area {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden; padding: 1rem;
+}
+
+/* Hinter-Karten simulieren Tiefe */
+.card-behind {
+    position: absolute; width: min(380px, 92vw);
+    background: var(--t-surface, #1a202c); border: 1px solid var(--t-raised, #2d3748); border-radius: 16px;
+    pointer-events: none;
+}
+.card-behind.b1 {
+    transform: scale(0.95) translateY(12px);
+    opacity: 0.5; z-index: 1;
+}
+.card-behind.b2 {
+    transform: scale(0.90) translateY(22px);
+    opacity: 0.3; z-index: 0;
+}
+
+/* Haupt-Karte */
+.swipe-card {
+    position: relative; z-index: 10;
+    width: min(380px, 92vw);
+    background: var(--t-surface, #1a202c); border: 2px solid #553c7e; border-radius: 16px;
+    padding: 1.2rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    cursor: grab; touch-action: none;
+    transition: box-shadow 0.2s;
+    will-change: transform;
+}
+.swipe-card.swiping { cursor: grabbing; transition: none; }
+.swipe-card.gone {
+    transition: transform 0.38s ease, opacity 0.38s !important;
+    pointer-events: none;
+}
+.swipe-card.gone.right { transform: translateX(130vw) rotate(20deg); opacity: 0; }
+.swipe-card.gone.left  { transform: translateX(-130vw) rotate(-20deg); opacity: 0; }
+
+/* Swipe-Overlays */
+.hint-accept, .hint-reject {
+    position: absolute; top: 1rem;
+    font-size: 2.2rem; font-weight: 900;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.08s;
+    text-shadow: 0 0 16px currentColor;
+}
+.hint-accept { right: 1rem; color: #68d391; }
+.hint-reject  { left:  1rem; color: #fc8181; }
+
+/* Karten-Inhalt */
+.board-label {
+    font-size: 0.7rem; color: var(--t-line2, #4a5568); margin-bottom: 0.6rem;
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.board-label span {
+    background: var(--t-surface, #1a202c); border: 1px solid var(--t-raised, #2d3748); border-radius: 4px;
+    padding: 0.1rem 0.4rem; color: var(--t-muted, #718096);
+}
+.ki-badge {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    font-size: 0.72rem; font-weight: 700; color: #9f7aea;
+    background: #2d1f47; border-radius: 4px; padding: 0.15rem 0.5rem;
+    margin-bottom: 0.6rem;
+}
+.card-title {
+    font-size: 1rem; font-weight: 700; color: var(--t-text, #e2e8f0);
+    line-height: 1.35; margin-bottom: 0.5rem;
+}
+.card-desc {
+    font-size: 0.85rem; color: var(--t-muted, #718096); line-height: 1.5;
+}
+
+/* Ablehnungsgrund (optional) */
+.reject-area {
+    display: none; margin-top: 1rem; padding-top: 0.8rem;
+    border-top: 1px solid var(--t-raised, #2d3748);
+}
+.reject-area.open { display: block; }
+.reject-area label { font-size: 0.75rem; color: var(--t-muted, #718096); display: block; margin-bottom: 0.3rem; }
+.reject-area textarea {
+    width: 100%; background: var(--t-bg, #0d1117); border: 1px solid var(--t-line2, #4a5568);
+    border-radius: 6px; color: var(--t-text, #e2e8f0); padding: 0.4rem 0.6rem;
+    font-size: 0.82rem; font-family: inherit; resize: none; outline: none;
+}
+.reject-area textarea:focus { border-color: #fc8181; }
+.reject-btns { display: flex; gap: 0.5rem; margin-top: 0.5rem; justify-content: flex-end; }
+
+/* ── Action-Buttons ──────────────────────────────────────── */
+.actions {
+    display: flex; justify-content: center; gap: 1.5rem;
+    padding: 1rem 1.2rem 1.4rem; flex-shrink: 0;
+}
+.action-btn {
+    width: 58px; height: 58px; border-radius: 50%;
+    border: 2px solid; font-size: 1.5rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; background: var(--t-surface, #1a202c);
+    transition: transform 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+}
+.action-btn:active { transform: scale(0.92); }
+.action-btn.reject-btn { border-color: #fc8181; color: #fc8181; }
+.action-btn.reject-btn:hover { background: #3b1515; box-shadow: 0 0 16px rgba(252,129,129,0.3); }
+.action-btn.accept-btn { border-color: #68d391; color: #68d391; }
+.action-btn.accept-btn:hover { background: #1a3020; box-shadow: 0 0 16px rgba(104,211,145,0.3); }
+.action-btn.skip-btn  { border-color: var(--t-line2, #4a5568); color: var(--t-muted, #718096); width: 44px; height: 44px; font-size: 1.1rem; align-self: center; }
+
+/* ── Leer / Fertig ───────────────────────────────────────── */
+.empty-state {
+    display: none; flex-direction: column; align-items: center;
+    justify-content: center; gap: 1rem; text-align: center; padding: 2rem;
+}
+.empty-state.show { display: flex; }
+.empty-icon { font-size: 3rem; }
+.empty-title { font-size: 1.1rem; color: var(--t-text, #e2e8f0); }
+.empty-sub { font-size: 0.85rem; color: var(--t-line2, #4a5568); }
+
+/* ── Undo-Toast ──────────────────────────────────────────── */
+.undo-toast {
+    position: fixed; bottom: 5.5rem; left: 50%; transform: translateX(-50%);
+    background: var(--t-raised, #2d3748); border: 1px solid var(--t-line2, #4a5568); border-radius: 8px;
+    padding: 0.5rem 1rem; font-size: 0.82rem; color: var(--t-text, #e2e8f0);
+    display: flex; gap: 0.6rem; align-items: center;
+    opacity: 0; transition: opacity 0.2s; pointer-events: none; white-space: nowrap;
+    z-index: 50;
+}
+.undo-toast.show { opacity: 1; pointer-events: auto; }
+.undo-btn { color: #9f7aea; font-weight: 700; cursor: pointer; }
+
+/* Buttons allgemein */
+.btn {
+    padding: 0.3rem 0.7rem; border-radius: 6px; border: 1px solid var(--t-raised, #2d3748);
+    background: var(--t-surface, #1a202c); color: var(--t-text2, #a0aec0); font-size: 0.8rem; cursor: pointer;
+    font-family: inherit;
+}
+.btn:hover { border-color: var(--t-line2, #4a5568); color: var(--t-text, #e2e8f0); }
+.btn.danger { border-color: #822; background: #3b1515; color: #fc8181; }
+.btn.danger:hover { background: #4a1a1a; }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+
+<header>
+    <h1>🤔 JEIN Tool</h1>
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+        <span class="counter" id="counter">⏳</span>
+        <a href="/ki-advisor.html" style="text-decoration:none"><button class="btn">🤖</button></a>
+        <a href="/cost.html" style="text-decoration:none"><button class="btn">💸</button></a>
+        <a href="/ai-settings.html" style="text-decoration:none"><button class="btn">⚙️</button></a>
+        <a href="/" style="text-decoration:none"><button class="btn">←</button></a>
+    </div>
+</header>
+
+<div class="stack-area" id="stack-area">
+    <!-- Hinter-Karten (statisch, immer sichtbar als Tiefe) -->
+    <div class="card-behind b2" id="behind2" style="height:60px"></div>
+    <div class="card-behind b1" id="behind1" style="height:60px"></div>
+
+    <!-- Haupt-Karte wird per JS eingesetzt -->
+
+    <!-- Fertig-State -->
+    <div class="empty-state" id="empty-state">
+        <div class="empty-icon">🎉</div>
+        <div class="empty-title">Alle Vorschläge bearbeitet!</div>
+        <div class="empty-sub">Schau später wieder rein — der KI-Advisor läuft regelmässig.</div>
+        <a href="/ki-advisor.html"><button class="btn" style="margin-top:0.5rem">🤖 KI-Advisor öffnen</button></a>
+    </div>
+</div>
+
+<!-- Aktions-Buttons -->
+<div class="actions" id="actions">
+    <button class="action-btn skip-btn" onclick="skipCard()" title="Überspringen">⟳</button>
+    <button class="action-btn reject-btn" onclick="triggerReject()" title="Ablehnen">✗</button>
+    <button class="action-btn accept-btn" onclick="triggerAccept()" title="Annehmen">✓</button>
+</div>
+
+<!-- Undo-Toast -->
+<div class="undo-toast" id="undo-toast">
+    <span id="undo-text"></span>
+    <span class="undo-btn" onclick="undoLast()">Rückgängig</span>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────
+let cards = [];       // [{board_id, title, desc, card_ref}]
+let idx   = 0;        // aktueller Index
+let cardEl = null;    // DOM-Element der aktuellen Karte
+let lastAction = null; // für Undo: {type:'accept'|'reject', board_id, title, reason}
+let rejectAreaOpen = false;
+let undoTimer = null;
+
+const SWIPE_THRESHOLD = 70;
+const SERVER = '';    // gleicher Origin
+
+console.log('[Swipe] Init');
+
+// ── Daten laden ───────────────────────────────────────────────
+async function loadCards() {
+    try {
+        const resp = await fetch(SERVER + '/boards?all=1&t=' + Date.now());
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        const allBoards = Array.isArray(data) ? data : (data.boards || []);
+        console.log('[Swipe] Boards geladen:', allBoards.length);
+
+        // Alle Boards laden und KI-Karten sammeln
+        const promises = allBoards.map(b =>
+            fetch(SERVER + '/board?id=' + encodeURIComponent(b.id))
+                .then(r => r.json())
+                .then(board => {
+                    const kiCards = [];
+                    (board.columns || []).forEach(col => {
+                        if (col.id === 'ki_archiv') return;
+                        (col.cards || []).forEach(card => {
+                            if (card.label === '🤖 KI') {
+                                kiCards.push({
+                                    board_id:   b.id,
+                                    board_name: b.name || b.id,
+                                    board_icon: b.icon || '📋',
+                                    title:      card.title,
+                                    desc:       card.desc || '',
+                                });
+                            }
+                        });
+                    });
+                    return kiCards;
+                })
+                .catch(() => [])
+        );
+
+        const results = await Promise.all(promises);
+        cards = results.flat();
+        console.log('[Swipe] KI-Karten total:', cards.length);
+        updateCounter();
+        showCard();
+    } catch(e) {
+        console.error('[Swipe] Ladefehler:', e);
+        document.getElementById('empty-state').classList.add('show');
+        document.getElementById('empty-state').querySelector('.empty-title').textContent = '⚠️ Fehler: ' + e.message;
+        document.getElementById('actions').style.display = 'none';
+    }
+}
+
+// ── Karte anzeigen ────────────────────────────────────────────
+function showCard() {
+    // Altes Element entfernen
+    if (cardEl) cardEl.remove();
+    cardEl = null;
+
+    if (idx >= cards.length) {
+        showDone();
+        return;
+    }
+
+    const c = cards[idx];
+    updateCounter();
+    updateBehindCards();
+
+    // Karte aufbauen
+    const el = document.createElement('div');
+    el.className = 'swipe-card';
+    el.innerHTML = `
+        <span class="hint-accept">✓</span>
+        <span class="hint-reject">✗</span>
+        <div class="board-label">📋 <span>${c.board_icon} ${c.board_name}</span></div>
+        <div class="ki-badge">🤖 KI-Vorschlag</div>
+        <div class="card-title">${esc(c.title)}</div>
+        ${c.desc ? `<div class="card-desc">${esc(c.desc)}</div>` : ''}
+        <div class="reject-area" id="reject-area">
+            <label>Ablehnungsgrund <span style="color:#4a5568">(optional)</span></label>
+            <textarea id="reject-reason" rows="2" placeholder="z.B. 'Schon umgesetzt', 'Zu aufwändig'…"></textarea>
+            <div class="reject-btns">
+                <button class="btn" onclick="closeRejectArea()">Abbrechen</button>
+                <button class="btn" onclick="doReject('')">Ohne Grund</button>
+                <button class="btn danger" onclick="doRejectWithReason()">✗ Ablehnen</button>
+            </div>
+        </div>`;
+
+    document.getElementById('stack-area').insertBefore(el, document.getElementById('behind2').nextSibling);
+    cardEl = el;
+    rejectAreaOpen = false;
+
+    attachSwipe(el);
+    console.log('[Swipe] Karte', idx, '/', cards.length, '-', c.title);
+}
+
+function updateBehindCards() {
+    const b1 = document.getElementById('behind1');
+    const b2 = document.getElementById('behind2');
+    const remaining = cards.length - idx - 1;
+    b1.style.display = remaining >= 1 ? '' : 'none';
+    b2.style.display = remaining >= 2 ? '' : 'none';
+    // Höhe anpassen damit Stack-Effekt passt
+    if (cardEl) {
+        const h = cardEl.offsetHeight || 160;
+        b1.style.height = h + 'px';
+        b2.style.height = h + 'px';
+    }
+}
+
+function showDone() {
+    document.getElementById('empty-state').classList.add('show');
+    document.getElementById('actions').style.display = 'none';
+    document.getElementById('behind1').style.display = 'none';
+    document.getElementById('behind2').style.display = 'none';
+    updateCounter();
+}
+
+function updateCounter() {
+    const rem = Math.max(0, cards.length - idx);
+    document.getElementById('counter').textContent =
+        rem === 0 ? '✓ Fertig' : rem + ' übrig';
+}
+
+// ── Swipe-Gesten ──────────────────────────────────────────────
+function attachSwipe(el) {
+    let startX = 0, startY = 0, dx = 0;
+    let active = false, locked = false;
+    const hintA = el.querySelector('.hint-accept');
+    const hintR = el.querySelector('.hint-reject');
+
+    function start(x, y) {
+        if (rejectAreaOpen) return;
+        startX = x; startY = y; dx = 0;
+        active = true; locked = false;
+        el.classList.add('swiping');
+    }
+    function move(x, y) {
+        if (!active) return;
+        dx = x - startX;
+        const dy = y - startY;
+        if (!locked && Math.abs(dy) > Math.abs(dx) + 12) { cancel(); return; }
+        locked = true;
+        const ratio = Math.min(Math.abs(dx) / SWIPE_THRESHOLD, 1);
+        el.style.transform = `translateX(${dx}px) rotate(${dx * 0.05}deg)`;
+        if (dx > 10) {
+            el.style.borderColor = `rgba(104,211,145,${0.3 + ratio * 0.7})`;
+            hintA.style.opacity = ratio; hintR.style.opacity = 0;
+        } else if (dx < -10) {
+            el.style.borderColor = `rgba(252,129,129,${0.3 + ratio * 0.7})`;
+            hintR.style.opacity = ratio; hintA.style.opacity = 0;
+        } else {
+            el.style.borderColor = ''; hintA.style.opacity = 0; hintR.style.opacity = 0;
+        }
+    }
+    function end() {
+        if (!active) return;
+        active = false;
+        el.classList.remove('swiping');
+        hintA.style.opacity = 0; hintR.style.opacity = 0;
+        if (dx > SWIPE_THRESHOLD)       flyOut('right', () => doAccept());
+        else if (dx < -SWIPE_THRESHOLD) openRejectAreaOrFly();
+        else                             snap();
+    }
+    function cancel() {
+        active = false; dx = 0;
+        el.classList.remove('swiping');
+        snap();
+    }
+    function snap() {
+        el.style.transition = 'transform 0.3s ease, border-color 0.2s';
+        el.style.transform = ''; el.style.borderColor = '';
+        hintA.style.opacity = 0; hintR.style.opacity = 0;
+        setTimeout(() => el.style.transition = '', 300);
+    }
+
+    // Touch
+    el.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+    el.addEventListener('touchmove',  e => move(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+    el.addEventListener('touchend',   end);
+    el.addEventListener('touchcancel', cancel);
+    // Mouse
+    el.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        start(e.clientX, e.clientY);
+        const mm = e => move(e.clientX, e.clientY);
+        const mu = () => { end(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+        document.addEventListener('mousemove', mm);
+        document.addEventListener('mouseup', mu);
+    });
+}
+
+// ── Fly-Out Animation ─────────────────────────────────────────
+function flyOut(dir, cb) {
+    if (!cardEl) return;
+    cardEl.classList.add('gone', dir);
+    setTimeout(() => { if (cb) cb(); }, 350);
+}
+
+// ── Aktionen ──────────────────────────────────────────────────
+async function doAccept() {
+    if (idx >= cards.length) return;
+    const c = cards[idx];
+    console.log('[Swipe] Accept:', c.title, '@', c.board_id);
+    lastAction = { type: 'accept', board_id: c.board_id, title: c.title };
+    idx++;
+
+    try {
+        await fetch(SERVER + '/ki-accept', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ board_id: c.board_id, title: c.title })
+        });
+    } catch(e) { console.error('[Swipe] Accept-Fehler:', e); }
+
+    showToast('✓ Angenommen');
+    showCard();
+}
+
+function openRejectAreaOrFly() {
+    if (!cardEl) return;
+    // Karte zurücksnappen und Ablehnungsformular zeigen
+    cardEl.style.transition = 'transform 0.25s ease, border-color 0.2s';
+    cardEl.style.transform = ''; cardEl.style.borderColor = '';
+    setTimeout(() => { if (cardEl) cardEl.style.transition = ''; }, 250);
+    openRejectArea();
+}
+
+function openRejectArea() {
+    if (!cardEl) return;
+    const area = cardEl.querySelector('.reject-area');
+    area.classList.add('open');
+    rejectAreaOpen = true;
+    setTimeout(() => cardEl.querySelector('#reject-reason').focus(), 50);
+}
+
+function closeRejectArea() {
+    if (!cardEl) return;
+    cardEl.querySelector('.reject-area').classList.remove('open');
+    rejectAreaOpen = false;
+}
+
+function doRejectWithReason() {
+    const reason = document.getElementById('reject-reason')?.value.trim() || '';
+    doReject(reason);
+}
+
+async function doReject(reason) {
+    if (idx >= cards.length) return;
+    const c = cards[idx];
+    console.log('[Swipe] Reject:', c.title, 'Grund:', reason || '(keiner)');
+    lastAction = { type: 'reject', board_id: c.board_id, title: c.title, reason };
+    rejectAreaOpen = false;
+
+    flyOut('left', async () => {
+        idx++;
+        try {
+            await fetch(SERVER + '/ki-reject', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ board_id: c.board_id, title: c.title, reason })
+            });
+        } catch(e) { console.error('[Swipe] Reject-Fehler:', e); }
+        showToast('✗ Abgelehnt');
+        showCard();
+    });
+}
+
+function skipCard() {
+    if (idx >= cards.length) return;
+    // Ans Ende schieben
+    cards.push(cards[idx]);
+    idx++;
+    console.log('[Swipe] Skip, ans Ende verschoben');
+    updateCounter();
+    flyOut('right', showCard);
+}
+
+// ── Button-Handler ────────────────────────────────────────────
+function triggerAccept() { flyOut('right', () => doAccept()); }
+function triggerReject() { openRejectArea(); }
+
+// ── Undo ──────────────────────────────────────────────────────
+function showToast(msg) {
+    const toast = document.getElementById('undo-toast');
+    document.getElementById('undo-text').textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+async function undoLast() {
+    if (!lastAction) return;
+    const { type, board_id, title } = lastAction;
+    lastAction = null;
+    document.getElementById('undo-toast').classList.remove('show');
+    console.log('[Swipe] Undo', type, title);
+
+    // Karte wieder in Backlog reaktivieren (ki-reactivate deckt beide Fälle ab)
+    try {
+        await fetch(SERVER + '/ki-reactivate', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ board_id, title })
+        });
+        // Karte vorne einfügen
+        const board_entry = { board_id };
+        // Boards neu laden um vollständige Daten zu haben
+        await loadCards();
+        // Zur Karte springen (erste Karte mit gleichem Titel)
+        const fi = cards.findIndex(c => c.board_id === board_id && c.title === title);
+        if (fi !== -1) { const tmp = cards.splice(fi, 1); cards.unshift(tmp[0]); idx = 0; showCard(); }
+    } catch(e) { console.error('[Swipe] Undo-Fehler:', e); }
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+const esc = window.escHtml;
+
+// Nur Escape zum Schliessen der Ablehn-Maske, keine Swipe-Shortcuts via Tastatur
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeRejectArea();
+});
+
+loadCards();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+# dashboard-api.service — FastAPI-Server (Strangler-Migration von trigger_server.py)
+[Unit]
+Description=Dashboard FastAPI Server (Port 8798)
+After=network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+EnvironmentFile=%h/config.env
+WorkingDirectory=%h/containers/dashboard
+ExecStart=%h/containers/dashboard/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8798
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

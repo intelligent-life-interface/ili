@@ -1,0 +1,97 @@
+  :root {
+    --bg: var(--t-bg, #0f1117); --surface: var(--t-surface, #1a1d27); --border: var(--t-raised, #2a2d3e);
+    --text: var(--t-text, #e2e8f0); --muted: var(--t-muted, #8892a4); --error: #fc8181;
+    --warn: #f6ad55; --info: #68d391; --accent: #4a9eff;
+    --code-bg: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px;
+           display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  header h1 { font-size: 1.1rem; }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-left: auto; }
+  select, button, input { background: var(--bg); color: var(--text); border: 1px solid var(--border);
+                          border-radius: 6px; padding: 6px 12px; font-size: 0.85rem; cursor: pointer; }
+  button:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-text, #fff); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text, #fff); }
+  button.copy-btn { padding: 4px 10px; font-size: 0.78rem; color: var(--muted); }
+  button.copy-btn:hover { color: #fff; }
+
+  .stats { display: flex; gap: 16px; padding: 10px 20px; background: var(--surface);
+           border-bottom: 1px solid var(--border); font-size: 0.83rem; color: var(--muted); flex-wrap: wrap; }
+  .stats span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-error { background: var(--error); }
+  .dot-warn  { background: var(--warn); }
+  .dot-info  { background: var(--info); }
+
+  .filters { display: flex; gap: 8px; padding: 10px 20px; background: var(--surface);
+             border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+  .filter-btn { padding: 4px 12px; font-size: 0.8rem; border-radius: 20px; }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-text, #fff); }
+  .filter-group { display: flex; gap: 4px; align-items: center; padding: 3px 8px;
+                  border: 1px solid var(--border); border-radius: 20px; }
+  .filter-group-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase;
+                        letter-spacing: 0.05em; padding-right: 4px; }
+  .filter-group .filter-btn { padding: 3px 10px; font-size: 0.75rem; border-radius: 14px; }
+  .visible-count { font-size: 0.75rem; color: var(--muted); margin-left: auto; }
+  input[type=search] { flex: 1; min-width: 180px; max-width: 360px; }
+
+  main { padding: 16px 20px; max-width: 1200px; margin: 0 auto; }
+  .empty { color: var(--muted); text-align: center; margin-top: 60px; font-size: 1rem; }
+
+  .bug-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+              margin-bottom: 10px; overflow: hidden; }
+  .bug-card.level-error { border-left: 3px solid var(--error); }
+  .bug-card.level-warning { border-left: 3px solid var(--warn); }
+  .bug-card.level-info { border-left: 3px solid var(--info); }
+
+  .bug-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+                cursor: pointer; user-select: none; }
+  .bug-header:hover { background: rgba(255,255,255,0.03); }
+  .bug-nr { color: var(--muted); font-size: 0.75rem; min-width: 28px; }
+  .level-badge { font-size: 0.7rem; padding: 2px 7px; border-radius: 10px; text-transform: uppercase;
+                 font-weight: 600; }
+  .level-error   { background: rgba(252,129,129,0.15); color: var(--error); }
+  .level-warning { background: rgba(246,173,85,0.15);  color: var(--warn); }
+  .level-info    { background: rgba(104,211,145,0.15); color: var(--info); }
+  .bug-service { color: var(--accent); font-size: 0.82rem; font-weight: 500; min-width: 180px; }
+  .bug-ts { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
+  .bug-headline { flex: 1; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .expand-icon { color: var(--muted); font-size: 0.8rem; transition: transform 0.15s; }
+  .bug-card.open .expand-icon { transform: rotate(90deg); }
+
+  .bug-body { display: none; border-top: 1px solid var(--border); padding: 12px 14px; }
+  .bug-card.open .bug-body { display: block; }
+  .bug-body pre { background: var(--code-bg); border-radius: 6px; padding: 12px;
+                  font-size: 0.78rem; line-height: 1.6; overflow-x: auto; white-space: pre-wrap;
+                  word-break: break-all; color: var(--t-text2, #cbd5e0); }
+  .bug-actions { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+  .copied-hint { font-size: 0.75rem; color: var(--info); display: none; }
+
+  .analyse-area { margin-top: 12px; display: none; }
+  .analyse-area.show { display: block; }
+  .analyse-header { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px;
+                    display: flex; align-items: center; gap: 8px; }
+  .analyse-body { background: #0d1f17; border: 1px solid #1a3a2a; border-radius: 6px;
+                  padding: 12px; font-size: 0.82rem; line-height: 1.7; color: #a7f3d0;
+                  word-break: break-word; overflow-wrap: anywhere; }
+  .analyse-body p { margin: 0 0 8px; }
+  .analyse-body p:last-child { margin-bottom: 0; }
+  .analyse-body .analyse-cursor { display: inline-block; width: 7px; height: 1em;
+                                  background: #68d391; vertical-align: text-bottom;
+                                  animation: blink .7s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  button.ollama-btn { padding: 4px 10px; font-size: 0.78rem;
+                      background: #1a3a2a; color: var(--info);
+                      border-color: #1a3a2a; }
+  button.ollama-btn:hover { background: var(--info); border-color: var(--info); color: #000; }
+  button.ollama-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .loading { text-align: center; padding: 40px; color: var(--muted); }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border);
+             border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .scanned-at { font-size: 0.75rem; color: var(--muted); }

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 Bots abarbeiten</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  :root {
+    --bg: var(--t-bg, #0f1117); --surface: var(--t-surface, #1a1d27); --border: var(--t-raised, #2a2d3e);
+    --text: var(--t-text, #e2e8f0); --muted: var(--t-muted, #8892a4); --accent: #4a9eff;
+    --purple: #b794f4; --green: #68d391; --orange: #f6ad55; --red: #fc8181;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding-bottom: 40px; }
+  header { padding: 16px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+           display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  header h1 { font-size: 1.2rem; }
+  header a.home { color: var(--muted); text-decoration: none; font-size: .9rem; }
+  .summary { margin-left: auto; display: flex; gap: 14px; font-size: .9rem; }
+  .summary b { font-size: 1.05rem; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 20px; }
+  .group-title { margin: 22px 0 10px; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-left-width: 4px;
+          border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .card.wartet   { border-left-color: var(--orange); }
+  .card.arbeitet { border-left-color: var(--accent); opacity: .85; }
+  .card.automat  { border-left-color: var(--purple); }
+  .card.leer, .card.shell { border-left-color: var(--border); opacity: .6; }
+  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--purple);
+           animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+  .card .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .card .title { font-weight: 600; font-size: 1.02rem; }
+  .badge { font-size: .72rem; padding: 2px 8px; border-radius: 20px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .badge.kind { color: var(--purple); }
+  .badge.tok  { margin-left: auto; }
+  .ctx { margin-top: 8px; white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: .8rem;
+         color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+         padding: 8px 10px; max-height: 140px; overflow: auto; }
+  .actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  a.btn { text-decoration: none; padding: 7px 14px; border-radius: 8px; font-size: .88rem; font-weight: 600;
+          background: var(--accent); color: var(--accent-text, #fff); border: 1px solid var(--accent); }
+  a.btn.ghost { background: transparent; color: var(--text); border-color: var(--border); font-weight: 500; }
+  a.btn[aria-disabled="true"] { opacity: .4; pointer-events: none; }
+  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+  .refresh { font-size: .82rem; color: var(--muted); }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); cursor: pointer; }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+<script src="/js/darstellung.js?v=20260716c" defer></script>
+</head>
+<body data-ui-autoinit="off">
+<div class="ds-zones">
+<header class="ds-zone-top">
+  <a class="home" href="/" data-i18n="app.back">← ili</a>
+  <h1>🤖 Bots abarbeiten</h1>
+  <div class="summary" id="summary"></div>
+</header>
+<main class="ds-zone-main">
+<div class="wrap">
+  <div style="display:flex; align-items:center; gap:16px; margin-bottom:6px;">
+    <label class="toggle"><input type="checkbox" id="auto" checked> Auto-Refresh (10s)</label>
+    <span class="refresh" id="stamp"></span>
+    <a class="home" href="#" id="manual" style="margin-left:auto;">↻ jetzt aktualisieren</a>
+  </div>
+  <div id="list"><div class="empty">lädt …</div></div>
+</div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+<script>
+const STATE_LABEL = {
+  wartet:   { emoji: "🟡", text: "Wartet auf dich" },
+  arbeitet: { emoji: "🔄", text: "Arbeitet" },
+  leer:     { emoji: "⚪", text: "Leer / bereit" },
+  shell:    { emoji: "⚫", text: "Shell" },
+};
+const GROUPS = [
+  ["wartet",   "🟡 Warten auf deine Antwort"],
+  ["arbeitet", "🔄 Arbeiten gerade"],
+  ["leer",     "⚪ Leer / bereit"],
+  ["shell",    "⚫ Shell / beendet"],
+];
+
+const esc = window.escHtml;
+
+function runtimeMin(startedAt){
+  if(!startedAt) return "";
+  const ms = Date.now() - new Date(startedAt).getTime();
+  if (isNaN(ms) || ms < 0) return "";
+  const min = Math.round(ms / 60000);
+  return min >= 60 ? `${Math.floor(min/60)}h ${min%60}min` : `${min} min`;
+}
+
+function workerHtml(w){
+  const rt = runtimeMin(w.started_at);
+  return `<div class="card automat">
+    <div class="top">
+      <span class="pulse"></span>
+      <span class="title">🤖 ${esc(w.board)}</span>
+      <span class="badge kind">Automat-Worker</span>
+      ${rt ? `<span class="badge tok">läuft ${rt}</span>` : ""}
+    </div>
+    ${w.card_title ? `<div class="ctx">${esc(w.card_title)}</div>` : ""}
+    <div class="actions"><a class="btn ghost" href="/project.html?id=${esc(w.board)}" target="_blank" rel="noopener">▶ Board öffnen</a></div>
+  </div>`;
+}
+
+function cardHtml(s){
+  const lbl = STATE_LABEL[s.state] || STATE_LABEL.shell;
+  const ctx = s.context ? `<div class="ctx">${esc(s.context)}</div>` : "";
+  const open = s.link
+    ? `<a class="btn" href="${esc(s.link)}" target="_blank" rel="noopener">▶ Öffnen &amp; antworten</a>`
+    : `<a class="btn" aria-disabled="true">kein Link</a>`;
+  return `<div class="card ${s.state}">
+    <div class="top">
+      <span class="title">${lbl.emoji} ${esc(s.title)}</span>
+      <span class="badge kind">${esc(s.kind)}</span>
+      <span class="badge tok">${s.tokens.toLocaleString("de-CH")} tok</span>
+    </div>
+    ${ctx}
+    <div class="actions">${open}</div>
+  </div>`;
+}
+
+async function load(){
+  try {
+    // Automat-Status best-effort: Fehler dort darf die tmux-Liste nie blockieren
+    const [d, st] = await Promise.all([
+      fetch("/bot-status", { cache: "no-store" }).then(r => r.json()),
+      fetch("/api/automat/status", { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
+    ]);
+    const workers = st.workers || [];
+    const sum = d.summary || {};
+    document.getElementById("summary").innerHTML =
+      `<span style="color:var(--orange)">🟡 <b>${sum.wartet||0}</b> wartet</span>
+       <span style="color:var(--accent)">🔄 <b>${sum.arbeitet||0}</b> arbeitet</span>
+       <span style="color:var(--purple)">🤖 <b>${workers.length}</b> Automat</span>
+       <span style="color:var(--muted)">⚪ <b>${(sum.leer||0)+(sum.shell||0)}</b> leer</span>`;
+    const byState = {};
+    (d.sessions||[]).forEach(s => { (byState[s.state] = byState[s.state] || []).push(s); });
+    let html = "";
+    if (workers.length)
+      html += `<div class="group-title">🤖 Automat-Worker (${workers.length})</div>` + workers.map(workerHtml).join("");
+    for (const [key, title] of GROUPS){
+      const arr = byState[key]; if(!arr || !arr.length) continue;
+      html += `<div class="group-title">${title} (${arr.length})</div>` + arr.map(cardHtml).join("");
+    }
+    document.getElementById("list").innerHTML = html || `<div class="empty">Keine Sessions gefunden.</div>`;
+    document.getElementById("stamp").textContent = "Stand: " + (d.ts||"").replace("T"," ");
+  } catch(e){
+    document.getElementById("list").innerHTML = `<div class="empty">Fehler beim Laden: ${esc(String(e))}</div>`;
+  }
+}
+
+let timer = null;
+function schedule(){
+  if(timer) clearInterval(timer);
+  if(document.getElementById("auto").checked) timer = setInterval(load, 10000);
+}
+document.getElementById("auto").addEventListener("change", schedule);
+document.getElementById("manual").addEventListener("click", e => { e.preventDefault(); load(); });
+load(); schedule();
+</script>
+</body>
+</html>

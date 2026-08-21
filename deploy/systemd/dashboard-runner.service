@@ -1,0 +1,12 @@
+[Unit]
+Description=Dashboard Webhook Runner (n8n trigger)
+After=network-online.target
+
+[Service]
+EnvironmentFile=-%h/config.env
+ExecStart=/usr/bin/python3 %h/containers/dashboard/runner.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

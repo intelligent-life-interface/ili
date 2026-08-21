@@ -1,0 +1,12 @@
+# Dashboard FastAPI-Server
+fastapi
+python-multipart        # von FastAPI für Form-/Upload-Daten benötigt (Anhänge)
+uvicorn[standard]
+pytest
+pytest-cov              # Coverage-Gate in der CI (--cov-fail-under)
+ruff                    # Lint-Gate in der CI (F-Regeln + E722, s. ruff.toml)
+httpx
+piexif
+markdown                # für Markdown->HTML-Rendering (u.a. Board-/Karten-Texte)
+pydantic
+anthropic

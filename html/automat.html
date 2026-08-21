@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 Automat – Entscheidungen</title>
+<script src="/js/esc.js?v=20260809-xss"></script>
+<script src="/i18n/de.js" defer></script>
+<script src="/ui-kit/v1/i18n.js" defer></script>
+<script src="/nav.js" defer></script>
+<link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<style>
+  body { font-family: system-ui, sans-serif; background:var(--t-surface, #1a202c); color:var(--t-text, #e2e8f0); margin:0; }
+  .wrap { max-width:1100px; margin:0 auto; padding:1rem; }
+  h1 { font-size:1.4rem; }
+  .hint { color:var(--t-text2, #a0aec0); font-size:.85rem; margin:.2rem 0 1rem; }
+  h2 { font-size:1rem; border-bottom:1px solid var(--t-raised, #2d3748); padding-bottom:.3rem; margin-top:1.6rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:.9rem; }
+  .card { background:var(--t-raised, #2d3748); border:1px solid var(--t-line2, #4a5568); border-radius:10px; padding:.9rem; }
+  .card.decision { border-left:4px solid #d69e2e; }
+  .card.working  { border-left:4px solid #3182ce; }
+  .card .cat { font-size:.72rem; color:var(--t-text2, #a0aec0); }
+  .card .bname { font-weight:600; font-size:1.02rem; margin:.1rem 0 .4rem; }
+  .card .q { font-size:.9rem; margin:.3rem 0 .6rem; white-space:pre-wrap; }
+  .opts { display:flex; flex-direction:column; gap:.4rem; }
+  .opt-btn { text-align:left; background:var(--t-line2, #374151); border:1px solid var(--t-line2, #4a5568); color:var(--t-text, #e2e8f0);
+             padding:.5rem .6rem; border-radius:7px; cursor:pointer; font-size:.86rem; }
+  .opt-btn:hover { background:#2f855a; border-color:#276749; }
+  .freerow { display:flex; gap:.4rem; margin-top:.5rem; }
+  .freerow input { flex:1; background:var(--t-surface, #1a202c); border:1px solid var(--t-line2, #4a5568); color:var(--t-text, #e2e8f0);
+                   border-radius:6px; padding:.45rem; font-size:.85rem; }
+  .freerow button { background:#3182ce; border:0; color:#fff; border-radius:6px; padding:.45rem .7rem; cursor:pointer; }
+  .links { margin-top:.55rem; font-size:.78rem; }
+  .links a { color:#63b3ed; text-decoration:none; margin-right:.8rem; }
+  .empty { color:var(--t-muted, #718096); font-style:italic; padding:.5rem 0; }
+  .spin { display:inline-block; width:9px; height:9px; border-radius:50%; background:#3182ce;
+          margin-right:.4rem; animation:pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+  .pill { display:inline-block; background:var(--t-line2, #4a5568); border-radius:10px; padding:.12rem .55rem;
+          font-size:.78rem; margin:.2rem .3rem .2rem 0; }
+  .pill a { color:var(--t-text2, #cbd5e0); text-decoration:none; }
+  .pill .off { color:#fc8181; cursor:pointer; margin-left:.4rem; }
+  .toast { position:fixed; bottom:1rem; left:50%; transform:translateX(-50%); background:#2f855a;
+           color:#fff; padding:.6rem 1rem; border-radius:8px; opacity:0; transition:opacity .3s; }
+  .toast.show { opacity:1; }
+
+  /* ── Drossel-Panel (js/automat-limits.js) ── */
+  .lim-panel { background:var(--t-raised, #2d3748); border:1px solid var(--t-line2, #4a5568);
+               border-radius:10px; padding:.9rem; }
+  .lim-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.9rem 1.2rem; }
+  .lim-row label { display:block; font-size:.85rem; font-weight:600; margin-bottom:.25rem; }
+  .lim-badge { background:#d69e2e; color:#1a202c; font-size:.65rem; font-weight:700;
+               border-radius:8px; padding:.05rem .4rem; margin-left:.4rem; vertical-align:middle; }
+  .lim-input { display:flex; align-items:center; gap:.5rem; }
+  .lim-input input { width:6.5rem; background:var(--t-surface, #1a202c); color:var(--t-text, #e2e8f0);
+                     border:1px solid var(--t-line2, #4a5568); border-radius:6px; padding:.4rem .5rem;
+                     font-size:.9rem; }
+  .lim-range { font-size:.72rem; color:var(--t-muted, #718096); white-space:nowrap; }
+  .lim-desc { font-size:.75rem; color:var(--t-text2, #a0aec0); margin-top:.3rem; line-height:1.35; }
+  .lim-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem;
+                 margin-top:1rem; padding-top:.8rem; border-top:1px solid var(--t-line2, #4a5568); }
+  .lim-btn { background:var(--t-line2, #374151); border:1px solid var(--t-line2, #4a5568);
+             color:var(--t-text, #e2e8f0); border-radius:7px; padding:.45rem .8rem;
+             cursor:pointer; font-size:.85rem; }
+  .lim-btn:hover { background:#4a5568; }
+  .lim-btn-primary { background:#3182ce; border-color:#2b6cb0; color:#fff; }
+  .lim-btn-primary:hover { background:#2b6cb0; }
+  .lim-note { font-size:.75rem; color:var(--t-muted, #718096); overflow-wrap:anywhere; }
+  .lim-note code { font-size:.72rem; word-break:break-word; }
+</style>
+<script src="/theme.js?v=20260716b" defer></script>
+</head>
+<body data-ui-autoinit="off">
+<div class="ds-zones">
+<header class="ds-zone-top">
+  <h1>🤖 Automat – worüber ich entscheiden muss</h1>
+  <div class="hint">Karten, bei denen der Kanban-Automat auf deine Entscheidung wartet, plus was gerade
+    autonom bearbeitet wird. Aktualisiert sich alle 15&nbsp;s. <a href="/" style="color:#63b3ed">← Projekte</a></div>
+</header>
+<main class="ds-zone-main">
+<div class="wrap">
+  <h2>🔧 Wird gerade bearbeitet <span id="work-count" class="cat"></span></h2>
+  <div id="working" class="grid"></div>
+
+  <h2>🟡 Warten auf deine Entscheidung <span id="dec-count" class="cat"></span></h2>
+  <div id="decisions" class="grid"></div>
+
+  <h2>✅ Für den Automaten freigegeben</h2>
+  <div id="autoboards"></div>
+
+  <h2>⚙️ Drossel – wie viel der Automat arbeiten darf</h2>
+  <div class="hint">Begrenzt Worker-Starts und Parallelität. Schützt das Abo-Kontingent und verhindert
+    Crash-Schleifen. Änderungen greifen beim nächsten Tick (alle 5&nbsp;min), ohne Neustart.</div>
+  <div id="limits"></div>
+</div>
+</main>
+<footer class="ds-zone-bottom"><span data-i18n="footer.brand">Home Server · ili</span></footer>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/js/automat-limits.js?v=20260809-escxss" defer></script>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = window.escHtml;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+
+async function decide(board, cardId, choice){
+  if(!choice || !choice.trim()) return;
+  try{
+    const r = await fetch('/api/automat/decide', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({board, card_id:cardId, choice:choice.trim()})});
+    if(!r.ok) throw new Error(await r.text());
+    toast('✅ Antwort gespeichert — Automat macht beim nächsten Lauf weiter');
+    load();
+  }catch(e){ toast('Fehler: '+e); }
+}
+
+async function setAuto(board, on){
+  try{
+    await fetch('/boards/'+encodeURIComponent(board), {method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({auto:on})});
+    toast(on?('▶ freigegeben: '+board):('⏸ gesperrt: '+board)); load();
+  }catch(e){ toast('Fehler: '+e); }
+}
+
+function decCard(d){
+  const opts = (d.options||[]).map((o,i)=>
+    `<button class="opt-btn" onclick="decide('${esc(d.board)}','${esc(d.card_id)}', this.dataset.c)" data-c="${esc(o)}">${i+1}. ${esc(o)}</button>`
+  ).join('');
+  return `<div class="card decision">
+    <div class="cat">${esc(d.category||'')} · ${esc(d.board)}</div>
+    <div class="bname">${esc(d.board_name)}</div>
+    <div class="q">${esc(d.question)}</div>
+    <div class="opts">${opts || '<span class="cat">freie Antwort unten</span>'}</div>
+    <div class="freerow">
+      <input placeholder="oder eigene Antwort…" onkeydown="if(event.key==='Enter'){decide('${esc(d.board)}','${esc(d.card_id)}',this.value)}">
+      <button onclick="decide('${esc(d.board)}','${esc(d.card_id)}', this.previousElementSibling.value)">OK</button>
+    </div>
+    <div class="links"><a href="/project.html?id=${encodeURIComponent(d.board)}">📋 Board öffnen</a></div>
+  </div>`;
+}
+
+function workCard(w){
+  return `<div class="card working">
+    <div class="bname"><span class="spin"></span>${esc(w.board)}</div>
+    <div class="q">${esc(w.card_title||'(Karte)')}</div>
+    <div class="cat">seit ${esc((w.started_at||'').replace('T',' ').slice(0,16))}</div>
+    <div class="links"><a href="/project.html?id=${encodeURIComponent(w.board)}">📋 Board öffnen</a></div>
+  </div>`;
+}
+
+async function load(){
+  try{
+    const [dec, st] = await Promise.all([
+      fetch('/api/automat/decisions').then(r=>r.json()),
+      fetch('/api/automat/status').then(r=>r.json())
+    ]);
+    // Wird bearbeitet
+    const wk = st.workers||[];
+    $('work-count').textContent = wk.length?`(${wk.length})`:'';
+    $('working').innerHTML = wk.length ? wk.map(workCard).join('')
+      : '<div class="empty">Gerade arbeitet kein Automat-Worker.</div>';
+    // Entscheidungen
+    const ds = dec.decisions||[];
+    $('dec-count').textContent = ds.length?`(${ds.length})`:'';
+    $('decisions').innerHTML = ds.length ? ds.map(decCard).join('')
+      : '<div class="empty">Keine offenen Entscheidungen — alles läuft.</div>';
+    // Freigegebene Boards
+    const ab = st.auto_boards||[];
+    $('autoboards').innerHTML = ab.length ? ab.map(b=>
+      `<span class="pill"><a href="/project.html?id=${encodeURIComponent(b.id)}">${esc(b.name)}</a>`+
+      `<span class="off" title="Automat für dieses Board ausschalten" onclick="setAuto('${esc(b.id)}',false)">⏻</span></span>`
+    ).join('') : '<div class="empty">Noch kein Board freigegeben (🤖-Knopf in der Projektansicht).</div>';
+  }catch(e){ console.error(e); }
+}
+load();
+setInterval(load, 15000);
+</script>
+</body>
+</html>
