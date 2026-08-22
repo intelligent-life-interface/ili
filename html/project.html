@@ -465,12 +465,29 @@
 <script src="/js/project-chat-terminal.js?v=20260809-headercollapse"></script>
 <script src="/js/project-subprojects.js?v=20260809-escxss"></script>
 <script src="/js/project-head.js?v=20260728-subprojheight"></script>
-<script src="/js/project-terminal-fit.js?v=20260727-ptmodel"></script>
+<script src="/js/project-terminal-fit.js?v=20260822-ptterm-export"></script>
 <!-- Schwebendes Prioritäten-Widget: Karten dieses Projekts, selbständig nach Priorität geordnet -->
 <script src="/js/project-prio-widget.js?v=20260809-escxss" defer></script>
 
 <!-- Brainstorming-Modus: KI-Dialog zum Ausarbeiten von Ideen -->
 <script src="/js/project-brainstorm.js?v=20260727-convoactions" defer></script>
+
+<!-- Claude-Anmeldungs-Helfer: Device-Code-Login in der GUI -->
+<div id="claude-login-container"></div>
+<script>
+  // Lade das Claude-Login-Panel HTML per Fetch
+  (async function() {
+    try {
+      const resp = await fetch('/claude-login-panel.html?v=20260822-hardwrap');
+      if (resp.ok) {
+        document.getElementById('claude-login-container').innerHTML = await resp.text();
+      }
+    } catch (e) {
+      console.error('[ClaudeLogin] Fehler beim Laden des Panels:', e);
+    }
+  })();
+</script>
+<script src="/js/project-claude-login.js?v=20260822-fixedchannel" defer></script>
 
 </body>
 </html>

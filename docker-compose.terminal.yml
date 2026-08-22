@@ -20,6 +20,19 @@
 name: ili
 
 services:
+  # api sieht ohne das Terminal-Profil kein terminal-home-Volume und keinen
+  # OAuth-Token — das Login-Panel (html/claude-login-panel.html) bleibt dann
+  # korrekt bei logged_in:false statt einen alten/falschen Zustand zu zeigen.
+  api:
+    environment:
+      CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
+      # Pfad zum .credentials.json-Check in app/api/misc.py — muss zum Mount unten passen.
+      CLAUDE_CONFIG_DIR: /claude-home/.claude
+    volumes:
+      # Nur lesen: api darf den Login-Zustand PRÜFEN, nie verändern. Das Senden des
+      # Device-Codes läuft client-seitig über das Terminal-iframe, nicht über api.
+      - terminal-home:/claude-home:ro
+
   terminal:
     build:
       context: .

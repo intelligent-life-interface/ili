@@ -161,6 +161,7 @@
         brand.id          = 'nav-link-brand';
         brand.className   = 'ds-nav__brand';
         brand.href        = '/';
+        brand.title       = t('app.brand.full', 'intelligent life interface');
         // Inline the monogram SVG with fill=currentColor so it follows the
         // brand text color in every theme (nav can be light or dark).
         const brandLogo = document.createElement('span');

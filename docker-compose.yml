@@ -30,6 +30,9 @@ services:
     build:
       context: .
       dockerfile: Containerfile
+      args:
+        ILI_COMMIT: ${ILI_COMMIT:-unknown}
+        ILI_BUILD_DATE: ${ILI_BUILD_DATE:-unknown}
     image: ghcr.io/toa1984/ili-dashboard:${ILI_VERSION:-latest}
     container_name: ili-api
     restart: unless-stopped

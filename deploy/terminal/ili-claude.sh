@@ -36,8 +36,12 @@ if ! has_credentials; then
   │                                                                     │
   │  This terminal has no browser, so the login takes one extra step:    │
   │                                                                     │
-  │   1. Claude prints a sign-in URL below. Press  c  to copy it, or     │
-  │      select it with the mouse (long-press on a phone)                │
+  │  Easiest: the board page opens a sign-in panel with an "Open"        │
+  │  button and a code field — no copying at all.                        │
+  │                                                                     │
+  │  By hand instead:                                                   │
+  │   1. Claude prints a sign-in URL below. It may break across lines —  │
+  │      join the pieces WITHOUT spaces, or the sign-in page rejects it  │
   │   2. Open it in your own browser and sign in                        │
   │   3. The browser shows a code. Paste it back here at the            │
   │      "Paste code here if prompted" line and press Enter              │

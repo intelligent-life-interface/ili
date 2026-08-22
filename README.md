@@ -263,6 +263,16 @@ Vollständige API-Dokumentation: `docs/API.md` oder Swagger-UI unter `/docs` (nu
 
 ---
 
+## Versionierung
+
+- `VERSION` im Repo-Root ist die einzige Quelle (semver, manuell gepflegt); sie
+  wird ins Image kopiert und unter `GET /api/version` ausgeliefert
+  (`{version, commit, build_date, channel}`).
+- Releases sind Git-Tags `vX.Y.Z`; Beta-Stände sind GitHub-Pre-Releases mit Tag
+  `vX.Y.Z-beta.N`. `ILI_UPDATE_CHANNEL=stable|beta` in `.env` wählt den Kanal.
+- `ILI_COMMIT`/`ILI_BUILD_DATE` werden als Build-Args gesetzt (Update-Skript);
+  ein blosses `compose build` lässt sie auf `unknown`.
+
 ## Lizenz
 
 SPDX-License-Identifier: AGPL-3.0-or-later

@@ -17,6 +17,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Version + build metadata (ILI_COMMIT/ILI_BUILD_DATE are passed by ili-update.sh,
+# plain `compose build` leaves them "unknown" — git is not needed inside the image)
+ARG ILI_COMMIT=unknown
+ARG ILI_BUILD_DATE=unknown
+ENV ILI_COMMIT=${ILI_COMMIT} \
+    ILI_BUILD_DATE=${ILI_BUILD_DATE}
+COPY VERSION .
+
 # Application Code & Root Modules
 COPY *.py .
 COPY app/ app/

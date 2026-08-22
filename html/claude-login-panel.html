@@ -1,0 +1,462 @@
+<!-- claude-login-panel.html — Claude-Anmeldung mit Device-Code in der GUI
+
+   Dieses Panel wird in project.html als Modal/Aside angezeigt, wenn:
+   1. Das Projekt-Terminal aktiv ist, aber
+   2. Claude noch nicht angemeldet ist
+
+   Funktionalität:
+   - Zeigt die Device-Code-Sign-in-URL (klickbar)
+   - Eingabefeld für den Code vom Browser
+   - Sendet den Code ins Terminal (über TTY-Steuerung)
+-->
+
+<div id="claude-login-panel" style="display:none">
+  <style>
+    #claude-login-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--t-surface, #1a1d27);
+      border: 1px solid var(--t-raised, #2a2d3e);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 450px;
+      width: calc(100% - 2rem);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      z-index: 2000;
+      backdrop-filter: blur(4px);
+    }
+    #claude-login-panel h2 {
+      margin: 0 0 1.5rem;
+      font-size: 1.2rem;
+      color: var(--t-text, #e2e8f0);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    #claude-login-panel .section {
+      margin-bottom: 1.5rem;
+    }
+    #claude-login-panel .section-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--t-muted, #718096);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    #claude-login-panel .url-box {
+      display: flex;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+    #claude-login-panel .url-field {
+      flex: 1;
+      background: var(--t-raised, #0f1117);
+      border: 1px solid var(--t-border, #2a2d3e);
+      border-radius: 6px;
+      padding: 0.6rem 0.8rem;
+      color: var(--t-text, #e2e8f0);
+      font-size: 0.85rem;
+      word-break: break-all;
+      word-wrap: break-word;
+      font-family: 'Monaco', 'Menlo', monospace;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #claude-login-panel .url-field:hover {
+      background: var(--t-surface2, #12151f);
+    }
+    #claude-login-panel .copy-btn {
+      padding: 0.6rem 1rem;
+      background: var(--accent, #4a90d9);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+    }
+    #claude-login-panel .copy-btn:hover {
+      background: var(--accent-dark, #3a7acc);
+    }
+    #claude-login-panel .open-btn {
+      padding: 0.6rem 1rem;
+      background: var(--green, #48bb78);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+    }
+    #claude-login-panel .open-btn:hover {
+      background: #3a9b68;
+    }
+    #claude-login-panel .code-input {
+      width: 100%;
+      background: var(--t-raised, #0f1117);
+      border: 2px solid var(--t-border, #2a2d3e);
+      border-radius: 6px;
+      padding: 0.8rem;
+      color: var(--t-text, #e2e8f0);
+      font-size: 1rem;
+      font-family: 'Monaco', 'Menlo', monospace;
+      box-sizing: border-box;
+      transition: border-color 0.15s;
+    }
+    #claude-login-panel .code-input:focus {
+      outline: none;
+      border-color: var(--accent, #4a90d9);
+    }
+    #claude-login-panel .actions {
+      display: flex;
+      gap: 0.8rem;
+      align-items: center;
+    }
+    #claude-login-panel .submit-btn {
+      flex: 1;
+      padding: 0.8rem 1.2rem;
+      background: var(--accent, #4a90d9);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: background 0.15s;
+    }
+    #claude-login-panel .submit-btn:hover {
+      background: var(--accent-dark, #3a7acc);
+    }
+    #claude-login-panel .submit-btn:disabled {
+      background: var(--t-muted, #718096);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    #claude-login-panel .close-btn {
+      padding: 0.6rem 1rem;
+      background: var(--t-surface2, #12151f);
+      color: var(--t-text, #e2e8f0);
+      border: 1px solid var(--t-raised, #2a2d3e);
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+    }
+    #claude-login-panel .close-btn:hover {
+      background: var(--t-raised, #2a2d3e);
+    }
+    #claude-login-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1999;
+    }
+    #claude-login-panel.show {
+      display: block;
+    }
+    #claude-login-overlay.show {
+      display: block;
+    }
+    #claude-login-panel .info-text {
+      color: var(--t-muted, #718096);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+    #claude-login-panel .error {
+      background: rgba(252, 129, 129, 0.1);
+      border: 1px solid #fc8181;
+      color: #fc8181;
+      padding: 0.8rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin: 0;
+    }
+    #claude-login-panel .success {
+      background: rgba(72, 187, 120, 0.1);
+      border: 1px solid #48bb78;
+      color: #48bb78;
+      padding: 0.8rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin: 0;
+    }
+  </style>
+
+  <div id="claude-login-overlay"></div>
+
+  <div id="claude-login-content">
+    <h2>🔐 Claude-Anmeldung</h2>
+
+    <div class="section">
+      <label class="section-label">1. Öffne diese URL im Browser</label>
+      <div class="url-box">
+        <div class="url-field" id="claude-url" title="Klicken zum Kopieren">
+          Warte auf Terminal-Ausgabe…
+        </div>
+        <button class="copy-btn" id="copy-url-btn" title="URL kopieren">
+          📋 Kopieren
+        </button>
+        <button class="open-btn" id="open-url-btn" title="In neuem Tab öffnen">
+          ↗ Öffnen
+        </button>
+      </div>
+      <p class="info-text" style="margin-top:0.5rem">
+        „Öffnen" startet die Anmeldung in diesem Browser — kein Kopieren nötig.
+        Nach dem Login zeigt Anthropic einen Code.
+      </p>
+    </div>
+
+    <div class="section">
+      <label class="section-label">2. Code hier einfügen</label>
+      <div class="actions">
+        <input
+          type="text"
+          class="code-input"
+          id="device-code-input"
+          placeholder="z.B. ABCD-EFGH-IJKL-MNOP-QRST"
+          autocomplete="off"
+        >
+      </div>
+      <p class="info-text" style="margin-top:0.5rem">
+        Drücke Enter oder klicke Senden.
+      </p>
+    </div>
+
+    <div class="section">
+      <button class="submit-btn" id="submit-code-btn">
+        Senden
+      </button>
+    </div>
+
+    <div class="section">
+      <button class="close-btn" id="close-login-btn" style="width: 100%;">
+        Abbrechen
+      </button>
+    </div>
+
+    <div id="login-status-msg"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // Panel-Elemente
+  const panel = document.getElementById('claude-login-panel');
+  const overlay = document.getElementById('claude-login-overlay');
+  const urlField = document.getElementById('claude-url');
+  const urlInput = document.getElementById('device-code-input');
+  const copyBtn = document.getElementById('copy-url-btn');
+  const openBtn = document.getElementById('open-url-btn');
+  const submitBtn = document.getElementById('submit-code-btn');
+  const closeBtn = document.getElementById('close-login-btn');
+  const statusMsg = document.getElementById('login-status-msg');
+
+  // Die Anmelde-URL ist NICHT fest — `claude` druckt sie dynamisch pro Login-Versuch
+  // ins Terminal. Wir lesen sie aus dem xterm.js-Buffer des Terminal-iframes (gleicher
+  // same-origin Datenkanal wie die OSC-52-Zwischenablage in project-chat-terminal.js),
+  // statt eine erfundene URL anzuzeigen.
+  let currentUrl = '';
+  let urlPollTimer = null;
+
+  // Export public functions für externe Nutzung
+  window.ClaudeLoginPanel = {
+    show: showPanel,
+    hide: hidePanel,
+    isVisible: () => panel && panel.classList.contains('show')
+  };
+
+  // URL-Zeichen laut RFC 3986 (unreserved + reserved + Prozent-Kodierung). Eine
+  // Fortsetzungszeile darf NUR daraus bestehen, sonst wird sie nicht angehängt.
+  const URL_CHARS_RE = /^[A-Za-z0-9\-._~:\/?#\[\]@!$&'()*+,;=%]+$/;
+
+  function extractSignInUrl() {
+    const term = window.PTTerm && window.PTTerm.term();
+    if (!term || !term.buffer) return '';
+    try {
+      const buf = term.buffer.active;
+      const cols = term.cols || 80;
+      // Nur die letzten ~200 Zeilen durchsuchen (Performance) — die Sign-in-URL
+      // steht in der Regel direkt nach dem Login-Start, nicht tief im Scrollback.
+      const start = Math.max(0, buf.length - 200);
+      const lines = [];
+      let prevFilled = false;
+      for (let y = start; y < buf.length; y++) {
+        const line = buf.getLine(y);
+        if (!line) continue;
+        const text = line.translateToString(true);
+        // Lange URLs brechen über mehrere Zeilen. `isWrapped` reicht NICHT: tmux
+        // rendert den Pane-Inhalt neu und liefert harte Zeilenenden, die Wrap-
+        // Metadaten sind nach tmux immer weg (Befund 22.08.2026: abgeschnittener
+        // scope-Parameter → "Unbekannter Bereich: user"). Darum breitenbasiert:
+        // war die Vorzeile bis zum Rand gefüllt und besteht diese Zeile nur aus
+        // URL-Zeichen, gehört sie an die Vorzeile.
+        const continues = lines.length > 0 && text.length > 0 &&
+          (line.isWrapped || (prevFilled && URL_CHARS_RE.test(text)));
+        if (continues) lines[lines.length - 1] += text;
+        else lines.push(text);
+        prevFilled = text.length >= cols - 1;
+      }
+      // LETZTEN Treffer nehmen: nach Re-Renders kann weiter oben eine alte oder
+      // unvollständige Fassung derselben URL stehen.
+      const all = lines.join('\n').match(/https?:\/\/\S+/g) || [];
+      let url = all.length ? all[all.length - 1].replace(/[.,;)\]]+$/, '') : '';
+      // Vollständigkeits-Check: die OAuth-URL trägt immer code_challenge= und
+      // state=. Fehlt eines, ist sie abgeschnitten — lieber weiter warten als
+      // eine kaputte URL anbieten.
+      if (url && !(url.includes('code_challenge=') && url.includes('state='))) {
+        console.debug('[ClaudeLogin] URL unvollständig (', url.length, 'Zeichen, cols=' + cols + ') — warte weiter');
+        url = '';
+      }
+      return url;
+    } catch (e) {
+      console.debug('[ClaudeLogin] URL-Extraktion fehlgeschlagen:', e.message);
+      return '';
+    }
+  }
+
+  function pollUrl() {
+    const found = extractSignInUrl();
+    if (found && found !== currentUrl) {
+      currentUrl = found;
+      urlField.textContent = found;
+      urlField.title = 'Klicken zum Kopieren';
+      console.log('[ClaudeLogin] Sign-in-URL aus Terminal gelesen:', found);
+    } else if (!found && !currentUrl) {
+      urlField.textContent = 'Warte auf Terminal-Ausgabe… (im Terminal ggf. „claude" eintippen)';
+    }
+  }
+
+  function showPanel() {
+    if (!panel) return;
+    panel.classList.add('show');
+    overlay.classList.add('show');
+    urlInput.focus();
+    statusMsg.innerHTML = '';
+    currentUrl = '';
+    urlField.textContent = 'Warte auf Terminal-Ausgabe…';
+    pollUrl();
+    clearInterval(urlPollTimer);
+    urlPollTimer = setInterval(pollUrl, 1500);
+    console.log('[ClaudeLogin] Panel geöffnet');
+  }
+
+  function hidePanel() {
+    if (!panel) return;
+    panel.classList.remove('show');
+    overlay.classList.remove('show');
+    urlInput.value = '';
+    statusMsg.innerHTML = '';
+    clearInterval(urlPollTimer);
+    urlPollTimer = null;
+    console.log('[ClaudeLogin] Panel geschlossen');
+  }
+
+  function setStatus(message, isError = false) {
+    if (!statusMsg) return;
+    statusMsg.innerHTML = message
+      ? `<p class="${isError ? 'error' : 'success'}">${escapeHtml(message)}</p>`
+      : '';
+  }
+
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
+
+  function submitCode() {
+    const code = urlInput.value.trim();
+    if (!code) {
+      setStatus('Bitte gib einen Code ein', true);
+      return;
+    }
+
+    // Direkt in die PTY schreiben — derselbe verifizierte Daten-Kanal wie die
+    // Eingabe-Zeile im Terminal (window.PTTerm, project-terminal-fit.js). Kein
+    // Backend-Roundtrip: api und terminal sind getrennte Container ohne
+    // gemeinsamen tmux-Zugriff, ein API-Endpunkt könnte den Code dort gar nicht
+    // zustellen.
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Wird gesendet…';
+
+    const sent = window.PTTerm && typeof window.PTTerm.send === 'function'
+      ? window.PTTerm.send(code + '\r')
+      : false;
+
+    if (sent) {
+      setStatus('✅ Code ins Terminal gesendet.', false);
+      console.log('[ClaudeLogin] Code gesendet (', code.length, 'Zeichen)');
+      setTimeout(hidePanel, 1500);
+    } else {
+      setStatus('❌ Terminal nicht bereit. Code stattdessen von Hand ins Terminal einfügen und Enter drücken.', true);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Senden';
+    }
+  }
+
+  // Event-Listener
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      if (!currentUrl) { setStatus('Noch keine URL im Terminal gefunden.', true); return; }
+      navigator.clipboard.writeText(currentUrl).then(() => {
+        copyBtn.textContent = '✓ Kopiert!';
+        setTimeout(() => { copyBtn.textContent = '📋 Kopieren'; }, 2000);
+      });
+    });
+  }
+
+  if (openBtn) {
+    openBtn.addEventListener('click', () => {
+      if (!currentUrl) { setStatus('Noch keine URL im Terminal gefunden.', true); return; }
+      window.open(currentUrl, 'claude-device-code');
+    });
+  }
+
+  if (urlField) {
+    urlField.addEventListener('click', () => { if (copyBtn) copyBtn.click(); });
+  }
+
+  if (submitBtn) {
+    submitBtn.addEventListener('click', submitCode);
+  }
+
+  if (urlInput) {
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitCode();
+      }
+    });
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', hidePanel);
+  }
+
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) hidePanel();
+    });
+  }
+
+  console.log('[ClaudeLogin] Panel initialisiert. Nutze window.ClaudeLoginPanel.show() zum Anzeigen.');
+})();
+</script>

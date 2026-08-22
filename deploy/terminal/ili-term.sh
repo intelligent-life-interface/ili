@@ -64,6 +64,9 @@ fi
 # Browser tab title: tmux writes the terminal title, xterm.js turns it into
 # document.title — without this every project tab would be named "bash".
 tmux set-option -t "$SESSION" set-titles on
+# Pass OSC-52 clipboard writes through to the browser — lets Claude's own "c to copy"
+# reach the client clipboard instead of dying inside tmux.
+tmux set-option -t "$SESSION" set-clipboard on
 tmux set-option -t "$SESSION" set-titles-string "📋 ${SLUG:-home} · ili"
 tmux set-option -t "$SESSION" status-position top
 tmux set-option -t "$SESSION" status-left-length 60

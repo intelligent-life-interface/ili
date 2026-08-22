@@ -19,6 +19,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.services.version_service import read_version
+
 # Debug-Logs auf stdout → journalctl (User-Regel: gute Debug-Logs)
 logging.basicConfig(
     stream=sys.stdout,
@@ -30,7 +32,7 @@ log = logging.getLogger("dashboard.api")
 app = FastAPI(
     title="Dashboard API",
     description="Kanban-/Projekt-Dashboard — FastAPI-Migration von trigger_server.py",
-    version="0.1.0",
+    version=read_version(),
 )
 
 

@@ -1,16 +1,25 @@
 """API-Router: Misc-Endpoints (Migrations-Welle 6).
 
 Routen: GET /load-diagram, GET /list-diagrams, POST /save-diagram
+        GET /api/claude-status — Claude-Anmeldungsstatus prüfen
 """
 import logging
+import os
 
 from fastapi import APIRouter, HTTPException, Query
 
 from app.services import misc_service
+from app.services import version_service
 from app.services import bot_status_service
 
 log = logging.getLogger("dashboard.api.misc")
 router = APIRouter(tags=["misc"])
+
+
+@router.get("/api/version")
+def api_version():
+    """Installed version of this ili instance (VERSION file + build metadata)."""
+    return version_service.version_info()
 
 
 @router.get("/bot-status")
@@ -90,3 +99,42 @@ def save_diagram(body: dict | None = None):
     except Exception:
         log.exception("save-diagram Fehler")
         raise HTTPException(status_code=500, detail="Interner Serverfehler")
+
+
+# ── Claude-Anmeldungs-Helfer ──
+# Architektur-Zwang: `api` und `terminal` sind getrennte Container ohne gemeinsamen
+# tmux-Socket (anders als im Home-Stack, wo dashboard-api als systemd --user-Prozess
+# denselben Socket wie das Terminal sieht — siehe docs/WIDGETS.md). Ein tmux-basierter
+# Check wie in bot_status_service liefert hier also IMMER ein falsches Ergebnis.
+# Stattdessen: dasselbe Datei-/Env-Kriterium wie `deploy/terminal/ili-claude.sh`
+# (has_credentials()) — der Login-Zustand ist eine Datei im terminal-home-Volume,
+# das docker-compose.terminal.yml read-only in diesen Container mountet, sobald das
+# Terminal-Profil aktiv ist. Ohne diesen Mount (Terminal aus) bleibt logged_in immer
+# False — korrekt, denn ohne Terminal gibt es nichts, worin man sich anmelden könnte.
+#
+# Den Device-Code SENDEN passiert bewusst NICHT hier: das Terminal ist ein
+# same-origin iframe (/projterm/), das Frontend schreibt den Code direkt über das
+# xterm.js-Objekt des iframes ins Terminal (html/claude-login-panel.html) — derselbe
+# Datenkanal, den project-chat-terminal.js schon für die OSC-52-Zwischenablage nutzt.
+# Das braucht keinen Backend-Roundtrip und funktioniert unabhängig von der
+# Container-Aufteilung.
+_CLAUDE_CREDS_DIR = os.environ.get("CLAUDE_CONFIG_DIR", "/claude-home/.claude")
+
+
+@router.get("/api/claude-status")
+def get_claude_status():
+    """Claude-Anmeldungsstatus fürs Login-Panel prüfen.
+
+    Spiegelt has_credentials() aus deploy/terminal/ili-claude.sh: API-Key/Token als
+    Env-Var ODER gespeicherte Anmeldung im terminal-home-Volume.
+    Returns {logged_in: bool, source: str}.
+    """
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return {"logged_in": True, "source": "api-key"}
+    if os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"):
+        return {"logged_in": True, "source": "oauth-token"}
+    creds_file = os.path.join(_CLAUDE_CREDS_DIR, ".credentials.json")
+    if os.path.isfile(creds_file):
+        return {"logged_in": True, "source": "stored-login"}
+    log.debug("claude-status: keine Anmeldung gefunden (%s)", creds_file)
+    return {"logged_in": False, "source": "none"}

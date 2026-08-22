@@ -20,6 +20,7 @@ window.I18N = {
     // Beschriftung wechselt, plus die zusaetzliche Domain ili.intranet.
     "app.name": "ili",
     "app.brand": "ili",
+    "app.brand.full": "intelligent life interface",
     "app.title.index": "ili – Projekte",
     "app.title.project": "📋 Projekt – ili",
     "app.back": "← ili",

@@ -997,8 +997,21 @@
     }
 
     // ── Init ─────────────────────────────────────────────────────
+    // Installed version in the footer (from VERSION in the image); silent on failure
+    function loadVersion() {
+        var el = document.getElementById('footer-version');
+        if (!el) return;
+        fetch('/api/version').then(function (r) { return r.ok ? r.json() : null; }).then(function (v) {
+            if (!v || !v.version) return;
+            el.textContent = 'v' + v.version + (v.channel === 'beta' ? ' β' : '');
+            el.title = 'commit ' + (v.commit || '?') + ' · build ' + (v.build_date || '?');
+            console.log(TAG, 'version', v);
+        }).catch(function (e) { console.warn(TAG, '/api/version nicht erreichbar', e); });
+    }
+
     async function init() {
         console.log(TAG, 'init() — lade /api/dashboard …');
+        loadVersion();
         applyZoom();
 
         // Gruppier-Buttons

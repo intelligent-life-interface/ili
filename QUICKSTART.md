@@ -201,7 +201,12 @@ Docker Compose users can shorten this to `up -d --build`. **podman-compose canno
 it ignores `--build` on `up` and keeps existing containers on the old image, so
 `git pull` would appear to change nothing. The four steps above work on both.
 
-That is the whole update. Everything of yours stays where it is:
+That is the whole update. Afterwards the footer of the start page shows the new
+version; `curl http://localhost:8080/api/version` prints it as JSON (version,
+commit, build date, channel). Set `ILI_UPDATE_CHANNEL=beta` in `.env` to follow
+pre-releases (`vX.Y.Z-beta.N`) instead of tagged releases only.
+
+Everything of yours stays where it is:
 
 | Yours | Where it lives | Survives an update |
 |---|---|---|

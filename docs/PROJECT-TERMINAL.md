@@ -53,7 +53,7 @@ any of them:**
 
 | Way | What you do | Good for |
 |---|---|---|
-| **Interactive login** | Open a board terminal. It explains the three steps: copy the URL, sign in with your own browser, paste the code back at the `Paste code here if prompted` line. | Claude subscription, nothing to prepare |
+| **Interactive login** | Open a board terminal. The board page shows a sign-in panel: **Open** starts the sign-in in your own browser, the code goes into the panel's field and is sent to the terminal for you. (By hand: the URL printed in the terminal breaks across lines — join the pieces without spaces, otherwise the sign-in page answers `Unknown scope: user`.) | Claude subscription, nothing to prepare |
 | **`CLAUDE_CODE_OAUTH_TOKEN`** | Run `claude setup-token` once on a machine that has a browser, put the token (valid one year) into `.env` | Claude subscription, unattended start |
 | **`ANTHROPIC_API_KEY`** | Create a key in the Anthropic Console, put it into `.env` | Pay-per-use, no login at all |
 
@@ -62,8 +62,26 @@ The interactive login is stored in the `terminal-home` volume
 volume means signing in again.
 
 > Copying the URL out of a browser terminal is a bit awkward — select it with the
-> mouse, or long-press on a phone. A one-click login helper in the ili UI is on
-> the roadmap.
+> mouse, or long-press on a phone. The board page shows a **login helper panel**
+> automatically while the interactive login is pending: it reads the sign-in URL
+> straight out of the terminal (a clickable link, no more manual selection) and
+> writes the code you paste back into the same terminal session for you.
+>
+> **How it works without a backend call:** `api` and `terminal` are separate
+> containers with no shared tmux socket, so the panel cannot ask a server "is
+> Claude logged in" by inspecting the pty. Two different channels are used
+> instead:
+> - *Status* (`GET /api/claude-status`, `app/api/misc.py`): the `terminal-home`
+>   volume is mounted **read-only** into `api` (only when
+>   `docker-compose.terminal.yml` is active) and the endpoint checks the same
+>   file `deploy/terminal/ili-claude.sh` checks — `.credentials.json` — plus
+>   the `ANTHROPIC_API_KEY`/`CLAUDE_CODE_OAUTH_TOKEN` env vars.
+> - *Sending the code* (`html/claude-login-panel.html`): the terminal is a
+>   same-origin `<iframe>` (`/projterm/`), so the panel talks to it directly
+>   through `window.PTTerm` (exported by `html/js/project-terminal-fit.js`) —
+>   the identical data channel the on-screen keyboard and input line already
+>   use to write into the pty. No API round-trip, so it keeps working
+>   regardless of how `api` and `terminal` are split across containers.
 
 ## Where your code lives
 

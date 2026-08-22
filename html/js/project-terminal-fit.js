@@ -65,6 +65,11 @@
     catch (e) { PTLOG('triggerDataEvent fehlgeschlagen:', e); return false; }
   }
 
+  // Öffentlich fürs Login-Panel (html/claude-login-panel.html): derselbe verifizierte
+  // Daten-Kanal wie die Eingabe-Zeile — kein zweiter, ungetesteter Weg (z.B. term.paste)
+  // für denselben Zweck.
+  window.PTTerm = { send: ptSendData, term: ptTerm };
+
   // Kurzer Hinweis-Banner: Tastendruck ging ins Leere, Verbindung wird wiederhergestellt.
   let ptNoConnT;
   function ptFlashNoConn() {
