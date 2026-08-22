@@ -13,8 +13,8 @@
         {
           "id": "decision-git-strategie",
           "title": "🟡 ENTSCHEIDUNG: Wie hältst du deine eigenen Änderungen?",
-          "desc": "Auch die Antwort „gar nicht\" ist eine gültige Wahl — dann bleibt dein ili einfach nah am Original und Updates sind konfliktfrei.\n\nOptionen:\n1. Gar nichts anpassen — nur `git pull`, immer konfliktfrei\n2. Eigener privater Fork für meine Anpassungen\n3. Fork + Änderungen als Pull Request zurückgeben",
-          "description": "Auch die Antwort „gar nicht\" ist eine gültige Wahl — dann bleibt dein ili einfach nah am Original und Updates sind konfliktfrei.\n\nOptionen:\n1. Gar nichts anpassen — nur `git pull`, immer konfliktfrei\n2. Eigener privater Fork für meine Anpassungen\n3. Fork + Änderungen als Pull Request zurückgeben",
+          "desc": "Auch die Antwort „gar nicht\" ist eine gültige Wahl — dann bleibt dein ili einfach nah am Original und Updates sind konfliktfrei.\n\nOptionen:\n1. Gar nichts anpassen — Updates per `docker compose pull` (Registry) bzw. `git pull` (Clone), immer konfliktfrei\n2. Eigener privater Fork für meine Anpassungen\n3. Fork + Änderungen als Pull Request zurückgeben",
+          "description": "Auch die Antwort „gar nicht\" ist eine gültige Wahl — dann bleibt dein ili einfach nah am Original und Updates sind konfliktfrei.\n\nOptionen:\n1. Gar nichts anpassen — Updates per `docker compose pull` (Registry) bzw. `git pull` (Clone), immer konfliktfrei\n2. Eigener privater Fork für meine Anpassungen\n3. Fork + Änderungen als Pull Request zurückgeben",
           "labels": [
             {
               "text": "Entscheidung",
