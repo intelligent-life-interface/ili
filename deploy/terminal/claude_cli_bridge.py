@@ -48,6 +48,16 @@ log = logging.getLogger("claude_cli_bridge")
 
 LISTEN_HOST = os.getenv("BRIDGE_HOST", "127.0.0.1")  # localhost nur (Sicherheit)
 LISTEN_PORT = int(os.getenv("BRIDGE_PORT", "8950"))
+# BRIDGE_KEEP_API_KEY=1 (ili release): let `claude -p` use ANTHROPIC_API_KEY when the
+# installation has no subscription login. The home stack strips it to force the Abo.
+KEEP_API_KEY = os.getenv("BRIDGE_KEEP_API_KEY", "0") == "1"
+
+
+def _claude_env() -> dict:
+    if KEEP_API_KEY:
+        return dict(os.environ)
+    return {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+
 CLAUDE_BIN  = os.getenv("CLAUDE_BIN", os.path.expanduser("~/.local/bin/claude"))
 TIMEOUT_S   = int(os.getenv("BRIDGE_TIMEOUT", "180"))
 BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "")  # Shared-Secret für LAN-Konsumenten
@@ -171,7 +181,7 @@ def _call_claude(system: str, messages: list, model: str) -> Tuple[str, dict]:
     if system:
         cmd += ["--system-prompt", system]
     log.info(f"[claude] model={model} prompt_chars={len(prompt)} sys_chars={len(system or '')}")
-    env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+    env = _claude_env()
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_S,
                        env=env)
     if r.returncode != 0:
@@ -217,7 +227,7 @@ def _stream_claude(system: str, messages: list, model: str, usage_sink: dict | N
     if system:
         cmd += ["--system-prompt", system]
     log.info(f"[stream] model={model} prompt_chars={len(prompt)} sys_chars={len(system or '')}")
-    env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+    env = _claude_env()
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          text=True, env=env)
     killer = threading.Timer(TIMEOUT_S, p.kill)   # Watchdog gegen Hänger
@@ -289,7 +299,7 @@ def _call_claude_vision(system: str, prompt: str, images: list, model: str) -> T
     if system:
         cmd += ["--system-prompt", system]
     log.info(f"[vision] model={model} bilder={len(images)} prompt_chars={len(prompt)}")
-    env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+    env = _claude_env()
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, text=True, env=env)
     out, err = p.communicate(input=json.dumps(msg) + "\n", timeout=TIMEOUT_S)
@@ -332,7 +342,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         Falsch: 401. Richtig: OK."""
         token = self.headers.get("X-Bridge-Token", "").strip()
         if not token:
-            log.warning(f"[auth] {self.client_address[0]} schickt keinen X-Bridge-Token (noch in Übergangsphase)")
+            if BRIDGE_TOKEN:
+                log.warning(f"[auth] {self.client_address[0]} schickt keinen X-Bridge-Token (noch in Übergangsphase)")
+            else:
+                log.debug(f"[auth] {self.client_address[0]} ohne X-Bridge-Token (kein BRIDGE_TOKEN konfiguriert)")
             return True  # Noch erlauben, aber gewarnt
         if not BRIDGE_TOKEN:
             log.error("[auth] BRIDGE_TOKEN nicht in Umgebung — ohne das Token kann Auth nicht geprüft werden")

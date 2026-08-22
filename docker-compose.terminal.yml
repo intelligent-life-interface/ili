@@ -24,13 +24,20 @@ services:
   # OAuth-Token — das Login-Panel (html/claude-login-panel.html) bleibt dann
   # korrekt bei logged_in:false statt einen alten/falschen Zustand zu zeigen.
   api:
+    # Credentials (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY) and tuning knobs come
+    # from .env via env_file — old podman-compose (1.0.3) does not interpolate ${VAR}.
+    env_file:
+      - .env
     environment:
-      CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
       # Pfad zum .credentials.json-Check in app/api/misc.py — muss zum Mount unten passen.
       CLAUDE_CONFIG_DIR: /claude-home/.claude
       # KI project preparation goes through the bridge inside the terminal container
       CLAUDE_BRIDGE_URL: http://terminal:8950
+      # Project folders (CLAUDE.md/TAGS.md from the KI preparation) must be the same
+      # directory the terminal sessions and the automat workers run in.
+      PROJEKTE_DIR: /projects
     volumes:
+      - ./projects:/projects:z
       # Nur lesen: api darf den Login-Zustand PRÜFEN, nie verändern. Das Senden des
       # Device-Codes läuft client-seitig über das Terminal-iframe, nicht über api.
       - terminal-home:/claude-home:ro
@@ -42,6 +49,10 @@ services:
     image: ghcr.io/toa1984/ili-dashboard-terminal:${ILI_VERSION:-latest}
     container_name: ili-terminal
     restart: unless-stopped
+    # Credentials (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY) and tuning knobs come
+    # from .env via env_file — old podman-compose (1.0.3) does not interpolate ${VAR}.
+    env_file:
+      - .env
     expose:
       - "7690"
       - "8950"
@@ -49,17 +60,16 @@ services:
       # Claude-Anmeldung — alles optional. Ist nichts gesetzt, fuehrt das Terminal
       # beim ersten Oeffnen durch den Login (Code aus dem Browser
       # zurueckkopieren). Details: docs/PROJECT-TERMINAL.md
-      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
-      CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
       PROJECTS_DIR: /projects
+      BRIDGE_KEEP_API_KEY: "1"
       BOARDS_DIR: /boards
     volumes:
       # /root haelt die Claude-Anmeldung (.claude/ + .claude.json) — dieses Volume
       # behalten, sonst ist nach jedem Neustart ein neuer Login faellig.
       - terminal-home:/root
       # Arbeitsordner: pro Board ein Unterordner (Konvention Projekt = Board).
-      # Eigenen Code-Ordner einhaengen: ILI_PROJECTS_DIR=/pfad/zu/code in .env
-      - ${ILI_PROJECTS_DIR:-./projects}:/projects:Z
+      # Eigenen Code-Ordner einhaengen: ./projects hier (in allen drei Services) ersetzen
+      - ./projects:/projects:z
       # Boards nur lesen — das Terminal prueft damit, ob ein Board existiert.
       - dashboard-boards:/boards:ro
 
@@ -71,27 +81,29 @@ services:
     image: ghcr.io/toa1984/ili-dashboard-terminal:${ILI_VERSION:-latest}
     container_name: ili-automat
     restart: unless-stopped
+    # Credentials (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY) and tuning knobs come
+    # from .env via env_file — old podman-compose (1.0.3) does not interpolate ${VAR}.
+    env_file:
+      - .env
     entrypoint: ["python3", "/opt/ili-automat/ticker.py"]
     depends_on:
       - api
       - terminal
     environment:
-      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
-      CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
       CLAUDE_CONFIG_DIR: /root/.claude
+      AUTOMAT_ALLOW_API_KEY: "1"
+      BRIDGE_URL: http://terminal:8950
       # Claude Code refuses --dangerously-skip-permissions as root unless sandboxed
       IS_SANDBOX: "1"
       DASHBOARD_URL: http://api:8798
       KANBAN_SOURCE: automat
-      AUTOMAT_INTERVAL: "${AUTOMAT_INTERVAL:-300}"
-      AUTOMAT_WORKER_MODEL: "${AUTOMAT_WORKER_MODEL:-claude-sonnet-5}"
       AUTOMAT_PROJECT_DIRS: /projects
       AUTOMAT_LOG_BOARD: ""
       ILI_DASHBOARD_DIR: /opt/ili-automat/state
       ILI_CONFIG_ENV: /dev/null
     volumes:
       - terminal-home:/root
-      - ${ILI_PROJECTS_DIR:-./projects}:/projects:Z
+      - ./projects:/projects:z
       - automat-state:/opt/ili-automat/state
 volumes:
   dashboard-boards:

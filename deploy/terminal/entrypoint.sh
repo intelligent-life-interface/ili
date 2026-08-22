@@ -74,8 +74,10 @@ fi
 BRIDGE_PORT="${BRIDGE_PORT:-8950}"
 if command -v python3 >/dev/null 2>&1 && [[ -f /usr/local/bin/claude_cli_bridge.py ]]; then
     log "starting Claude CLI bridge on ${BRIDGE_HOST:-0.0.0.0}:${BRIDGE_PORT}"
-    ( while true; do
-        python3 /usr/local/bin/claude_cli_bridge.py 2>&1 | sed -u 's/^/[claude-bridge] /' >&2
+    # set +e inside: the parent's `set -e`/pipefail would kill the loop on the first
+    # non-zero exit and no restart would ever happen.
+    ( set +e; while true; do
+        python3 /usr/local/bin/claude_cli_bridge.py 2>&1 | sed -u 's/^/[claude-bridge] /' >&2 || true
         log "WARN: Claude CLI bridge exited — restarting in 5s"
         sleep 5
       done ) &

@@ -41,6 +41,8 @@ _ABO_BLOCK_VARS = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
 def _abo_env() -> dict:
     """Kopie der Umgebung ohne API-Credentials — erzwingt Abo-Auth für `claude -p`."""
     env = dict(os.environ)
+    if os.getenv("AUTOMAT_ALLOW_API_KEY", "0") == "1":
+        return env  # ili release: API key is a valid credential there
     removed = [k for k in _ABO_BLOCK_VARS if env.pop(k, None) is not None]
     if removed:
         logger.debug("Worker-Env: %s entfernt (Abo statt API erzwingen)", ", ".join(removed))

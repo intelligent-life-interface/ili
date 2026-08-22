@@ -71,6 +71,7 @@ VOLUME ["/root", "/projects"]
 EXPOSE 7690 8950
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -fs "http://localhost:${TERMINAL_PORT}${TERMINAL_BASE_PATH}/token" >/dev/null || exit 1
+    CMD curl -fs "http://localhost:${TERMINAL_PORT}${TERMINAL_BASE_PATH}/token" >/dev/null \
+     && curl -fs "http://localhost:${BRIDGE_PORT}/health" >/dev/null || exit 1
 
 ENTRYPOINT ["/usr/local/bin/ili-terminal"]
