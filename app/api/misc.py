@@ -173,6 +173,20 @@ def get_claude_login_url(board: str = "home"):
     # own Claude and its own PKCE state, a shared file mixed them up.
     slug = _BOARD_SLUG_RE.sub("", board or "") or "home"
     path = os.path.join(_CLAUDE_CREDS_DIR, f"ili-login-url.{slug}")
+    if not os.path.isfile(path):
+        # Fallback: no file for this board, but exactly ONE session file exists
+        # (e.g. the terminal lost its board binding and runs as "home") — that
+        # is unambiguous, the mismatch only exists with two or more sessions.
+        try:
+            others = sorted(f for f in os.listdir(_CLAUDE_CREDS_DIR) if f.startswith("ili-login-url."))
+        except OSError:
+            others = []
+        if len(others) == 1:
+            log.info("claude-login-url: keine Datei für Board %r, nutze einzige Session-Datei %s", slug, others[0])
+            path = os.path.join(_CLAUDE_CREDS_DIR, others[0])
+        else:
+            log.debug("claude-login-url: keine Datei für Board %r (%d Session-Dateien)", slug, len(others))
+            return {"url": None}
     try:
         with open(path, encoding="utf-8") as fh:
             url = fh.read().strip()
