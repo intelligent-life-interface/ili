@@ -25,6 +25,9 @@ COPY html/ html/
 # Starter boards: the entrypoint copies them into the boards volume on first start
 # only, so an update never touches an existing installation.
 COPY demo/ demo/
+# Compose files + .env template, handed out by `... init` / `... compose` so an
+# installation from the registry needs no clone (see docker-entrypoint.sh).
+COPY docker-compose.yml docker-compose.terminal.yml .env.example dist/
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

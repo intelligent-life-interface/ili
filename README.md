@@ -15,8 +15,9 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 > als Fork und Pull Request, nicht als Branch in diesem Repo.
 
 > **Du willst ili nur installieren?** → **[QUICKSTART.md](QUICKSTART.md)** —
-> entweder fertige Images von `ghcr.io/toa1984/ili-dashboard{,-web}` ziehen
-> (`docker compose pull && docker compose up -d`, kein Clone nötig) oder
+> entweder fertige Images von `ghcr.io/toa1984/ili-dashboard{,-web,-terminal}` ziehen
+> (`docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili-dashboard init && docker compose up -d`,
+> kein Clone nötig — das Image liefert seine Compose-Dateien selbst) oder
 > `git clone` + `docker compose up -d --build`. Dieses README beschreibt daneben
 > den Aufbau und die Installation aus dem Quelltext. Releases: [docs/RELEASING.md](docs/RELEASING.md).
 

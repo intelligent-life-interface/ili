@@ -50,26 +50,35 @@ build takes a minute; subsequent starts are instant.
 ### Alternative: install from the registry (no clone, no build)
 
 Prebuilt images live on GitHub Container Registry:
-`ghcr.io/toa1984/ili-dashboard` (api) and `ghcr.io/toa1984/ili-dashboard-web` (web),
-for `linux/amd64` and `linux/arm64`. You only need `docker-compose.yml` and `.env`:
+`ghcr.io/toa1984/ili-dashboard` (api), `ghcr.io/toa1984/ili-dashboard-web` (web) and
+`ghcr.io/toa1984/ili-dashboard-terminal` (optional terminal), for `linux/amd64` and
+`linux/arm64`. The api image carries its own compose files — let it write them:
 
 ```bash
 mkdir ili && cd ili
-curl -fsSLO https://raw.githubusercontent.com/Toa1984/ili-dashboard/main/docker-compose.yml
-curl -fsSL  https://raw.githubusercontent.com/Toa1984/ili-dashboard/main/.env.example -o .env
-docker compose pull
+docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili-dashboard init
 docker compose up -d          # note: no --build
 ```
 
-Pin a version with `ILI_VERSION=0.1.0` in `.env` (default `latest`). Updates:
-`docker compose pull && docker compose up -d`.
+Podman: same thing, `:Z` on the mount and `podman-compose` for the stack:
+
+```bash
+podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili-dashboard init
+podman-compose up -d
+```
+
+`init` writes `docker-compose.yml`, `docker-compose.terminal.yml` and `.env` (from
+`.env.example`; an existing `.env` is never touched). Other subcommands print a single
+file instead: `... compose`, `... compose-terminal`, `... env`, `... help`.
+
+Pin a version with `ILI_VERSION=0.1.1` in `.env` (default `latest`). Updates:
+`docker compose pull && docker compose up -d` — rerun `init` after a release to pick
+up compose changes (your `.env` stays).
 
 > **While the repository is still private** this path needs a login first:
-> `docker login ghcr.io` with a GitHub token that has `read:packages` — and the
-> two `curl` lines above return 404 without a token, so take `docker-compose.yml`
-> and `.env.example` from a clone instead. Once the repository and its packages
-> are public, no login is required. Until then the clone-and-build path above is
-> the documented default.
+> `docker login ghcr.io` (or `podman login ghcr.io`) with a GitHub token that has
+> `read:packages`. Once the repository and its packages are public, no login is
+> required. Until then the clone-and-build path above is the documented default.
 
 ### 3. Access the Dashboard
 

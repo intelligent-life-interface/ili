@@ -1,21 +1,93 @@
 #!/bin/bash
-# docker-entrypoint.sh — seeds the starter boards, then hands over to the CMD.
+# docker-entrypoint.sh — two jobs:
 #
-# A fresh installation would otherwise show an empty dashboard. The boards live in
-# a named volume, so the copy happens ONLY while that volume is still empty:
-# an update (`git pull` + rebuild) never writes into an existing installation.
+#   1. Subcommands that hand out the compose files baked into the image, so an
+#      installation needs neither a clone nor a download (variant A, 2026-08-22):
+#        init              write docker-compose.yml, docker-compose.terminal.yml and
+#                          .env into /out (mount your folder there); an existing .env
+#                          is never overwritten
+#        compose           print docker-compose.yml to stdout
+#        compose-terminal  print docker-compose.terminal.yml to stdout
+#        env               print .env.example to stdout
+#        help              this list
+#      Works the same with Docker and Podman:
+#        docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili-dashboard init
+#        podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili-dashboard init
 #
-# What gets copied: demo/boards/*.json — the two starter boards plus the
-# manifest.json that registers them. Without the manifest the API would not list
-# them, so it has to be part of the seed.
+#   2. Anything else (the CMD = uvicorn): seed the starter boards, then exec.
+#      A fresh installation would otherwise show an empty dashboard. The boards
+#      live in a named volume, so the copy happens ONLY while that volume is still
+#      empty: an update never writes into an existing installation.
+#      What gets copied: demo/boards/*.json — the starter boards plus manifest.json.
 #
+# Logs go to stderr so `compose > docker-compose.yml` stays clean.
 # Debug: docker compose logs api | grep entrypoint
 set -e
 
 BOARDS_DIR="${BOARDS_DIR:-/app/boards}"
 SEED_DIR="${SEED_DIR:-/app/demo/boards}"
 
-log() { echo "[entrypoint] $*"; }
+log() { echo "[entrypoint] $*" >&2; }
+
+DIST_DIR="${DIST_DIR:-/app/dist}"
+OUT_DIR="${OUT_DIR:-/out}"
+
+usage() {
+    cat >&2 <<'USAGE'
+ili image — usage:
+  init              write docker-compose.yml, docker-compose.terminal.yml, .env into /out
+                    (existing .env is kept). Mount your folder:
+                      docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili-dashboard init
+                      podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili-dashboard init
+                    then:  docker compose up -d   (or: podman-compose up -d)
+  compose           print docker-compose.yml
+  compose-terminal  print docker-compose.terminal.yml
+  env               print .env.example
+  help              this text
+USAGE
+}
+
+emit() {
+    # $1 = file name inside DIST_DIR — printed to stdout, nothing else.
+    if [ ! -f "$DIST_DIR/$1" ]; then
+        log "ERROR: $DIST_DIR/$1 missing in this image"
+        exit 1
+    fi
+    cat "$DIST_DIR/$1"
+}
+
+do_init() {
+    if [ ! -d "$OUT_DIR" ]; then
+        log "ERROR: $OUT_DIR is not mounted. Run with:  -v \"\$PWD\":/out   (Podman: -v \"\$PWD\":/out:Z)"
+        exit 1
+    fi
+    if [ ! -w "$OUT_DIR" ]; then
+        log "ERROR: $OUT_DIR is not writable (SELinux? add :Z to the -v option)"
+        exit 1
+    fi
+    for f in docker-compose.yml docker-compose.terminal.yml; do
+        if [ -f "$OUT_DIR/$f" ]; then
+            log "$f exists — replacing with the version from this image"
+        fi
+        cp "$DIST_DIR/$f" "$OUT_DIR/$f"
+        log "wrote $f"
+    done
+    if [ -f "$OUT_DIR/.env" ]; then
+        log ".env exists — keeping it (compare with: ... env > .env.example)"
+    else
+        cp "$DIST_DIR/.env.example" "$OUT_DIR/.env"
+        log "wrote .env (from .env.example — edit ILI_PORT, passwords etc. as needed)"
+    fi
+    log "done. Next:  docker compose up -d   (or: podman-compose up -d)  →  http://localhost:8080"
+}
+
+case "${1:-}" in
+    init)             do_init; exit 0 ;;
+    compose)          emit docker-compose.yml; exit 0 ;;
+    compose-terminal) emit docker-compose.terminal.yml; exit 0 ;;
+    env)              emit .env.example; exit 0 ;;
+    help|-h|--help)   usage; exit 0 ;;
+esac
 
 mkdir -p "$BOARDS_DIR"
 
