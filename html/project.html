@@ -480,7 +480,7 @@
   // Lade das Claude-Login-Panel HTML per Fetch
   (async function() {
     try {
-      const resp = await fetch('/claude-login-panel.html?v=20260822-e2e');
+      const resp = await fetch('/claude-login-panel.html?v=20260822-perboard');
       if (resp.ok) {
         const box = document.getElementById('claude-login-container');
         box.innerHTML = await resp.text();
@@ -499,7 +499,7 @@
     }
   })();
 </script>
-<script src="/js/project-claude-login.js?v=20260822-e2e" defer></script>
+<script src="/js/project-claude-login.js?v=20260822-perboard" defer></script>
 
 </body>
 </html>

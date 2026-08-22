@@ -15,7 +15,12 @@
 set -uo pipefail
 
 CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/root/.claude}"
-OUT="${CLAUDE_CONFIG_DIR}/ili-login-url"
+# One file PER BOARD: every board terminal runs its own Claude with its own PKCE
+# state. A shared file mixed the URLs of two sessions (panel showed session A's
+# URL, the code then went to session B → "Invalid code" / HTTP 400, found
+# 22.08.2026). Same allow-list as ili-term.sh; no board → "home".
+BOARD="$(printf '%s' "${KANBAN_BOARD:-home}" | tr -cd 'A-Za-z0-9._-')"
+OUT="${CLAUDE_CONFIG_DIR}/ili-login-url.${BOARD:-home}"
 CREDS="${CLAUDE_CONFIG_DIR}/.credentials.json"
 # code_challenge and state are base64url of 32 bytes = exactly 43 characters —
 # that makes the end of the URL unambiguous.

@@ -5,6 +5,7 @@ Routen: GET /load-diagram, GET /list-diagrams, POST /save-diagram
 """
 import logging
 import os
+import re
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -156,8 +157,11 @@ def get_claude_status():
     return {"logged_in": False, "source": "none"}
 
 
+_BOARD_SLUG_RE = re.compile(r"[^A-Za-z0-9._-]")
+
+
 @router.get("/api/claude-login-url")
-def get_claude_login_url():
+def get_claude_login_url(board: str = "home"):
     """Unbroken OAuth sign-in URL for the login panel.
 
     Written by deploy/terminal/ili-login-url-watch.sh into the terminal home
@@ -165,7 +169,10 @@ def get_claude_login_url():
     after a tmux re-attach the screen can show a damaged copy of the URL.
     Returns {url: str|null}.
     """
-    path = os.path.join(_CLAUDE_CREDS_DIR, "ili-login-url")
+    # One file per board (ili-login-url-watch.sh) — every board terminal has its
+    # own Claude and its own PKCE state, a shared file mixed them up.
+    slug = _BOARD_SLUG_RE.sub("", board or "") or "home"
+    path = os.path.join(_CLAUDE_CREDS_DIR, f"ili-login-url.{slug}")
     try:
         with open(path, encoding="utf-8") as fh:
             url = fh.read().strip()

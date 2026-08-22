@@ -7,6 +7,17 @@ Welcome! **ili** is a lightweight, self-hosted Kanban dashboard for organizing p
 - **Docker Compose** or **podman-compose** (`podman compose` also works on recent Podman)
 - A couple of minutes
 
+**Very old `podman-compose` (seen: a Debian package reporting `0.0.1`) does not
+substitute `${VAR}` placeholders in `docker-compose.yml` at all — it passes the
+literal text through.** Terminal login (`TERMINAL_USER`/`TERMINAL_PASSWORD`) is
+unaffected: it is read from `.env` directly via `env_file`, not `${}` syntax. But
+anything that still relies on substitution — most notably pinning a registry
+image with `ILI_VERSION` in `.env` (see below) — breaks: the tool tries to pull
+an image whose tag is the literal text `${ILI_VERSION:-latest}` and fails. If
+`docker compose pull` or `up` reports an image tag that literally contains `${`,
+upgrade to `podman-compose >= 1.0` / `podman compose`, or edit the `image:`
+lines in `docker-compose.yml` by hand.
+
 **Podman users, one extra package:** the frontend reaches the backend by its
 service name, which needs container DNS. Docker has that built in; Podman needs
 `netavark` + `aardvark-dns`. On Debian 12 they are *not* pulled in by

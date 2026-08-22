@@ -97,8 +97,11 @@
       console.log('[ClaudeLoginHelper] Claude-Status:', isLoggedIn ? 'angemeldet' : 'nicht angemeldet', '(' + data.source + ')');
 
       if (!isLoggedIn && window.ClaudeLoginPanel) {
-        showLoginPrompt();
+        // Nicht sofort öffnen: das Panel beobachtet die Sign-in-URL und zeigt
+        // sich erst, wenn Claude eine ausgegeben hat (nach Theme-/Abo-Dialog).
+        window.ClaudeLoginPanel.watch?.();
       } else if (isLoggedIn && window.ClaudeLoginPanel) {
+        window.ClaudeLoginPanel.unwatch?.();
         window.ClaudeLoginPanel.hide?.();
       }
     } catch (error) {

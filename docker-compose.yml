@@ -76,12 +76,15 @@ services:
       # 8080 statt 80: Ports unter 1024 darf ein rootless-Podman/Docker-Nutzer
       # nicht binden — mit 80 scheitert der Start ohne erkennbaren Grund.
       - "${ILI_PORT:-8080}:80"
-    environment:
-      # Projekt-Terminal (/projterm/): Zugangsdaten fuer die Basic-Auth der Route.
-      # Ohne TERMINAL_PASSWORD wird beim Start eines generiert und im Log
-      # ausgegeben (docker compose logs web | grep ili-setup).
-      TERMINAL_USER: "${TERMINAL_USER:-ili}"
-      TERMINAL_PASSWORD: "${TERMINAL_PASSWORD:-}"
+    # Projekt-Terminal (/projterm/): Zugangsdaten fuer die Basic-Auth der Route
+    # kommen ueber env_file statt ${}-Variablen-Substitution. Manche aeltere
+    # podman-compose-Versionen interpolieren ${VAR}-Syntax gar nicht und reichen
+    # sie an "podman run -e" literal durch (Board-Befund 21.08.2026) — env_file
+    # liest .env stattdessen direkt ein und ist von diesem Bug nicht betroffen.
+    # Ohne TERMINAL_PASSWORD in .env wird beim Start eines generiert und im Log
+    # ausgegeben (docker compose logs web | grep ili-setup).
+    env_file:
+      - .env
 
 volumes:
   dashboard-boards:

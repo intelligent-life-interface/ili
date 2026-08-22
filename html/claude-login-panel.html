@@ -278,13 +278,37 @@
   // statt eine erfundene URL anzuzeigen.
   let currentUrl = '';
   let urlPollTimer = null;
+  // URL, für die der Code schon gesendet (oder das Panel weggeklickt) wurde:
+  // dafür nicht erneut aufgehen. Erst eine NEUE URL (Claude-Retry) zeigt das
+  // Panel wieder. Vorher fragte es nach jedem 5-s-Status-Check erneut nach dem
+  // Code (Befund 22.08.2026).
+  let settledUrl = '';
 
   // Export public functions für externe Nutzung
   window.ClaudeLoginPanel = {
     show: showPanel,
     hide: hidePanel,
+    // Vom Helper: nicht angemeldet → URL beobachten, Panel öffnet sich ERST
+    // wenn eine Sign-in-URL da ist (nicht schon beim Theme-/Abo-Dialog, wo es
+    // das Terminal nur verdeckte — Befund 22.08.2026).
+    watch: startWatching,
+    unwatch: stopWatching,
     isVisible: () => panel && panel.classList.contains('show')
   };
+
+  function isVisible() { return panel && panel.classList.contains('show'); }
+
+  function startWatching() {
+    if (urlPollTimer) return;
+    pollUrl();
+    urlPollTimer = setInterval(pollUrl, 1500);
+    console.log('[ClaudeLogin] beobachte Sign-in-URL');
+  }
+
+  function stopWatching() {
+    clearInterval(urlPollTimer);
+    urlPollTimer = null;
+  }
 
   // URL-Zeichen laut RFC 3986 (unreserved + reserved + Prozent-Kodierung). Eine
   // Fortsetzungszeile darf NUR daraus bestehen, sonst wird sie nicht angehängt.
@@ -341,7 +365,9 @@
   // Browser-Check 22.08.2026) — die Datei nicht.
   async function fetchSignInUrl() {
     try {
-      const r = await fetch('/api/claude-login-url', { cache: 'no-store' });
+      // Pro Board eine Datei — die URL muss zum Claude DIESES Terminals gehören.
+      const board = new URLSearchParams(location.search).get('id') || 'home';
+      const r = await fetch('/api/claude-login-url?board=' + encodeURIComponent(board), { cache: 'no-store' });
       if (!r.ok) return '';
       const d = await r.json();
       return (d && typeof d.url === 'string') ? d.url : '';
@@ -366,6 +392,7 @@
     } else if (!found && !currentUrl) {
       urlField.textContent = 'Warte auf Terminal-Ausgabe… (im Terminal ggf. „claude" eintippen)';
     }
+    if (found && found !== settledUrl && !isVisible()) showPanel();
   }
 
   function showPanel() {
@@ -374,11 +401,8 @@
     overlay.classList.add('show');
     urlInput.focus();
     statusMsg.innerHTML = '';
-    currentUrl = '';
-    urlField.textContent = 'Warte auf Terminal-Ausgabe…';
-    pollUrl();
-    clearInterval(urlPollTimer);
-    urlPollTimer = setInterval(pollUrl, 1500);
+    if (currentUrl) urlField.textContent = currentUrl;
+    startWatching();
     console.log('[ClaudeLogin] Panel geöffnet');
   }
 
@@ -388,8 +412,8 @@
     overlay.classList.remove('show');
     urlInput.value = '';
     statusMsg.innerHTML = '';
-    clearInterval(urlPollTimer);
-    urlPollTimer = null;
+    // Beobachtung läuft weiter: eine NEUE URL (Retry) öffnet das Panel wieder.
+    settledUrl = currentUrl;
     console.log('[ClaudeLogin] Panel geschlossen');
   }
 
@@ -426,13 +450,21 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'Wird gesendet…';
 
-    const sent = window.PTTerm && typeof window.PTTerm.send === 'function'
-      ? window.PTTerm.send(code + '\r')
-      : false;
+    let sent = false;
+    try {
+      sent = !!(window.PTTerm && typeof window.PTTerm.send === 'function' && window.PTTerm.send(code + '\r'));
+    } catch (e) {
+      // Ohne try/catch blieb der Knopf auf „Wird gesendet…" hängen (Befund 22.08.2026).
+      console.warn('[ClaudeLogin] PTTerm.send fehlgeschlagen:', e);
+      sent = false;
+    }
 
     if (sent) {
       setStatus('✅ Code ins Terminal gesendet.', false);
       console.log('[ClaudeLogin] Code gesendet (', code.length, 'Zeichen)');
+      settledUrl = currentUrl;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Senden';
       setTimeout(hidePanel, 1500);
     } else {
       setStatus('❌ Terminal nicht bereit. Code stattdessen von Hand ins Terminal einfügen und Enter drücken.', true);
