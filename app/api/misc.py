@@ -121,6 +121,22 @@ def save_diagram(body: dict | None = None):
 _CLAUDE_CREDS_DIR = os.environ.get("CLAUDE_CONFIG_DIR", "/claude-home/.claude")
 
 
+def _env_secret(name: str) -> str:
+    """Read a secret from the environment, ignoring unexpanded compose placeholders.
+
+    podman-compose 1.0.3 (Debian 12) does not interpolate `${VAR:-}` in the
+    `environment:` block — the container literally receives the string
+    "${ANTHROPIC_API_KEY:-}". Treating that as a real key made /api/claude-status
+    report logged_in=true on every Podman install, so the login panel never showed
+    (found 22.08.2026 in the release sandbox).
+    """
+    value = (os.environ.get(name) or "").strip()
+    if value.startswith("${"):
+        log.debug("claude-status: %s ist ein nicht aufgelöster Compose-Platzhalter (%r) — ignoriert", name, value)
+        return ""
+    return value
+
+
 @router.get("/api/claude-status")
 def get_claude_status():
     """Claude-Anmeldungsstatus fürs Login-Panel prüfen.
@@ -129,9 +145,9 @@ def get_claude_status():
     Env-Var ODER gespeicherte Anmeldung im terminal-home-Volume.
     Returns {logged_in: bool, source: str}.
     """
-    if os.environ.get("ANTHROPIC_API_KEY"):
+    if _env_secret("ANTHROPIC_API_KEY"):
         return {"logged_in": True, "source": "api-key"}
-    if os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"):
+    if _env_secret("CLAUDE_CODE_OAUTH_TOKEN"):
         return {"logged_in": True, "source": "oauth-token"}
     creds_file = os.path.join(_CLAUDE_CREDS_DIR, ".credentials.json")
     if os.path.isfile(creds_file):

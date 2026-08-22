@@ -21,6 +21,16 @@ set -uo pipefail
 CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/root/.claude}"
 BOARD="${KANBAN_BOARD:-}"
 
+# podman-compose 1.0.3 (Debian 12) does not interpolate `${VAR:-}` in the compose
+# `environment:` block — the shell then sees the literal string "${ANTHROPIC_API_KEY:-}"
+# and Claude Code would try to use it as a key. Drop such placeholders entirely.
+for var in ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN; do
+    if [[ "${!var:-}" == \$\{* ]]; then
+        echo "[ili-claude] ${var} is an unexpanded compose placeholder — ignoring it" >&2
+        unset "$var"
+    fi
+done
+
 has_credentials() {
     [[ -n "${ANTHROPIC_API_KEY:-}" ]] && return 0
     [[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]] && return 0
