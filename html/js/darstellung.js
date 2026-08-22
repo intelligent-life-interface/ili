@@ -56,8 +56,18 @@
             fontscale: storedScale(),
             cols:      storedCols(),
             widgets:   widgets,
+            github_auto_report: storedGhAuto(),
         };
     }
+
+    /* ── GitHub-Rückkanal (Opt-in, Server-Flag gespiegelt in localStorage) ── */
+    const K_GH = 'ds-gh-auto';
+    function storedGhAuto() { try { return localStorage.getItem(K_GH) === '1'; } catch (e) { return false; } }
+    function setGhAuto(on) {
+        try { localStorage.setItem(K_GH, on ? '1' : '0'); } catch (e) {}
+        if (window.__githubReportSetEnabled) window.__githubReportSetEnabled(on);
+    }
+    const tr = (k, fb) => (window.I18N && window.I18N[k]) || fb;
 
     // Debounced PUT — nach jeder Einstellungsänderung aufrufen.
     function _scheduleSave() {
@@ -114,6 +124,11 @@
                     else localStorage.setItem(K_COLS, s.cols);
                 } catch (e) {}
                 applyCols();
+            }
+
+            // GitHub-Rückkanal Opt-in
+            if (typeof s.github_auto_report === 'boolean' && s.github_auto_report !== storedGhAuto()) {
+                setGhAuto(s.github_auto_report);
             }
 
             // Widget-Sichtbarkeit
@@ -318,6 +333,81 @@
     /* ── Panel ──────────────────────────────────────────────────────────── */
     let panel = null;
 
+    function wireGithub(p) {
+        const $ = id => p.querySelector('#' + id);
+        $('ds-gh-lbl').textContent = tr('gh.section', 'GitHub-Rückkanal');
+        $('ds-gh-login').textContent = tr('gh.login', 'Mit GitHub anmelden');
+        $('ds-gh-logout').textContent = tr('gh.logout', 'Abmelden');
+        $('ds-gh-auto-lbl').textContent = tr('gh.auto', 'Fehler automatisch anonymisiert melden');
+        $('ds-gh-auto-note').textContent = tr('gh.auto.note', '');
+        $('ds-gh-preview').textContent = tr('gh.preview', 'Vorschau');
+        $('ds-gh-reports').textContent = tr('gh.reports', 'Letzte Meldungen');
+        const cb = $('ds-gh-auto');
+        cb.checked = storedGhAuto();
+        let pollTimer = null;
+
+        function refreshStatus() {
+            fetch('/api/github/auth/status').then(r => r.json()).then(st => {
+                log('github status', st);
+                const on = !!st.logged_in;
+                $('ds-gh-status').textContent = !st.client_id_set ? tr('gh.status.noclient', 'Nicht konfiguriert')
+                    : on ? tr('gh.status.on', 'Angemeldet als') + ' ' + (st.login || '?') : tr('gh.status.off', 'Nicht angemeldet');
+                $('ds-gh-login').style.display = on ? 'none' : '';
+                $('ds-gh-login').disabled = !st.client_id_set;
+                $('ds-gh-logout').style.display = on ? '' : 'none';
+                cb.disabled = !on;                      // Häkchen nur mit Login — sonst verspricht es Unmögliches
+                if (!on && cb.checked) { cb.checked = false; setGhAuto(false); _scheduleSave(); }
+            }).catch(e => { $('ds-gh-status').textContent = 'API: ' + e.message; });
+        }
+
+        $('ds-gh-login').onclick = function() {
+            $('ds-gh-login').disabled = true;
+            fetch('/api/github/auth/start', { method: 'POST' }).then(r => r.json()).then(d => {
+                if (!d.device_code) throw new Error(d.error || d.detail || 'start failed');
+                const box = $('ds-gh-code');
+                box.style.display = '';
+                box.innerHTML = tr('gh.code.hint', 'Code eingeben:') + ' <a href="' + escAttr(d.verification_uri) + '" target="_blank" rel="noopener"><b style="font-size:15px;letter-spacing:2px">' + escAttr(d.user_code) + '</b></a><br>' + tr('gh.code.waiting', 'Warte …');
+                log('device flow: code ' + d.user_code + ', poll every ' + d.interval + 's');
+                let interval = (d.interval || 5) * 1000;
+                const tick = () => {
+                    fetch('/api/github/auth/poll', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ device_code: d.device_code }) })
+                        .then(r => r.json()).then(s => {
+                            log('poll →', s.status);
+                            if (s.status === 'ok') { box.style.display = 'none'; refreshStatus(); return; }
+                            if (s.status === 'slow_down') interval += 5000;
+                            if (s.status === 'expired') { box.textContent = tr('gh.code.expired', 'Abgelaufen'); $('ds-gh-login').disabled = false; return; }
+                            if (s.status === 'denied') { box.textContent = tr('gh.code.denied', 'Abgelehnt'); $('ds-gh-login').disabled = false; return; }
+                            if (s.status === 'error') { box.textContent = 'Fehler: ' + (s.error || '?'); $('ds-gh-login').disabled = false; return; }
+                            pollTimer = setTimeout(tick, interval);
+                        }).catch(e => { box.textContent = 'Fehler: ' + e.message; $('ds-gh-login').disabled = false; });
+                };
+                pollTimer = setTimeout(tick, interval);
+            }).catch(e => { $('ds-gh-status').textContent = 'Login: ' + e.message; $('ds-gh-login').disabled = false; });
+        };
+        $('ds-gh-logout').onclick = function() {
+            if (pollTimer) clearTimeout(pollTimer);
+            fetch('/api/github/auth', { method: 'DELETE' }).then(refreshStatus);
+        };
+        cb.onchange = function() { setGhAuto(cb.checked); _scheduleSave(); log('github_auto_report →', cb.checked); };
+        $('ds-gh-preview').onclick = function() {
+            const out = $('ds-gh-out');
+            fetch('/api/github/report/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kind: 'frontend', text: 'TypeError: example at ' + location.href, component: location.pathname }) })
+                .then(r => r.json()).then(pv => { out.style.display = ''; out.textContent = pv.title + '\n\n' + pv.body; });
+        };
+        $('ds-gh-reports').onclick = function() {
+            const out = $('ds-gh-out');
+            fetch('/api/github/reports').then(r => r.json()).then(d => {
+                out.style.display = '';
+                out.textContent = (d.reports && d.reports.length) ? d.reports.map(r =>
+                    new Date(r.ts * 1000).toLocaleString() + ' · ' + r.kind + ' · ' + r.status + (r.issue ? ' · #' + r.issue : '') + '\n  ' + r.title).join('\n')
+                    : tr('gh.reports.none', 'Noch nichts gesendet.');
+            });
+        };
+        refreshStatus();
+    }
+    function escAttr(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
     function buildPanel() {
         const p = document.createElement('div');
         p.className = 'ds-set-panel';
@@ -340,6 +430,22 @@
         <span class="ds-set-lbl">Spalten</span>
         <div class="ds-set-row" id="ds-set-cols"></div>
         <div class="ds-set-note" id="ds-set-lnote"></div>
+      </div>
+      <div class="ds-set-grp" id="ds-gh-grp" style="border-top:1px solid var(--t-line2,#4a5568);padding-top:10px">
+        <span class="ds-set-lbl" id="ds-gh-lbl">GitHub-Rückkanal</span>
+        <div class="ds-set-note" id="ds-gh-status"></div>
+        <div class="ds-set-row" style="gap:5px;margin-top:4px">
+          <button class="ds-set-chip" id="ds-gh-login"></button>
+          <button class="ds-set-chip" id="ds-gh-logout" style="display:none"></button>
+        </div>
+        <div class="ds-set-note" id="ds-gh-code" style="display:none"></div>
+        <label class="ds-set-wrow" style="margin-top:6px"><input type="checkbox" id="ds-gh-auto"><span id="ds-gh-auto-lbl"></span></label>
+        <div class="ds-set-note" id="ds-gh-auto-note"></div>
+        <div class="ds-set-row" style="gap:5px;margin-top:4px">
+          <button class="ds-set-chip" id="ds-gh-preview"></button>
+          <button class="ds-set-chip" id="ds-gh-reports"></button>
+        </div>
+        <pre id="ds-gh-out" style="display:none;white-space:pre-wrap;font-size:11px;max-height:160px;overflow:auto;margin-top:4px"></pre>
       </div>
       <button class="ds-set-reset" id="ds-set-reset">↺ Auf Standard zurücksetzen</button>
       <div class="ds-set-grp" style="margin-top:10px;border-top:1px solid var(--t-line2,#4a5568);padding-top:10px">
@@ -447,6 +553,8 @@
             const resetBtn = p.querySelector('#ds-set-reset');
             p.insertBefore(wGrp, resetBtn);
         }
+
+        wireGithub(p);
 
         p.querySelector('#ds-set-reset').onclick = resetAll;
 

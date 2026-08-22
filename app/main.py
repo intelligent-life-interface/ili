@@ -86,7 +86,33 @@ async def unhandled_error_format(request: Request, exc: Exception):
     "Internal Server Error"-Plaintext — hält den Legacy-Kontrakt auch im Fehlerfall ein.
     """
     log.error("Unbehandelte Exception auf %s %s", request.method, request.url.path, exc_info=True)
+    _maybe_report_to_github(request, exc)
     return JSONResponse(status_code=500, content={"error": "interner Fehler"})
+
+
+def _maybe_report_to_github(request: Request, exc: Exception) -> None:
+    """Opt-in auto report (user_settings.github_auto_report + GitHub login).
+
+    Runs in a thread so the 500 response is never delayed; only the route path
+    and the exception reach the report — github_issue_service sanitizes the rest.
+    """
+    try:
+        from app.services import user_settings_service
+        if not user_settings_service.load().get("github_auto_report"):
+            return
+        from app.services import github_auth_service
+        if not github_auth_service.status().get("logged_in"):
+            log.debug("github_auto_report on, but not logged in — skip")
+            return
+        import asyncio
+        from app.services import github_issue_service
+        component = f"{request.method} {request.url.path}"
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, lambda: github_issue_service.report(
+            "backend", "", component=component, exc=exc))
+        log.debug("GitHub auto report scheduled for %s", component)
+    except Exception as rep_exc:  # never let reporting break the error response
+        log.warning("GitHub auto report scheduling failed: %s", rep_exc)
 
 
 @app.get("/health")
@@ -123,6 +149,7 @@ def _register_routers() -> None:
     from app.api import wa_whitelist as wa_whitelist_api
     from app.api import token_guard as token_guard_api
     from app.api import usage as usage_api
+    from app.api import github_issues as github_issues_api
 
     app.include_router(config_api.router)
     app.include_router(logs_api.router)
@@ -155,6 +182,7 @@ def _register_routers() -> None:
     app.include_router(manager_api.router)
     app.include_router(token_guard_api.router)
     app.include_router(usage_api.router)
+    app.include_router(github_issues_api.router)
     log.info("Router registriert: config (W1), boards+kanban (W2/3), ki (W4), chat+photos (W5), misc (W6), logs/streaming (W7), dashboard (Phase 6), isehauer (F1), attachments, web-adressen, brainstorm, recent, github-status, user-settings, manager, token-guard")
 
 

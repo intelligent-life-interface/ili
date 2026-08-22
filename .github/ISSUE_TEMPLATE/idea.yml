@@ -1,0 +1,16 @@
+name: Idea / task from an ili instance
+description: A card exported from ili — something worth building together
+title: "[idea] "
+labels: ["from-instance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Exported from an ili board. The text below was sanitized by ili (paths, addresses,
+        e-mails, tokens removed) — please check it once more before submitting.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true

@@ -435,6 +435,12 @@
         ds.src = '/js/darstellung.js?v=20260716c';
         document.head.appendChild(ds);
     }
+    // GitHub-Rückkanal: Frontend-Fehler melden (nur bei Opt-in, prüft selbst) — ebenfalls überall
+    if (!document.querySelector('script[src^="/js/github-report.js"]')) {
+        const gr = document.createElement('script');
+        gr.src = '/js/github-report.js?v=20260822';
+        document.head.appendChild(gr);
+    }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', buildNav);

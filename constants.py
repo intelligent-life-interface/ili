@@ -206,3 +206,15 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
 )
 log = logging.getLogger("trigger-server")
+
+# --- GitHub feedback channel (bug reports / card export from ili instances) ---
+# Public identifiers only — the instance never holds a shared secret. Users sign
+# in with their own GitHub account via the GitHub App device flow; the resulting
+# user token lives in GITHUB_DATA_DIR (0600), never in user_settings.json.
+GITHUB_ISSUES_REPO       = os.environ.get("ILI_GITHUB_ISSUES_REPO", "Toa1984/ili-dashboard")
+GITHUB_APP_CLIENT_ID     = os.environ.get("ILI_GITHUB_APP_CLIENT_ID", "")
+GITHUB_DATA_DIR          = _DASH / "data" / "github"
+GITHUB_AUTH_FILE         = GITHUB_DATA_DIR / "github_auth.json"
+GITHUB_ISSUES_STATE_FILE = GITHUB_DATA_DIR / "github_issues.json"
+GITHUB_REPORTS_LOG       = GITHUB_DATA_DIR / "github_reports.log"
+GITHUB_REPORTS_PER_DAY   = int(os.environ.get("ILI_GITHUB_REPORTS_PER_DAY", "10"))

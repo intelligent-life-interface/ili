@@ -57,3 +57,5 @@ projects/*
 # Fotos, die Nutzer über die Foto-Funktion hochladen — Laufzeitdaten, nie ins Repo
 # (17.08.2026: 85 private Bilder lagen seit dem Initial-Commit im Release-Repo)
 html/photos/
+# runtime data (GitHub token, dedup state, audit log) — never commit
+data/

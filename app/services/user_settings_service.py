@@ -11,6 +11,7 @@ Erlaubte Keys (alle anderen werden beim Schreiben ignoriert):
     fontscale   int     90 | 100 | 110 | 125
     cols        str     "auto" | "1" | "2" | "3"
     widgets     dict    {<id>: bool}  — Widget-Sichtbarkeit auf Index-Seite
+    github_auto_report  bool  opt-in: send sanitized error reports to GitHub (default False)
 """
 import json
 import logging
@@ -32,6 +33,7 @@ _DEFAULTS: dict = {
     "fontscale": 100,
     "cols":      "auto",
     "widgets":   {w: True for w in _VALID_WIDGETS},
+    "github_auto_report": False,
 }
 
 
@@ -84,6 +86,9 @@ def _merge_with_defaults(raw: dict) -> dict:
         result["widgets"] = {
             w: bool(raw["widgets"].get(w, True)) for w in _VALID_WIDGETS
         }
+    if "github_auto_report" in raw:
+        result["github_auto_report"] = bool(raw["github_auto_report"])
+        log.debug("github_auto_report=%s", result["github_auto_report"])
     return result
 
 

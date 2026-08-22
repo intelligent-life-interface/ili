@@ -21,7 +21,12 @@ CREDS="${CLAUDE_CONFIG_DIR}/.credentials.json"
 # that makes the end of the URL unambiguous.
 URL_RE='https://[A-Za-z0-9./_-]+/oauth/authorize\?[A-Za-z0-9%&=._~+-]*code_challenge=[A-Za-z0-9_-]{43}[A-Za-z0-9%&=._~+-]*state=[A-Za-z0-9_-]{43}'
 
-log() { echo "[ili-login-url] $*" >&2; }
+# stderr of a process substitution IS the terminal — the message would be drawn
+# into Claude's TUI. Log to PID 1's stdout (docker compose logs terminal) instead.
+log() {
+    if [ -w /proc/1/fd/1 ]; then echo "[ili-login-url] $*" >> /proc/1/fd/1
+    else echo "[ili-login-url] $*" >&2; fi
+}
 
 mkdir -p "$CLAUDE_CONFIG_DIR" 2>/dev/null || true
 rm -f "$OUT"

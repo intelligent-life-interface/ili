@@ -169,5 +169,29 @@ window.I18N = {
     // INACTIVITY_DEFAULT_DAYS gebaut, nicht übersetzbar.
     "leichen.preset.30": "30 Tage",
     "leichen.preset.60": "60 Tage",
-    "leichen.preset.90": "90 Tage"
+    "leichen.preset.90": "90 Tage",
+
+    // GitHub-Rückkanal (Einstellungen-Panel + Karten-Export) — darstellung.js, project-github-export.js
+    "gh.section": "GitHub-Rückkanal",
+    "gh.login": "Mit GitHub anmelden",
+    "gh.logout": "Abmelden",
+    "gh.status.off": "Nicht angemeldet",
+    "gh.status.on": "Angemeldet als",
+    "gh.status.noclient": "Nicht konfiguriert (ILI_GITHUB_APP_CLIENT_ID fehlt)",
+    "gh.code.hint": "Code auf github.com/login/device eingeben:",
+    "gh.code.waiting": "Warte auf Bestätigung …",
+    "gh.code.expired": "Code abgelaufen — bitte erneut anmelden.",
+    "gh.code.denied": "Anmeldung abgelehnt.",
+    "gh.auto": "Fehler automatisch anonymisiert melden",
+    "gh.auto.note": "Sendet nur technische Daten (Version, Modul, Fehlertyp, bereinigter Fehlertext) an das ili-Projekt auf GitHub. Nie: Karten, Board-Namen, Pfade, IP-Adressen, Namen, E-Mails, Tokens. Jede Meldung wird lokal protokolliert.",
+    "gh.preview": "Vorschau: was wird gesendet?",
+    "gh.reports": "Letzte Meldungen",
+    "gh.reports.none": "Noch nichts gesendet.",
+    "gh.export": "Als Issue exportieren",
+    "gh.export.title": "Karte als GitHub-Issue exportieren",
+    "gh.export.note": "Der Text wurde bereinigt (Pfade, IPs, E-Mails, Tokens entfernt). Prüfe und passe an — erst mit „Senden“ verlässt er diese Instanz.",
+    "gh.export.send": "Senden",
+    "gh.export.deeplink": "Im Browser auf GitHub öffnen (ohne Anmeldung)",
+    "gh.export.done": "Issue erstellt:",
+    "gh.export.fail": "Export fehlgeschlagen:"
 };

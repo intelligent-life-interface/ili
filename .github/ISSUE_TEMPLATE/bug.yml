@@ -1,0 +1,43 @@
+name: Bug report
+description: Something in ili does not work as expected
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Please do not paste personal data** (home directory
+        names, LAN addresses, e-mails, tokens, card contents). ili's built-in
+        "report" button already strips those — if you paste logs manually, check them first.
+  - type: input
+    id: version
+    attributes:
+      label: ili version
+      description: From the footer or `GET /api/version` (e.g. 0.1.3 stable)
+      placeholder: "0.1.3 (stable)"
+    validations:
+      required: true
+  - type: input
+    id: component
+    attributes:
+      label: Component / page
+      placeholder: "project page, settings panel, GET /board …"
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. open …
+        2. click …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs. actual
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log excerpt (sanitized)
+      render: text
