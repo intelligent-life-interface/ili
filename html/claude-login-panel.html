@@ -10,13 +10,25 @@
    - Sendet den Code ins Terminal (über TTY-Steuerung)
 -->
 
-<div id="claude-login-panel" style="display:none">
+<div id="claude-login-panel">
   <style>
+    /* Wrapper = Vollbild-Schicht. KEIN transform hier: ein transformierter Vorfahr
+       macht position:fixed der Kinder relativ zu sich selbst, das Overlay deckte
+       dann nur das Panel statt die Seite (Befund Browser-Check 22.08.2026). */
     #claude-login-panel {
+      display: none;
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      inset: 0;
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    #claude-login-panel.show {
+      display: flex;
+    }
+    #claude-login-content {
+      position: relative;
+      z-index: 1;
       background: var(--t-surface, #1a1d27);
       border: 1px solid var(--t-raised, #2a2d3e);
       border-radius: 12px;
@@ -24,8 +36,9 @@
       max-width: 450px;
       width: calc(100% - 2rem);
       box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-      z-index: 2000;
-      backdrop-filter: blur(4px);
+      max-height: calc(100vh - 2rem);
+      overflow-y: auto;
+      box-sizing: border-box;
     }
     #claude-login-panel h2 {
       margin: 0 0 1.5rem;
@@ -49,7 +62,7 @@
     #claude-login-panel .url-box {
       display: flex;
       gap: 0.5rem;
-      align-items: stretch;
+      align-items: flex-start;
     }
     #claude-login-panel .url-field {
       flex: 1;
@@ -58,7 +71,12 @@
       border-radius: 6px;
       padding: 0.6rem 0.8rem;
       color: var(--t-text, #e2e8f0);
-      font-size: 0.85rem;
+      font-size: 0.75rem;
+      line-height: 1.35;
+      /* Die OAuth-URL hat ~450 Zeichen — ohne Deckel zog sie das Panel und die
+         Knöpfe auf Bildschirmhöhe (Browser-Check 22.08.2026). */
+      max-height: 5.4em;
+      overflow-y: auto;
       word-break: break-all;
       word-wrap: break-word;
       font-family: 'Monaco', 'Menlo', monospace;
@@ -152,20 +170,10 @@
       background: var(--t-raised, #2a2d3e);
     }
     #claude-login-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      position: absolute;
+      inset: 0;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 1999;
-    }
-    #claude-login-panel.show {
-      display: block;
-    }
-    #claude-login-overlay.show {
-      display: block;
+      backdrop-filter: blur(4px);
     }
     #claude-login-panel .info-text {
       color: var(--t-muted, #718096);
@@ -327,8 +335,29 @@
     }
   }
 
-  function pollUrl() {
-    const found = extractSignInUrl();
+  // Bevorzugt: die vom Terminal-Wrapper unzerbrochen abgelegte URL (GET
+  // /api/claude-login-url, Quelle ili-login-url-watch.sh). Nach einem tmux-
+  // Re-Attach kann der Bildschirm-Puffer eine beschädigte Kopie zeigen (Lücken,
+  // Browser-Check 22.08.2026) — die Datei nicht.
+  async function fetchSignInUrl() {
+    try {
+      const r = await fetch('/api/claude-login-url', { cache: 'no-store' });
+      if (!r.ok) return '';
+      const d = await r.json();
+      return (d && typeof d.url === 'string') ? d.url : '';
+    } catch (e) {
+      console.debug('[ClaudeLogin] /api/claude-login-url nicht erreichbar:', e.message);
+      return '';
+    }
+  }
+
+  async function pollUrl() {
+    let found = await fetchSignInUrl();
+    if (found) {
+      if (found !== currentUrl) console.log('[ClaudeLogin] Sign-in-URL aus Wrapper-Datei (', found.length, 'Zeichen)');
+    } else {
+      found = extractSignInUrl();
+    }
     if (found && found !== currentUrl) {
       currentUrl = found;
       urlField.textContent = found;

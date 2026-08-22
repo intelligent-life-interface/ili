@@ -154,3 +154,29 @@ def get_claude_status():
         return {"logged_in": True, "source": "stored-login"}
     log.debug("claude-status: keine Anmeldung gefunden (%s)", creds_file)
     return {"logged_in": False, "source": "none"}
+
+
+@router.get("/api/claude-login-url")
+def get_claude_login_url():
+    """Unbroken OAuth sign-in URL for the login panel.
+
+    Written by deploy/terminal/ili-login-url-watch.sh into the terminal home
+    (mounted read-only here). Screen scraping in the panel is only the fallback:
+    after a tmux re-attach the screen can show a damaged copy of the URL.
+    Returns {url: str|null}.
+    """
+    path = os.path.join(_CLAUDE_CREDS_DIR, "ili-login-url")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            url = fh.read().strip()
+    except FileNotFoundError:
+        log.debug("claude-login-url: keine Datei (%s)", path)
+        return {"url": None}
+    except OSError as exc:
+        log.warning("claude-login-url: %s nicht lesbar: %s", path, exc)
+        return {"url": None}
+    if not url.startswith("https://") or "code_challenge=" not in url or "state=" not in url:
+        log.warning("claude-login-url: Inhalt unplausibel (%d Zeichen) — ignoriert", len(url))
+        return {"url": None}
+    log.debug("claude-login-url: %d Zeichen geliefert", len(url))
+    return {"url": url}

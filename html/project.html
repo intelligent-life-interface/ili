@@ -480,7 +480,17 @@
     try {
       const resp = await fetch('/claude-login-panel.html?v=20260822-hardwrap');
       if (resp.ok) {
-        document.getElementById('claude-login-container').innerHTML = await resp.text();
+        const box = document.getElementById('claude-login-container');
+        box.innerHTML = await resp.text();
+        // innerHTML führt eingebettete <script> NICHT aus — jedes Skript als neues
+        // Element nachbauen, sonst bleibt window.ClaudeLoginPanel undefiniert
+        // (Befund Browser-Check 22.08.2026).
+        box.querySelectorAll('script').forEach(old => {
+          const s = document.createElement('script');
+          s.textContent = old.textContent;
+          old.replaceWith(s);
+        });
+        console.log('[ClaudeLogin] Panel geladen, Skripte ausgeführt:', !!window.ClaudeLoginPanel);
       }
     } catch (e) {
       console.error('[ClaudeLogin] Fehler beim Laden des Panels:', e);

@@ -41,7 +41,8 @@ RUN npm install -g @anthropic-ai/claude-code \
 COPY deploy/terminal/entrypoint.sh /usr/local/bin/ili-terminal
 COPY deploy/terminal/ili-term.sh   /usr/local/bin/ili-term
 COPY deploy/terminal/ili-claude.sh /usr/local/bin/ili-claude
-RUN chmod +x /usr/local/bin/ili-terminal /usr/local/bin/ili-term /usr/local/bin/ili-claude
+COPY deploy/terminal/ili-login-url-watch.sh /usr/local/bin/ili-login-url-watch
+RUN chmod +x /usr/local/bin/ili-terminal /usr/local/bin/ili-term /usr/local/bin/ili-claude /usr/local/bin/ili-login-url-watch
 
 # Runs as root inside the container by design: with rootless Podman that maps to
 # the unprivileged host user, so bind-mounted project files stay writable. Docker

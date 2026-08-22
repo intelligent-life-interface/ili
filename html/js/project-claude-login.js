@@ -130,9 +130,11 @@
   }
 
   function autoInit() {
-    if (typeof window.BOARD_ID === 'string') {
-      setBoardId(window.BOARD_ID);
-    }
+    // BOARD_ID ist in project-core.js eine const, kein window-Property — darum
+    // zusätzlich aus der URL (?id=…) lesen, sonst lief der Check nie
+    // („Keine Board-ID gesetzt", Befund Browser-Check 22.08.2026).
+    const fromUrl = new URLSearchParams(location.search).get('id') || '';
+    setBoardId(typeof window.BOARD_ID === 'string' && window.BOARD_ID ? window.BOARD_ID : fromUrl);
     initClaudeLoginHelper();
   }
 

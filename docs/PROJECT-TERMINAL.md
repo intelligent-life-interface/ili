@@ -53,7 +53,7 @@ any of them:**
 
 | Way | What you do | Good for |
 |---|---|---|
-| **Interactive login** | Open a board terminal. The board page shows a sign-in panel: **Open** starts the sign-in in your own browser, the code goes into the panel's field and is sent to the terminal for you. (By hand: the URL printed in the terminal breaks across lines — join the pieces without spaces, otherwise the sign-in page answers `Unknown scope: user`.) | Claude subscription, nothing to prepare |
+| **Interactive login** | Open a board terminal. The board page shows a sign-in panel: **Open** starts the sign-in in your own browser, the code goes into the panel's field and is sent to the terminal for you. (The panel gets the URL from `GET /api/claude-login-url` — `ili-claude` tees Claude's output through `ili-login-url-watch`, which stores the unbroken URL in the terminal home; reading the screen buffer is only the fallback.) (By hand: the URL printed in the terminal breaks across lines — join the pieces without spaces, otherwise the sign-in page answers `Unknown scope: user`.) | Claude subscription, nothing to prepare |
 | **`CLAUDE_CODE_OAUTH_TOKEN`** | Run `claude setup-token` once on a machine that has a browser, put the token (valid one year) into `.env` | Claude subscription, unattended start |
 | **`ANTHROPIC_API_KEY`** | Create a key in the Anthropic Console, put it into `.env` | Pay-per-use, no login at all |
 

@@ -74,8 +74,21 @@ if [[ -n "$BOARD" ]]; then
 fi
 
 # Hand over to Claude Code. Its own login flow takes it from here.
-claude "$@"
-status=$?
+if ! has_credentials && command -v script >/dev/null 2>&1; then
+    # Not signed in: run Claude in a pty via `script` and tee its byte stream
+    # through the URL watcher, which writes the sign-in URL unbroken into the
+    # terminal home for the GUI panel (see ili-login-url-watch.sh). tee's stdout
+    # is still the real terminal, so the TUI behaves normally.
+    export CLAUDE_CONFIG_DIR
+    cmd="claude"
+    for arg in "$@"; do cmd+=" $(printf '%q' "$arg")"; done
+    script -q -e -f -c "$cmd" /dev/null \
+        | tee >(ili-login-url-watch)
+    status=${PIPESTATUS[0]}
+else
+    claude "$@"
+    status=$?
+fi
 echo
 echo "[ili-claude] Claude exited (status ${status}) — you are back in the shell."
 echo "[ili-claude] Type  ili-claude  to start it again."
