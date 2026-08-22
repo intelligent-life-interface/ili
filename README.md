@@ -7,7 +7,7 @@
 
 Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Management und Homelab-Automatisierung.
 
-**Stack:** Python 3.11 / FastAPI · nginx · JSON-basierte Boards · Anthropic Claude (Abo oder API-Key) · Ollama (optional)
+**Stack:** Python 3.11 / FastAPI · nginx · JSON-basierte Boards · Anthropic Claude (Abo oder API-Key, Pflicht) · Kanban-Automat (headless Claude-Worker) · Ollama (optional)
 
 > **Hinweis zum Repository:** Dieser Stand wird aus einem privaten Werkstatt-Repo
 > erzeugt und als ein Commit je Übernahme veröffentlicht. Direkt hier angelegte
@@ -46,7 +46,7 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 - Linux mit systemd (rootless Podman oder Docker)
 - Python 3.11+
 - nginx (für das Frontend-Serving)
-- Claude-Zugang für die KI-Features — **eines von beiden genügt:**
+- Claude-Zugang — **Pflicht** (ohne ihn bleibt jedes neu angelegte Projekt eine leere Vorlage; die Projekt-Vorbereitung, der Board-Assistent und der Kanban-Automat laufen über die Claude-Bridge im Terminal-Container). **Eines von beiden genügt:**
   - ein Claude-Abo (Claude Code CLI, Token via `claude setup-token` → `CLAUDE_CODE_OAUTH_TOKEN`), **oder**
   - ein Anthropic API-Key (`ANTHROPIC_API_KEY`)
 - Ollama ist **nicht** nötig (optional als lokaler Fallback, `OLLAMA_URL`)
@@ -100,9 +100,11 @@ podman run -d --name dashboard \
 
 Für HTTPS empfiehlt sich ein Reverse-Proxy (z.B. Caddy) davor.
 
-**Alternative:** `docker compose up -d` (bzw. `podman-compose up -d`) baut und startet
-Backend + Frontend zusammen aus dem mitgelieferten `docker-compose.yml` — deckt diesen
-und den nächsten Schritt in einem Rutsch ab, danach direkt bei Schritt 6 weiter.
+**Alternative:** `docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d`
+(bzw. `podman-compose …`) baut und startet Backend + Frontend + Terminal-Container (mit
+Claude-Bridge und Kanban-Automat — Standard seit v0.1.7, ohne sie bleiben neue Projekte
+leere Vorlagen) aus den mitgelieferten Compose-Dateien — deckt diesen und den nächsten
+Schritt in einem Rutsch ab, danach direkt bei Schritt 6 weiter.
 
 ### 5. FastAPI-Backend starten
 
@@ -156,7 +158,7 @@ DASHBOARD_DOMAIN=yourdomain.example
 DASHBOARD_URL=http://localhost:8798
 DASHBOARD_HOST_IP=127.0.0.1       # IP für Auto-Detect-Links im generierten HTML
 
-# KI-Zugang: EINES von beiden genügt
+# KI-Zugang: PFLICHT — eines von beiden genügt (ohne: Projekte bleiben leere Vorlagen)
 # a) Claude-Abo (Token aus `claude setup-token`)
 CLAUDE_CODE_OAUTH_TOKEN=
 # b) Anthropic API-Key

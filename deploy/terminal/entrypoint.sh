@@ -68,6 +68,21 @@ fi
 # -W  writable (without it the terminal is read-only)
 # -a  allow the client to pass command arguments via URL query (?arg=<board>)
 # -b  base path, so the terminal can be embedded same-origin under /projterm/
+# Claude CLI bridge (HTTP in front of the logged-in Claude session). The api
+# container needs it for project preparation (CLAUDE.md, tags, idea cards).
+# Without it a freshly created project stays an empty template.
+BRIDGE_PORT="${BRIDGE_PORT:-8950}"
+if command -v python3 >/dev/null 2>&1 && [[ -f /usr/local/bin/claude_cli_bridge.py ]]; then
+    log "starting Claude CLI bridge on ${BRIDGE_HOST:-0.0.0.0}:${BRIDGE_PORT}"
+    ( while true; do
+        python3 /usr/local/bin/claude_cli_bridge.py 2>&1 | sed -u 's/^/[claude-bridge] /' >&2
+        log "WARN: Claude CLI bridge exited — restarting in 5s"
+        sleep 5
+      done ) &
+else
+    log "ERROR: Claude CLI bridge not available (python3 or script missing) — KI project preparation will FAIL"
+fi
+
 exec /usr/local/bin/ttyd \
     -p "$PORT" \
     -W \

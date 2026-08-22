@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       procps \
       less \
       jq \
+      python3 \
     && arch="$(uname -m)" \
     && echo "[build] downloading ttyd ${TTYD_VERSION} for ${arch}" \
     && curl -fsSL -o /usr/local/bin/ttyd \
@@ -42,6 +43,12 @@ COPY deploy/terminal/entrypoint.sh /usr/local/bin/ili-terminal
 COPY deploy/terminal/ili-term.sh   /usr/local/bin/ili-term
 COPY deploy/terminal/ili-claude.sh /usr/local/bin/ili-claude
 COPY deploy/terminal/ili-login-url-watch.sh /usr/local/bin/ili-login-url-watch
+# Claude CLI bridge: HTTP (/chat /vision /stream /health) in front of the logged-in
+# Claude Code session. The api container reaches it as http://terminal:8950.
+COPY deploy/terminal/claude_cli_bridge.py /usr/local/bin/claude_cli_bridge.py
+# Kanban automat (headless Claude workers + ticker), run as the `automat` compose
+# service on this same image — see automat/README.md
+COPY automat/ /opt/ili-automat/
 RUN chmod +x /usr/local/bin/ili-terminal /usr/local/bin/ili-term /usr/local/bin/ili-claude /usr/local/bin/ili-login-url-watch
 
 # Runs as root inside the container by design: with rootless Podman that maps to
@@ -52,13 +59,16 @@ ENV HOME=/root \
     PROJECTS_DIR=/projects \
     BOARDS_DIR=/boards \
     TERMINAL_PORT=7690 \
-    TERMINAL_BASE_PATH=/projterm
+    TERMINAL_BASE_PATH=/projterm \
+    CLAUDE_BIN=/usr/local/bin/claude \
+    BRIDGE_HOST=0.0.0.0 \
+    BRIDGE_PORT=8950
 
 # /root holds the Claude login (.claude/ + .claude.json) — persist it, otherwise
 # every container restart needs a fresh login.
 VOLUME ["/root", "/projects"]
 
-EXPOSE 7690
+EXPOSE 7690 8950
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fs "http://localhost:${TERMINAL_PORT}${TERMINAL_BASE_PATH}/token" >/dev/null || exit 1

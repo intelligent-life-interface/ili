@@ -28,6 +28,8 @@ services:
       CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
       # Pfad zum .credentials.json-Check in app/api/misc.py — muss zum Mount unten passen.
       CLAUDE_CONFIG_DIR: /claude-home/.claude
+      # KI project preparation goes through the bridge inside the terminal container
+      CLAUDE_BRIDGE_URL: http://terminal:8950
     volumes:
       # Nur lesen: api darf den Login-Zustand PRÜFEN, nie verändern. Das Senden des
       # Device-Codes läuft client-seitig über das Terminal-iframe, nicht über api.
@@ -42,6 +44,7 @@ services:
     restart: unless-stopped
     expose:
       - "7690"
+      - "8950"
     environment:
       # Claude-Anmeldung — alles optional. Ist nichts gesetzt, fuehrt das Terminal
       # beim ersten Oeffnen durch den Login (Code aus dem Browser
@@ -60,6 +63,37 @@ services:
       # Boards nur lesen — das Terminal prueft damit, ob ein Board existiert.
       - dashboard-boards:/boards:ro
 
+  # Kanban automat: picks up cards from boards with auto:true and lets headless Claude
+  # sessions work on them (every AUTOMAT_INTERVAL s). Same image as the terminal so it
+  # shares the Claude login (terminal-home). Pause: touch state/automat.disabled in the
+  # automat-state volume.
+  automat:
+    image: ghcr.io/toa1984/ili-dashboard-terminal:${ILI_VERSION:-latest}
+    container_name: ili-automat
+    restart: unless-stopped
+    entrypoint: ["python3", "/opt/ili-automat/ticker.py"]
+    depends_on:
+      - api
+      - terminal
+    environment:
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
+      CLAUDE_CONFIG_DIR: /root/.claude
+      # Claude Code refuses --dangerously-skip-permissions as root unless sandboxed
+      IS_SANDBOX: "1"
+      DASHBOARD_URL: http://api:8798
+      KANBAN_SOURCE: automat
+      AUTOMAT_INTERVAL: "${AUTOMAT_INTERVAL:-300}"
+      AUTOMAT_WORKER_MODEL: "${AUTOMAT_WORKER_MODEL:-claude-sonnet-5}"
+      AUTOMAT_PROJECT_DIRS: /projects
+      AUTOMAT_LOG_BOARD: ""
+      ILI_DASHBOARD_DIR: /opt/ili-automat/state
+      ILI_CONFIG_ENV: /dev/null
+    volumes:
+      - terminal-home:/root
+      - ${ILI_PROJECTS_DIR:-./projects}:/projects:Z
+      - automat-state:/opt/ili-automat/state
 volumes:
   dashboard-boards:
   terminal-home:
+  automat-state:

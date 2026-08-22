@@ -48,8 +48,12 @@ The container has no browser, so the usual OAuth redirect to `localhost` cannot
 work. Claude Code covers exactly this case (it is documented for SSH sessions and
 containers): it prints a URL and waits for a code.
 
-**Pick whichever fits you — all three are optional, the Kanban core works without
-any of them:**
+**Pick whichever fits you — but pick one.** The bare Kanban board works without a
+sign-in, yet every new project then stays an empty template: project preparation
+(CLAUDE.md, tags, idea cards), the board assistant and the Kanban automat all go
+through the Claude bridge inside this container (port 8950, reached by `api` as
+`http://terminal:8950`). Since v0.1.7 the board shows a red «KI-Vorbereitung
+fehlgeschlagen» card when the bridge is down or not signed in.
 
 | Way | What you do | Good for |
 |---|---|---|

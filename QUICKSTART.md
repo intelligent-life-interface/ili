@@ -50,8 +50,10 @@ cp .env.example .env
 ### 2. Start the Stack
 
 ```bash
-docker compose up -d --build
-# or: podman-compose up -d
+docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d --build
+# or: podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
+# (the terminal overlay is part of the standard start: it carries the Claude
+#  bridge and the Kanban automat — without it new projects stay empty templates)
 ```
 
 This builds the `api` image (`Containerfile`) and the `web` image
@@ -68,14 +70,14 @@ Prebuilt images live on GitHub Container Registry:
 ```bash
 mkdir ili && cd ili
 docker run --rm --pull always -v "$PWD":/out ghcr.io/toa1984/ili-dashboard init
-docker compose up -d          # note: no --build
+docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   # note: no --build
 ```
 
 Podman: same thing, `:Z` on the mount and `podman-compose` for the stack:
 
 ```bash
 podman run --rm --pull always -v "$PWD":/out:Z ghcr.io/toa1984/ili-dashboard init
-podman-compose up -d
+podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
 ```
 
 `--pull always` matters: without it an older `latest` already on your machine is

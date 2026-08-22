@@ -12,14 +12,16 @@ Python-Objektidentität, daher unkritisch). Tests patchen bei Bedarf DIESES Modu
 Patch/Meta/Delete/Rollup bleiben in board_service.py (Phase 2: laufender Betrieb eines Boards).
 """
 import logging
+import uuid
 from datetime import datetime
 
-from constants import CATEGORIES, PROJEKTE_BASE
+from constants import CATEGORIES, PROJEKTE_BASE, CLAUDE_BRIDGE_URL
 from project_creator import (_create_project_folder, _correct_project_name,
                              _ensure_project_session,
                              _slugify, _text_tags, _unique_board_id,
                              _vision_tags, _vision_title, generate_idea_cards)
 
+from app.services import claude_client
 from app.storage.board_repository import BoardRepository, default_board_data
 from app.storage.manifest_repository import ManifestRepository
 
@@ -346,6 +348,24 @@ def create_board_immediate(data: dict) -> tuple[dict, dict | None]:
     return response, bg_args
 
 
+def _ki_failure_card(bridge_ok: bool) -> dict:
+    """Red marker card for the backlog when the KI preparation produced nothing."""
+    if bridge_ok:
+        reason = (f"Die Claude-Bridge ({CLAUDE_BRIDGE_URL}) war erreichbar, hat aber weder Tags "
+                  "noch Ideen-Karten geliefert. Ist Claude im Terminal-Container eingeloggt "
+                  "(CLAUDE_CODE_OAUTH_TOKEN oder ANTHROPIC_API_KEY)? Log: `docker logs ili-terminal`.")
+    else:
+        reason = (f"Die Claude-Bridge ({CLAUDE_BRIDGE_URL}) ist nicht erreichbar. Läuft der "
+                  "Terminal-Container (docker-compose.terminal.yml)? Log: `docker logs ili-terminal`.")
+    return {
+        "id":       f"kifail_{uuid.uuid4().hex[:10]}",
+        "title":    "⚠️ KI-Vorbereitung fehlgeschlagen",
+        "desc":     reason + " Danach das Projekt neu anlegen oder diese Karte löschen.",
+        "label":    "#e5534b",
+        "priority": "hoch",
+    }
+
+
 def finalize_board_background(board_id: str, raw_name: str, description: str, note: str,
                              photo_bytes: bytes, photo_filename: str,
                              parent_ids: list) -> None:
@@ -353,6 +373,12 @@ def finalize_board_background(board_id: str, raw_name: str, description: str, no
     Ideen-Karten (das "Kanban"), Auto-Kategorie → Board + Manifest aktualisieren und
     `analyzing` entfernen. Best-effort, jeder Schritt einzeln abgesichert (nie Crash)."""
     log.info("[BG] Finalisiere Board %r (name=%r, foto=%s)", board_id, raw_name, bool(photo_bytes))
+    # Fail loudly, not silently: every KI step below degrades to a bare template when the
+    # Claude bridge is down. Without a visible marker the board just looks "empty".
+    bridge_ok = claude_client.is_reachable()
+    if not bridge_ok:
+        log.error("[BG] Claude bridge unreachable (%s) — board %r will stay an empty template",
+                  CLAUDE_BRIDGE_URL, board_id)
     try:
         parent_context = _parent_context(parent_ids)
 
@@ -408,12 +434,19 @@ def finalize_board_background(board_id: str, raw_name: str, description: str, no
         # 5. Board aktualisieren: Titel, Ideen → Backlog, Inspiration/Notiz auf "analysiert".
         #    Bei mehreren Foto-Karten kommt die Notiz nur auf die ERSTE.
         note_placed = [False]
+        ki_failed = (not bridge_ok) or (not tags and not ideas)
+        if ki_failed:
+            log.error("[BG] KI preparation failed for %r (bridge_ok=%s, tags=%d, ideas=%d)",
+                      board_id, bridge_ok, len(tags), len(ideas))
         def update_board(bd):
             bd["title"] = name
             cols = bd.get("columns", [])
-            if ideas and cols:
+            if cols:
                 backlog = next((c for c in cols if c.get("id") == "backlog"), cols[0])
-                backlog["cards"].extend(ideas)
+                if ideas:
+                    backlog["cards"].extend(ideas)
+                if ki_failed:
+                    backlog["cards"].insert(0, _ki_failure_card(bridge_ok))
             tag_line = f"🏷️ Tags: {', '.join(tags)}" if tags else "✓ Analysiert"
             for col in cols:
                 for card in col.get("cards", []):
