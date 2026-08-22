@@ -56,17 +56,19 @@ Prebuilt images live on GitHub Container Registry:
 
 ```bash
 mkdir ili && cd ili
-docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili-dashboard init
+docker run --rm --pull always -v "$PWD":/out ghcr.io/toa1984/ili-dashboard init
 docker compose up -d          # note: no --build
 ```
 
 Podman: same thing, `:Z` on the mount and `podman-compose` for the stack:
 
 ```bash
-podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili-dashboard init
+podman run --rm --pull always -v "$PWD":/out:Z ghcr.io/toa1984/ili-dashboard init
 podman-compose up -d
 ```
 
+`--pull always` matters: without it an older `latest` already on your machine is
+used silently (its entrypoint then fails with `exec: init: not found`).
 `init` writes `docker-compose.yml`, `docker-compose.terminal.yml` and `.env` (from
 `.env.example`; an existing `.env` is never touched). Other subcommands print a single
 file instead: `... compose`, `... compose-terminal`, `... env`, `... help`.
