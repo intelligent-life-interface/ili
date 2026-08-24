@@ -18,6 +18,10 @@ and `docker.io/toa1984/*` (Docker Hub mirror — only Docker Hub is indexed by
 stored in `config.env` on the home server as `DOCKERHUB_USER`/`DOCKERHUB_TOKEN`).
 Repo short descriptions and READMEs on Docker Hub are maintained manually.
 
+The workflow must run in **`Toa1984/ili-public`** — the ghcr packages are
+linked to that repository. A run from the private workshop repo is denied
+with `permission_denied: write_package`.
+
 Each tag `vX.Y.Z` produces the image tags `X.Y.Z`, `X.Y` and `latest`
 (`latest` is skipped for pre-releases such as `v0.2.0-rc1`). A manual run of the
 workflow (*Actions → Release images → Run workflow*) pushes `edge` from the
