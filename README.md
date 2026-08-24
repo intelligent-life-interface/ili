@@ -3,6 +3,7 @@
 [![Release](https://img.shields.io/github/v/release/Toa1984/ili-public?display_name=tag&sort=semver)](https://github.com/Toa1984/ili-public/releases)
 [![Release images](https://github.com/Toa1984/ili-public/actions/workflows/release.yml/badge.svg)](https://github.com/Toa1984/ili-public/actions/workflows/release.yml)
 [![ghcr.io](https://img.shields.io/badge/ghcr.io-toa1984%2Fili-blue?logo=docker)](https://github.com/Toa1984/ili-public/pkgs/container/ili)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-toa1984%2Fili-blue?logo=docker)](https://hub.docker.com/r/toa1984/ili)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-green)](LICENSE)
 
 Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Management und Homelab-Automatisierung.
@@ -18,7 +19,8 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 > entweder fertige Images von `ghcr.io/toa1984/ili{,-web,-terminal}` ziehen
 > (`docker run --rm --pull always -v "$PWD":/out ghcr.io/toa1984/ili init && docker compose up -d`,
 > kein Clone nötig — das Image liefert seine Compose-Dateien selbst) oder
-> `git clone` + `docker compose up -d --build`. Dieses README beschreibt daneben
+> `git clone` + `docker compose up -d --build`. Dieselben Images gibt es auch auf
+> Docker Hub als `toa1984/ili{,-web,-terminal}`. Dieses README beschreibt daneben
 > den Aufbau und die Installation aus dem Quelltext. Releases: [docs/RELEASING.md](docs/RELEASING.md).
 
 ---
