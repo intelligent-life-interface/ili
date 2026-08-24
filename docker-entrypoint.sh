@@ -40,7 +40,8 @@ ili image — usage:
                     (existing .env is kept). Mount your folder:
                       docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
                       podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili init
-                    then:  docker compose up -d   (or: podman-compose up -d)
+                    then edit .env (CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY) and:
+                      docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
   compose           print docker-compose.yml
   compose-terminal  print docker-compose.terminal.yml
   env               print .env.example
@@ -79,7 +80,9 @@ do_init() {
         cp "$DIST_DIR/.env.example" "$OUT_DIR/.env"
         log "wrote .env (from .env.example — edit ILI_PORT, passwords etc. as needed)"
     fi
-    log "done. Next:  docker compose up -d   (or: podman-compose up -d)  →  http://localhost:8080"
+    log "done. Next: edit .env (CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY), then:"
+    log "  docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   →  http://localhost:8080"
+    log "  (podman: podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d)"
 }
 
 case "${1:-}" in
