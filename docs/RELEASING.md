@@ -38,11 +38,15 @@ Lessons from 0.1.8–0.1.10 — every item here once cost a release or a user.
       nothing to install; the workflow repeats this after the push):
       ```bash
       docker run --rm -v trivy-cache:/root/.cache/trivy docker.io/aquasec/trivy:latest \
-        image --ignore-unfixed --severity CRITICAL,HIGH ghcr.io/toa1984/ili:edge
+        image --ignore-unfixed --severity CRITICAL,HIGH \
+        --skip-dirs /usr/local/lib/node_modules/npm ghcr.io/toa1984/ili:edge
       ```
       Fixable CRITICAL/HIGH must be 0 for all three images. Unfixed Debian CVEs
       (perl, curl, openssl, ...) are present in every current base image — note
-      them, do not chase them.
+      them, do not chase them. Findings inside npm's own `node_modules` are
+      skipped for the same reason (npm@latest is installed at build time).
+      The api image ships without pip (removed after the build — pip's vendored
+      msgpack/setuptools copies are flagged but cannot be updated separately).
 - [ ] **Registry install path works without a checkout:** in an EMPTY folder run
       `docker run --rm -v "$PWD":/out <image>:edge init`, then check that the
       written compose files contain **no `build:` block** (`grep build: *.yml`)
