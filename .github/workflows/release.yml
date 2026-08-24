@@ -101,13 +101,16 @@ jobs:
       # Vulnerability gate — runs AFTER the push, so a red run signals rather than
       # prevents: the image is already in both registries. Only findings with an
       # available fix count (--ignore-unfixed); unfixed Debian CVEs are present in
-      # every current base image and would block every release.
+      # every current base image and would block every release. npm's own bundled
+      # dependencies are skipped: the terminal image already installs npm@latest,
+      # anything flagged in there is fixed only by the next npm release.
       - name: Scan pushed image (Trivy, fixable CRITICAL/HIGH)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_BASE }}${{ matrix.suffix }}:${{ steps.meta.outputs.version }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+          skip-dirs: /usr/local/lib/node_modules/npm
           exit-code: "1"
           format: table
 
