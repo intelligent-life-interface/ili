@@ -185,8 +185,8 @@ OPENWEBUI_URL=http://localhost:3001
 OPENWEBUI_EMAIL=
 OPENWEBUI_PASSWORD=
 
-# Isehauer-Widget (optional)
-ISEHAUER_URL=http://localhost:3005
+# Priority Widget Widget (optional)
+PRIORITY_WIDGET_URL=http://localhost:3005
 ```
 
 ### Netzwerk-Scan-Konfiguration
@@ -277,24 +277,6 @@ Vollständige API-Dokumentation: `docs/API.md` oder Swagger-UI unter `/docs` (nu
 - `ILI_COMMIT`/`ILI_BUILD_DATE` werden als Build-Args gesetzt (Update-Skript);
   ein blosses `compose build` lässt sie auf `unknown`.
 
-## Haftungsausschluss
-
-Diese Software wird kostenlos und „as-is" bereitgestellt — siehe [DISCLAIMER.md](DISCLAIMER.md) für die
-vollständigen Bedingungen. Wichtigste Punkte:
-
-- **Sie sind verantwortlich** für API-Kosten (Tokenverbrauch), Sicherheit Ihrer Installation
-  und Versionsstandigkeit (Updates, Security-Patches).
-- **Versionsverantwortung via Git:** Die Fassung des Haftungsausschlusses dokumentiert sich über
-  die Git-History. Nutzer können nachvollziehen, welche Fassung mit ihrer Installation mitgeliefert wurde:
-
-  ```bash
-  # Prüfen, welche DISCLAIMER.md-Version Sie haben
-  git log -1 --oneline DISCLAIMER.md    # letzter Commit dieser Datei
-  git show <commit-hash>:DISCLAIMER.md   # genaue Fassung zu einem Commit
-  ```
-
-Für weitere Details: [DISCLAIMER.md](DISCLAIMER.md).
-
 ## Lizenz
 
 SPDX-License-Identifier: AGPL-3.0-or-later
@@ -305,6 +287,26 @@ Dieses Projekt steht unter der GNU Affero General Public License v3 (oder späte
 Text in [LICENSE](LICENSE). Kurz zusammengefasst: freie Nutzung, Veränderung und
 Weiterverteilung, aber jede über ein Netzwerk erreichbare modifizierte Version muss ihren
 Quellcode ebenfalls offenlegen (Netzwerk-Copyleft, Art. 13 AGPL).
+
+## Haftungsausschluss
+
+Self-hosted "as-is", ohne Gewährleistung — Tokenverbrauch/API-Kosten, Versionsstand
+und Datenschutz deiner Installation liegen in deiner Verantwortung. Details:
+[DISCLAIMER.md](DISCLAIMER.md).
+
+**Versionsverantwortung und Audit-Trail:** Die aktuelle Fassung dieses Disclaimers dokumentiert
+sich über die Git-History. Nutzer sollten die DISCLAIMER.md-Änderungen vor jedem Update prüfen:
+
+```bash
+# Letzten Commit für DISCLAIMER.md anschauen
+git log -1 --oneline DISCLAIMER.md
+
+# Genaue Fassung zu einem bestimmten Commit ansehen
+git show <commit-hash>:DISCLAIMER.md
+```
+
+Damit können Sie jederzeit **nachvollziehen, welche Version des Disclaimers** mit Ihrer
+Installation mitgeliefert wurde (Commit-Hash + Datum).
 
 ---
 

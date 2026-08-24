@@ -1,5 +1,5 @@
 // Schwebendes Prioritäten-Widget für die Einzel-Projektseite (project.html).
-// Gleicher Reiter/Drawer-Look wie das Isehauer-Widget (index.html), ABER kein iframe:
+// Gleicher Reiter/Drawer-Look wie das Priority Widget Widget (index.html), ABER kein iframe:
 // es lädt die Karten GENAU DIESES Projekts (board_id aus der URL) und ordnet sie
 // "selbständig nach Priorität".
 //
@@ -14,7 +14,7 @@
 //               ki_archiv und die Beschreibungskarte claudemd-description.
 //
 // Einbinden: <script src="/js/project-prio-widget.js?v=..." defer></script>
-// Eigene CSS-/DOM-Präfixe (pp-…) → keine Kollision mit dem Isehauer-Widget (ise-…).
+// Eigene CSS-/DOM-Präfixe (pp-…) → keine Kollision mit dem Priority Widget Widget (pp-…).
 (function () {
     'use strict';
 

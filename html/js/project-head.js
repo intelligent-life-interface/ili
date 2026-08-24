@@ -1,5 +1,5 @@
 // project-head.js — Teil von project.js (aufgeteilt 2026-07-24, Kanban arch_6cb5b87e65).
-// Projekt-Kopf (Beschreibung/Kategorie/Status/Icon/Isehauer) + Init-Bootstrap am Ende
+// Projekt-Kopf (Beschreibung/Kategorie/Status/Icon/Priority Widget) + Init-Bootstrap am Ende
 // Klassik-Script, gemeinsamer globaler Scope mit den uebrigen project-*.js — Ladereihenfolge in project.html beachten.
 // Projekt-Prioritaet = Manifest-Feld `eisenhower` (q1..q4 | ""), identisch mit dem,
 // was die Projekt-Uebersicht (index.js) anzeigt und wonach sie sortiert. Labels/Emojis
@@ -102,7 +102,7 @@ function renderProjectHead() {
                  title="Auto-Entwicklung ist an, aber der Automat bearbeitet pausierte/archivierte Projekte nie — er überspringt dieses Board still. Status zurücksetzen oder Auto-Entwicklung ausschalten.">⚠️ Automat inaktiv (Status)</span>`
         : '';
     // Projekt-Prioritaet = Manifest-Feld `eisenhower` (q1..q4) — dasselbe, was die
-    // Projekt-Uebersicht anzeigt/sortiert. NICHT zu verwechseln mit der Isehauer-
+    // Projekt-Uebersicht anzeigt/sortiert. NICHT zu verwechseln mit der Priority Widget-
     // Wochenplanung unten (eigener Service, eigene Q1..Q4-Logik).
     const eisKey = entry.eisenhower || '';
     const eisMeta = PROJ_EIS_META[eisKey];
@@ -164,27 +164,27 @@ function renderProjectHead() {
                 `<option value="${escHtmlRel(key)}" ${key === eisKey ? 'selected' : ''}>${m.emoji} ${escHtmlRel(m.label)}</option>`)
         ).join('');
 
-        // Isehauer-Sektion (nur wenn erreichbar)
+        // Priority Widget-Sektion (nur wenn erreichbar)
         let iseHtml = '';
         if (projHeadIse?.available) {
             const qBtn = (q, lbl, title) => {
                 const active = item?.quadrant === q;
                 const meta = QUADRANT_META[q];
                 return `<button class="ph-qbtn ${active ? 'active' : ''}" style="--qc:${meta.color}" title="${title}"
-                         onclick="setIsehauer({quadrant:'${q}'})">${lbl}</button>`;
+                         onclick="setPriority Widget({quadrant:'${q}'})">${lbl}</button>`;
             };
-            iseHtml = `<div class="ph-section ph-ise">
+            iseHtml = `<div class="ph-section ph-pp">
                 <span class="ph-section-label">🗓️ Priorität (${escHtmlRel(projHeadIse.week || '')})</span>
                 ${qBtn('Q1', 'w+d', 'Q1: wichtig + dringend')}
                 ${qBtn('Q2', 'w−', 'Q2: wichtig, nicht dringend')}
                 ${qBtn('Q3', '−d', 'Q3: dringend, nicht wichtig')}
                 ${qBtn('Q4', '−−', 'Q4: weder noch')}
                 <button class="ph-qbtn ${item?.frog_date ? 'active' : ''}" style="--qc:#3fb950" title="Frosch heute (wichtigste Aufgabe des Tages)"
-                        onclick="toggleIsehauerFrog()">🐸</button>
+                        onclick="togglePriority WidgetFrog()">🐸</button>
                 <button class="ph-qbtn ${item?.pareto ? 'active' : ''}" style="--qc:#d29922" title="Pareto-Hebel (80/20)"
-                        onclick="setIsehauer({pareto:${item?.pareto ? 'false' : 'true'}})">⭐</button>
+                        onclick="setPriority Widget({pareto:${item?.pareto ? 'false' : 'true'}})">⭐</button>
                 <button class="ph-qbtn" style="--qc:#6e7681" title="Zurück in den Eingang (unsortiert)"
-                        onclick="setIsehauer({clear_quadrant:true})">→ Eingang</button>
+                        onclick="setPriority Widget({clear_quadrant:true})">→ Eingang</button>
             </div>`;
         }
 
@@ -290,36 +290,36 @@ function cancelProjHeadEditor() {
     renderProjectHead();
 }
 
-// ── Isehauer-Aktionen ──
-async function loadIsehauer() {
+// ── Priority Widget-Aktionen ──
+async function loadPriority Widget() {
     try {
-        projHeadIse = await API.get('/api/isehauer/item?project=' + encodeURIComponent(BOARD_ID) + '&t=' + Date.now());
-        console.log('[Project] Isehauer:', JSON.stringify(projHeadIse));
+        projHeadIse = await API.get('/api/priority_widget/item?project=' + encodeURIComponent(BOARD_ID) + '&t=' + Date.now());
+        console.log('[Project] Priority Widget:', JSON.stringify(projHeadIse));
     } catch (e) {
-        console.warn('[Project] Isehauer nicht erreichbar:', e.message);
+        console.warn('[Project] Priority Widget nicht erreichbar:', e.message);
         projHeadIse = { available: false };
     }
     renderProjectHead();
 }
 
-async function setIsehauer(fields) {
-    console.log('[Project] setIsehauer:', JSON.stringify(fields));
+async function setPriority Widget(fields) {
+    console.log('[Project] setPriority Widget:', JSON.stringify(fields));
     try {
         const body = Object.assign({ project: BOARD_ID }, fields);
-        projHeadIse = await API.patch('/api/isehauer/item', body);
+        projHeadIse = await API.patch('/api/priority_widget/item', body);
         setSaveStatus('✅ Priorität gesetzt', 'ok');
         setTimeout(() => setSaveStatus('', ''), 2000);
     } catch (e) {
-        console.error('[Project] Isehauer-Fehler:', e);
-        setSaveStatus('❌ Isehauer: ' + e.message, 'err');
+        console.error('[Project] Priority Widget-Fehler:', e);
+        setSaveStatus('❌ Priority Widget: ' + e.message, 'err');
     }
     renderProjectHead();
 }
 
-function toggleIsehauerFrog() {
+function togglePriority WidgetFrog() {
     const item = projHeadIse?.item;
-    if (item?.frog_date) setIsehauer({ clear_frog: true });
-    else setIsehauer({ frog_date: new Date().toISOString().slice(0, 10) });
+    if (item?.frog_date) setPriority Widget({ clear_frog: true });
+    else setPriority Widget({ frog_date: new Date().toISOString().slice(0, 10) });
 }
 
 // ── Manifest-Aktionen (Kategorie / Status / Farbe / Icon) ──
@@ -422,7 +422,7 @@ loadSubprojects();
 loadRollup();
 loadProjHeadCategories();
 loadProjHeadStatuses();
-loadIsehauer();
+loadPriority Widget();
 
 // Board-Höhe initial setzen + bei Viewport-Änderung nachführen
 adjustBoardHeight();

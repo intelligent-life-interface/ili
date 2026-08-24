@@ -51,7 +51,7 @@ _PROJECT_FIELDS = (
     # pausiert/abgeschlossen/archiviert, s. constants.STATUSES), orthogonal zu category
     "status",
     # Eisenhower-Priorisierung pro Projekt (q1..q4 | None) — zentral im Manifest,
-    # synchron für Dashboard-Übersicht und Isehauer.
+    # synchron für Dashboard-Übersicht und Priority Widget.
     "eisenhower",
     # archived (bool) — True blendet das Projekt aus der Desktop-Übersicht aus
     # (verbergen ohne löschen, reversibel). Toggle "🗄 Archiv anzeigen" macht es sichtbar.

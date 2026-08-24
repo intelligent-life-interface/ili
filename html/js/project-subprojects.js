@@ -493,7 +493,7 @@ const QUADRANT_META = {
 let projHeadEntry = null;        // Manifest-Eintrag (aus loadParentBreadcrumb)
 let projHeadCategories = null;   // {key: {label, color, emoji}} aus GET /categories
 let projHeadStatuses = null;     // {key: {label, color, emoji}} aus GET /statuses
-let projHeadIse = null;          // Result von GET /api/isehauer/item
+let projHeadIse = null;          // Result von GET /api/priority_widget/item
 let projHeadEditorOpen = false;  // Guard: kein Re-Render solange der Editor offen ist
 let projHeadColorTimer = null;   // Debounce für <input type=color>
 

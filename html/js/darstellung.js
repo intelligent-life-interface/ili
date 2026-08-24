@@ -31,7 +31,7 @@
     const COLS = [['auto', 'Auto'], ['1', '1'], ['2', '2'], ['3', '3']];
 
     // Widgets nur auf der Index-Seite — ID + Label + CSS-Selektor.
-    // Kein Eintrag für den Isehauer-Drawer (#ise-w): js/isehauer-widget.js ist
+    // Kein Eintrag für den Priority Widget-Drawer (#pp-w): js/priority-widget-widget.js ist
     // zwar noch vorhanden, aber in keiner Seite mehr eingebunden — ein Schalter
     // dafür würde ins Leere greifen. Bei Reaktivierung hier wieder aufnehmen.
     const WIDGETS = [

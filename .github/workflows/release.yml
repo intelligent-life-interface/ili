@@ -98,7 +98,21 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max
 
+      # Vulnerability gate — runs AFTER the push, so a red run signals rather than
+      # prevents: the image is already in both registries. Only findings with an
+      # available fix count (--ignore-unfixed); unfixed Debian CVEs are present in
+      # every current base image and would block every release.
+      - name: Scan pushed image (Trivy, fixable CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_BASE }}${{ matrix.suffix }}:${{ steps.meta.outputs.version }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
       - name: Summary
+        if: always()
         run: |
           echo "### ${{ matrix.name }}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

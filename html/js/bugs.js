@@ -36,7 +36,7 @@ async function loadKanbanBugs() {
           column: col.title,
           column_id: col.id,
           level: 'error',
-          service: 'whatsapp-bug',
+          service: 'kanban',
           ts: (card.desc || '').match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/)?.[0] || '',
           headline: title || '(ohne Titel)',
           context: (card.title || '') + '\n\n' + (card.desc || ''),
@@ -187,8 +187,8 @@ function renderBugs() {
         <div class="bug-actions">
           <button class="copy-btn" onclick="copyForClaude(${b.nr})">📋 Für Claude kopieren</button>
           <span class="copied-hint" id="hint-${b.nr}">✓ Kopiert!</span>
-          <button class="ollama-btn" id="ollama-btn-${b.nr}" onclick="analyseWithOllama(${b.nr})">🤖 Ollama analysieren</button>
-          <button class="ollama-btn" onclick="fixWithClaude(${b.nr})" style="background:#7c3aed;border-color:#7c3aed;color:#fff;">💬 Mit Claude fixen</button>
+          <button class="ollama-btn" id="ollama-btn-${b.nr}" onclick="analyseWithOllama(${b.nr})">🤖 KI-Analyse</button>
+          ${isKanban ? '' : `<button class="ollama-btn" id="fix-btn-${b.nr}" onclick="createBugCard(${b.nr})" style="background:#7c3aed;border-color:#7c3aed;color:#fff;">📋 Bug-Karte anlegen</button>`}
           ${boardLink}
         </div>
         <div class="analyse-area" id="analyse-${b.nr}">
@@ -209,28 +209,35 @@ function toggle(nr) {
   card.classList.toggle('open');
 }
 
-async function fixWithClaude(nr) {
+async function createBugCard(nr) {
   const bug = allBugs.find(b => b.nr === nr);
-  if (!bug) return;
+  if (!bug || bug._kanbanCreated) return;
+  const btn = document.getElementById('fix-btn-' + nr);
+  if (btn) { btn.disabled = true; btn.textContent = '\u23f3 Karte wird angelegt\u2026'; }
 
-  // Für Log-Bugs: zusätzlich Kanban-Karte auf home-stack-bugs anlegen,
-  // damit der Fix-Vorgang im Bug-Board nachvollziehbar ist. Kanban-Bugs sind
-  // bereits dort, also nicht doppelt anlegen.
-  if (bug.source !== 'kanban' && !bug._kanbanCreated) {
-    try {
-      const text = `🐞 ${bug.service}: ${bug.headline}\n\nContext:\n${(bug.context || '').slice(0, 1500)}`;
-      const data = await API.post('/bug-report', { text, board_id: 'home-stack-bugs' });
-      bug._kanbanCreated = true;
-      console.log('[bugs] Kanban-Karte angelegt:', data && data.card_title);
-    } catch(e) {
-      console.warn('[bugs] /bug-report fehlgeschlagen:', e.message);
+  // Legt eine Bug-Karte auf home-stack-bugs an; den Fix uebernimmt der Kanban-Automat.
+  try {
+    const text = `\ud83d\udc1e ${bug.service}: ${bug.headline}\n\nContext:\n${(bug.context || '').slice(0, 1500)}`;
+    const data = await API.post('/bug-report', { text, board_id: 'home-stack-bugs' });
+    bug._kanbanCreated = true;
+    console.log('[bugs] Kanban-Karte angelegt:', data && data.card_title, data && data.board_url);
+    if (btn) {
+      btn.textContent = '\u2713 Karte angelegt';
+      if (data && data.board_url) {
+        const a = document.createElement('a');
+        a.href = data.board_url;
+        a.target = '_blank';
+        a.className = 'ollama-btn';
+        a.style.cssText = 'text-decoration:none;display:inline-block;margin-left:6px;';
+        a.textContent = '\ud83d\udccb Zum Bug-Board';
+        btn.insertAdjacentElement('afterend', a);
+      }
     }
+  } catch(e) {
+    console.warn('[bugs] /bug-report fehlgeschlagen:', e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '\ud83d\udccb Bug-Karte anlegen'; }
+    alert('Bug-Karte konnte nicht angelegt werden: ' + e.message);
   }
-
-  if (!window.ChatWidget || !window.ChatWidget.openWithBug) {
-    alert('Chat-Widget noch nicht geladen.'); return;
-  }
-  window.ChatWidget.openWithBug(bug);
 }
 
 function copyForClaude(nr) {
@@ -278,7 +285,7 @@ async function analyseWithOllama(nr) {
   btn.textContent = '⏳ Analysiere…';
   area.classList.add('show');
   bodyEl.innerHTML = '<span class="analyse-cursor"></span>';
-  statusEl.textContent = 'Verbinde mit Ollama…';
+  statusEl.textContent = 'Verbinde mit KI-Service…';
   statusEl.style.color = '';
 
   try {
@@ -296,7 +303,7 @@ async function analyseWithOllama(nr) {
   } catch(e) {
     statusEl.textContent = '❌ ' + e.message;
     statusEl.style.color = 'var(--error)';
-    btn.textContent = '🤖 Ollama analysieren';
+    btn.textContent = '🤖 KI-Analyse';
   }
   btn.disabled = false;
 }

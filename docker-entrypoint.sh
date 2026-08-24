@@ -46,6 +46,7 @@ ili image — usage:
   compose-terminal  print docker-compose.terminal.yml
   env               print .env.example
   help              this text
+Docs, source & issues: https://github.com/Toa1984/ili-public  (QUICKSTART.md)
 USAGE
 }
 
@@ -83,6 +84,7 @@ do_init() {
     log "done. Next: edit .env (CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY), then:"
     log "  docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   →  http://localhost:8080"
     log "  (podman: podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d)"
+    log "docs & issues: https://github.com/Toa1984/ili-public"
 }
 
 case "${1:-}" in

@@ -12,7 +12,7 @@ import os
 
 from fastapi import APIRouter, HTTPException
 
-from app.services import budget_service, claude_limits_service, config_service, cost_service
+from app.services import budget_service, config_service, cost_service
 
 log = logging.getLogger("dashboard.api.config")
 router = APIRouter(tags=["config"])
@@ -98,19 +98,6 @@ def get_budget():
         return result
     except Exception as e:
         log.error("Fehler bei /api/budget: %s", e)
-        raise HTTPException(status_code=500, detail="Interner Serverfehler")
-
-
-@router.get("/api/claude-limits")
-def get_claude_limits():
-    """Plan-Auslastung (5h/7d) aus InfluxDB claude_limits — Quelle: claude-limit-watcher."""
-    try:
-        return claude_limits_service.latest_claude_limits()
-    except claude_limits_service.ClaudeLimitsError as e:
-        log.warning("Fehler bei /api/claude-limits: %s", e)
-        raise HTTPException(status_code=502, detail=f"{e}")
-    except Exception as e:
-        log.error("Fehler bei /api/claude-limits: %s", e)
         raise HTTPException(status_code=500, detail="Interner Serverfehler")
 
 

@@ -75,7 +75,7 @@ OPENWEBUI_PASSWORD = os.environ.get("OPENWEBUI_PASSWORD", "")
 # 16.07.26: eine globale OLLAMA_URL überschreibt die skript-eigenen Proxy-Aufrufernamen
 # /c/<skript> und macht das Proxy-Log unbrauchbar) — darum der Fallback hier, nicht dort.
 OLLAMA_URL         = os.environ.get("OLLAMA_URL", "http://localhost:11435")
-ISEHAUER_URL       = os.environ.get("ISEHAUER_URL", "http://localhost:3005")
+PRIORITY_WIDGET_URL       = os.environ.get("PRIORITY_WIDGET_URL", "http://localhost:3005")
 ANTHROPIC_API_KEY  = os.environ.get("ANTHROPIC_API_KEY", "")
 # Claude-Abo via lokale CLI-Bridge (claude-cli-bridge.service, Port 8950) — nutzt die
 # eingeloggte Claude-CLI-Session = Abo, KEIN API-Guthaben. dashboard-api läuft als
@@ -86,7 +86,7 @@ PRIORITY_COLORS    = {"hoch": "#e5534b", "mittel": "#f5a623", "niedrig": "#3fb95
 CHAT_HISTORY_FILE  = _DASH / "chat_history.jsonl"
 
 # ── Projekt-Kategorien (zentrale Quelle der Wahrheit) ──────────────────────────
-# Eine Kategorie ist ein Manifest-Feld pro Board. color = Hex (Dashboard/Isehauer),
+# Eine Kategorie ist ein Manifest-Feld pro Board. color = Hex (Dashboard/Priority Widget),
 # emoji = Badge. Erweiterbar: einfach Eintrag ergänzen.
 CATEGORIES = {
     "hobby":          {"label": "Hobby",          "color": "#f6ad55", "emoji": "🎨"},

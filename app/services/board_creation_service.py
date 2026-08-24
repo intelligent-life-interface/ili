@@ -143,7 +143,7 @@ def create_board(data: dict) -> dict:
 
     board_data = default_board_data()
     # NEU: Claude-Abo brainstormt 5–8 Ideen-Karten → Backlog (best-effort, nie blockierend).
-    # fast=true (z.B. Isehauer-+Knopf) überspringt den Schritt.
+    # fast=true (z.B. Priority Widget +Knopf) überspringt den Schritt.
     if not fast:
         try:
             ideas = generate_idea_cards(name, description, tags,

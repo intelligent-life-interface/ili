@@ -16,6 +16,7 @@ LABEL org.opencontainers.image.description="nginx frontend for the ili Kanban da
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
 LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
 LABEL org.opencontainers.image.url="https://github.com/Toa1984/ili-public"
+LABEL org.opencontainers.image.documentation="https://github.com/Toa1984/ili-public/blob/main/QUICKSTART.md"
 
 # Server block (expects the `api` service in the same compose network).
 COPY deploy/nginx-portable.conf /etc/nginx/conf.d/default.conf

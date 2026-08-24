@@ -131,7 +131,7 @@ def _register_routers() -> None:
     from app.api import chat as chat_api
     from app.api import config as config_api
     from app.api import dashboard as dashboard_api
-    from app.api import isehauer as isehauer_api
+    from app.api import priority_widget as priority_widget_api
     from app.api import kanban as kanban_api
     from app.api import manager as manager_api
     from app.api import ki as ki_api
@@ -162,7 +162,7 @@ def _register_routers() -> None:
     app.include_router(photos_api.router)
     app.include_router(misc_api.router)
     app.include_router(dashboard_api.router)
-    app.include_router(isehauer_api.router)
+    app.include_router(priority_widget_api.router)
     app.include_router(attachments_api.router)
     app.include_router(project_links_api.router)
     app.include_router(project_files_api.router)
@@ -185,7 +185,7 @@ def _register_routers() -> None:
     app.include_router(usage_api.router)
     app.include_router(version_api.router)
     app.include_router(github_issues_api.router)
-    log.info("Router registriert: config (W1), boards+kanban (W2/3), ki (W4), chat+photos (W5), misc (W6), logs/streaming (W7), dashboard (Phase 6), isehauer (F1), attachments, web-adressen, brainstorm, recent, github-status, user-settings, manager, token-guard")
+    log.info("Router registriert: config (W1), boards+kanban (W2/3), ki (W4), chat+photos (W5), misc (W6), logs/streaming (W7), dashboard (Phase 6), priority_widget (F1), attachments, web-adressen, brainstorm, recent, github-status, user-settings, manager, token-guard")
 
 
 _register_routers()

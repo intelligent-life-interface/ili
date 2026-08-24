@@ -19,17 +19,29 @@ LABEL org.opencontainers.image.description="Lightweight self-hosted Kanban Dashb
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
 LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
 LABEL org.opencontainers.image.url="https://github.com/Toa1984/ili-public"
+LABEL org.opencontainers.image.documentation="https://github.com/Toa1984/ili-public/blob/main/QUICKSTART.md"
 
 WORKDIR /app
 
-# System Dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# System Dependencies — `upgrade` picks up the security fixes the base image
+# does not carry yet.
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python dependencies from builder stage
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Refresh setuptools/wheel AFTER the copy: the base image's own copies (and the
+# jaraco.* vendored inside setuptools) stay behind as stale dist-info directories
+# otherwise, and scanners keep flagging the old versions. Then drop pip itself:
+# the runtime never installs anything, and pip carries vendored copies of
+# msgpack/setuptools that scanners flag but nobody can update separately.
+RUN pip install --no-cache-dir --upgrade setuptools wheel \
+    && echo "[build] $(pip list --format=freeze 2>/dev/null | grep -i '^setuptools\|^wheel' | tr '\n' ' ')" \
+    && pip uninstall -y pip \
+    && rm -rf /root/.cache/pip
 
 # Version + build metadata (ILI_COMMIT/ILI_BUILD_DATE are passed by ili-update.sh,
 # plain `compose build` leaves them "unknown" — git is not needed inside the image)
@@ -49,7 +61,13 @@ COPY html/ html/
 COPY demo/ demo/
 # Compose files + .env template, handed out by `... init` / `... compose` so an
 # installation from the registry needs no clone (see docker-entrypoint.sh).
-COPY docker-compose.yml docker-compose.terminal.yml .env.example dist/
+# The compose files in the repo carry `build:` blocks for source installs; the
+# registry variant in dist/ must not — without a checkout docker compose would
+# fall back to building when a pull fails and die on the missing deploy/ folder.
+COPY .env.example dist/
+COPY docker-compose.yml docker-compose.terminal.yml deploy/compose-dist.py /tmp/compose-src/
+RUN python3 /tmp/compose-src/compose-dist.py /tmp/compose-src dist \
+    && rm -rf /tmp/compose-src
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

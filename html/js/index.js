@@ -17,7 +17,7 @@
     var groupMode = localStorage.getItem('idx_group') || 'category';
     // Eisenhower-Modus: pro Kategorie ("Thema") eine eigene Prioritäts-Matrix.
     // Persistiert zentral im Manifest-Feld `eisenhower` (q1..q4 | ""), darum
-    // synchron mit Isehauer. Hier nur Darstellung + Setzen via PATCH.
+    // synchron mit Priority Widget. Hier nur Darstellung + Setzen via PATCH.
     var eisOn = localStorage.getItem('idx_eisenhower') === '1';
     var showArchived = false;   // 🗄-Toggle: Archiv-Ansicht (zeigt NUR archivierte zum Aufräumen)
     // Arrange-Modus: Drag-and-Drop Reihenfolge der Projektkacheln (nur Kategorie-Ansicht)

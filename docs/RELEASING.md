@@ -27,6 +27,42 @@ Each tag `vX.Y.Z` produces the image tags `X.Y.Z`, `X.Y` and `latest`
 workflow (*Actions → Release images → Run workflow*) pushes `edge` from the
 chosen branch without touching `latest`. Platforms: `linux/amd64` and `linux/arm64`.
 
+## Checklist before tagging
+
+Lessons from 0.1.8–0.1.10 — every item here once cost a release or a user.
+
+- [ ] **Base images current:** Node LTS in `deploy/Containerfile.terminal` (Node
+      20 went EOL 2026-04 while the image still used it), Debian release in all
+      `FROM` lines (`trixie` = 13), `nginx:alpine` for web.
+- [ ] **Vulnerability scan of the freshly built images** (Trivy, containerised —
+      nothing to install; the workflow repeats this after the push):
+      ```bash
+      docker run --rm -v trivy-cache:/root/.cache/trivy docker.io/aquasec/trivy:latest \
+        image --ignore-unfixed --severity CRITICAL,HIGH ghcr.io/toa1984/ili:edge
+      ```
+      Fixable CRITICAL/HIGH must be 0 for all three images. Unfixed Debian CVEs
+      (perl, curl, openssl, ...) are present in every current base image — note
+      them, do not chase them.
+- [ ] **Registry install path works without a checkout:** in an EMPTY folder run
+      `docker run --rm -v "$PWD":/out <image>:edge init`, then check that the
+      written compose files contain **no `build:` block** (`grep build: *.yml`)
+      and that `.env` has `COMPOSE_FILE=` active. Then `docker compose up -d` and
+      open the browser — the terminal container must be running too.
+- [ ] **Every user-facing hint says the same thing:** `init` output
+      (`docker-entrypoint.sh`), QUICKSTART.md, README, Docker Hub description
+      (`hub.docker.com/r/toa1984/ili`). Docker Hub is edited by hand — do not
+      forget it.
+- [ ] **Workflow runs in `Toa1984/ili-public`** (see above) — secrets
+      `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` present there.
+- [ ] **Mirror check:** before writing a file into `ili-public` compare its blob
+      SHA with the workshop state it was copied from (`git rev-parse HEAD:<file>`
+      vs. the contents API `sha`). README.md diverges between the repos — patch,
+      do not overwrite.
+- [ ] `VERSION` bumped in the workshop **and** in `ili-public`; tag on the
+      commit that carries the bump.
+- [ ] After the run: tags `X.Y.Z`, `X.Y`, `latest` visible on ghcr **and**
+      Docker Hub for all three images; GitHub release entry created with notes.
+
 ## Steps
 
 1. Make sure `main` contains the state you want to ship and that the stack

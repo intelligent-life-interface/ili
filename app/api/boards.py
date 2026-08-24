@@ -57,7 +57,7 @@ def board_rollup(id: str = Query(default="")):
 def create_board(body: dict, background_tasks: BackgroundTasks):
     """Neues Board anlegen.
 
-    - {fast:true} → synchron, ohne KI (Isehauer-+Knopf/Unterprojekt, Name exakt, <1s).
+    - {fast:true} → synchron, ohne KI (Priority Widget +Knopf/Unterprojekt, Name exakt, <1s).
     - sonst → Board + Manifest SOFORT mit fester ID (201 in <1s), die schwere KI
       (Namenskorrektur, Tags, Ideen-Karten, CLAUDE.md, ggf. Foto-Vision) läuft als
       BackgroundTask. Das verhindert Timeout-Doppelprojekte und vereint Formular- +

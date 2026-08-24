@@ -5,7 +5,7 @@ Chunked-Encoding (das der alte Server von Hand machte). Abschluss: "\\n[DONE]",
 Fehler mitten im Stream: "\\n[FEHLER] ...". Claude-Tagessperre → ClaudeBlockedError
 VOR Stream-Beginn (HTTP 403).
 
-Die eigentlichen Streams (_stream_openwebui/_stream_ollama/_run_stream) sind
+Die eigentlichen Streams (_stream_bridge/_stream_ollama/_run_stream) sind
 ASYNC-Generatoren (opt_stream_threadpool_0811, Variante a von 3 vorgeschlagenen:
 echtes async-Streaming statt dediziertem Threadpool oder mehr Limiter-Kapazität —
 gewählt weil es Worker-Verbrauch auf 0 senkt statt ihn nur zu verschieben/vergrössern).
@@ -30,22 +30,12 @@ import logging
 from typing import AsyncIterator
 
 import anyio
-import httpx
-
-import ow_integration
 from config_handler import _effort_temp, _load_ai_config
-from constants import OPENWEBUI_URL
 from cost_management import _is_claude_blocked
 from logging_utils import _track_ollama_usage
-from app.services import ollama_client
-from app.services.httpx_stream import post_lines
+from app.services import claude_client, ollama_client
 
 log = logging.getLogger("dashboard.services.stream")
-
-# Indirektion statt direktem httpx.AsyncClient-Aufruf (httpx ist ein geteiltes Modul,
-# s. app/services/ollama_client.py) — Tests patchen gezielt diesen Namen.
-_ASYNC_CLIENT = httpx.AsyncClient
-
 
 class ClaudeBlockedError(Exception):
     """Claude-Tagesbudget erschöpft — Request ablehnen bevor der Stream startet."""
@@ -59,41 +49,30 @@ def _check_claude_block(model: str) -> None:
             raise ClaudeBlockedError(reason)
 
 
-async def _stream_openwebui(model: str, prompt: str) -> AsyncIterator[str]:
-    """Claude via Open WebUI (OpenAI-SSE) — Tokens async yielden."""
-    token = getattr(ow_integration, "_ow_token", "")
-    if not token:
-        # Blockierender Login-Call (bis zu 10s) — nicht im Event-Loop, siehe
-        # opt_async_blocker_0806 (derselbe Bug, den dieser Fix hier für die
-        # Stream-Dauer selbst behebt).
-        token = await anyio.to_thread.run_sync(ow_integration._ow_login)
-    stream_body = {
-        "model": model, "stream": True,
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    headers = {"Authorization": f"Bearer {token}"}
-    async for line in post_lines(f"{OPENWEBUI_URL}/api/chat/completions", stream_body,
-                                  client_factory=_ASYNC_CLIENT, headers=headers, timeout=300.0):
-        if not line.startswith("data:"):
-            continue
-        data_str = line[5:].strip()
-        if data_str == "[DONE]":
-            break
+async def _stream_bridge(model: str, prompt: str) -> AsyncIterator[str]:
+    """Claude via CLI-Bridge 8950 (Abo) — NDJSON-Zeilen zu Tokens (Muster brainstorm_service)."""
+    # Erste Zeile des Prompts ist der Rollen-Satz → System-Prompt, Rest User-Message.
+    system, _, user_part = prompt.partition("\n\n")
+    if not user_part:
+        system, user_part = "", prompt
+    log.debug("Bridge-Stream start: model=%r system=%d chars user=%d chars",
+              model, len(system), len(user_part))
+    messages = [{"role": "user", "content": user_part}]
+    async for line in claude_client.stream_lines(system, messages, model, timeout=300):
         try:
-            chunk = json.loads(data_str)
+            chunk = json.loads(line)
         except Exception:
-            log.warning("Stream-Chunk (openwebui) nicht parsbar: %r", data_str[:200])
+            log.warning("Stream-Chunk (bridge) nicht parsbar: %r", line[:200])
             continue
         if chunk.get("error"):
             # Fehler-Payload NICHT stillschweigend verschlucken — sonst bekommt der
             # User eine leere Antwort, die wie Erfolg aussieht.
             raise RuntimeError(chunk["error"])
-        try:
-            tok = chunk["choices"][0]["delta"].get("content", "")
-            if tok:
-                yield tok
-        except (KeyError, IndexError, TypeError) as e:
-            log.warning("Stream-Chunk (openwebui) unerwartetes Format: %r (%s)", data_str[:200], e)
+        if chunk.get("done"):
+            break
+        tok = chunk.get("t", "")
+        if tok:
+            yield tok
 
 
 async def _stream_ollama(model: str, prompt: str, effort_key: str, usage_context: str) -> AsyncIterator[str]:
@@ -122,7 +101,7 @@ async def _run_stream(model: str, prompt: str, effort_key: str, usage_context: s
     """Gemeinsamer Rahmen: Routing + [DONE]/[FEHLER]-Abschluss."""
     try:
         if model.startswith("claude"):
-            async for tok in _stream_openwebui(model, prompt):
+            async for tok in _stream_bridge(model, prompt):
                 yield tok
         else:
             async for tok in _stream_ollama(model, prompt, effort_key, usage_context):

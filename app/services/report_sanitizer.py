@@ -13,10 +13,11 @@ What is removed / masked
 * host names                *.local, *.intranet.*, *.arpa, *.lan, *.home and
                             generic FQDNs (at least one dot, known TLD-ish tail)
 * e-mail addresses
-* secrets                   ghp_/gho_/ghu_/ghs_/ghr_, github_pat_, sk-ant-,
+* secrets                   ghp_/gho_/ghu_/ghs_/ghr_, github_pat_, sk-ant-/sk-proj-,
                             AKIA…, "Bearer <token>", key=/token=/password=
                             query or assignment values
 * URL query strings         everything after '?' in http(s) URLs
+* URL credentials           (removed from connection strings like postgresql:// auth)
 
 The function never raises — a report must not fail because the scrubber
 choked on odd input. Only the *category and count* of removals is logged,
@@ -37,11 +38,12 @@ log = logging.getLogger("dashboard.services.report_sanitizer")
 _RULES: list[tuple[str, re.Pattern, str]] = [
     ("token", re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}\b"), "<token>"),
     ("token", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"), "<token>"),
-    ("token", re.compile(r"\bsk-ant-[A-Za-z0-9_-]{20,}\b"), "<token>"),
+    ("token", re.compile(r"\bsk-(?:ant|proj)-[A-Za-z0-9_-]{20,}\b"), "<token>"),
     ("token", re.compile(r"\bAKIA[0-9A-Z]{16}\b"), "<token>"),
     ("token", re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._\-+/=]{8,}"), "Bearer <token>"),
     ("token", re.compile(r"(?i)([A-Za-z0-9_-]*(?:api[_-]?key|token|secret|password|passwd|pwd)[A-Za-z0-9_-]*)\s*[=:]\s*\S+"),
      r"\1=<redacted>"),
+    ("url_credential", re.compile(r"(://)[A-Za-z0-9._-]+:[^\s@\"']+@"), r"\1<user>:<password>@"),
     ("url_query", re.compile(r"(https?://[^\s?#\"']+)\?[^\s\"']*"), r"\1?<query>"),
     ("email", re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "<email>"),
     ("home_path", re.compile(r"/home/[^/\s\"']+"), "/home/<user>"),
