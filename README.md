@@ -277,6 +277,24 @@ Vollständige API-Dokumentation: `docs/API.md` oder Swagger-UI unter `/docs` (nu
 - `ILI_COMMIT`/`ILI_BUILD_DATE` werden als Build-Args gesetzt (Update-Skript);
   ein blosses `compose build` lässt sie auf `unknown`.
 
+## Haftungsausschluss
+
+Diese Software wird kostenlos und „as-is" bereitgestellt — siehe [DISCLAIMER.md](DISCLAIMER.md) für die
+vollständigen Bedingungen. Wichtigste Punkte:
+
+- **Sie sind verantwortlich** für API-Kosten (Tokenverbrauch), Sicherheit Ihrer Installation
+  und Versionsstandigkeit (Updates, Security-Patches).
+- **Versionsverantwortung via Git:** Die Fassung des Haftungsausschlusses dokumentiert sich über
+  die Git-History. Nutzer können nachvollziehen, welche Fassung mit ihrer Installation mitgeliefert wurde:
+
+  ```bash
+  # Prüfen, welche DISCLAIMER.md-Version Sie haben
+  git log -1 --oneline DISCLAIMER.md    # letzter Commit dieser Datei
+  git show <commit-hash>:DISCLAIMER.md   # genaue Fassung zu einem Commit
+  ```
+
+Für weitere Details: [DISCLAIMER.md](DISCLAIMER.md).
+
 ## Lizenz
 
 SPDX-License-Identifier: AGPL-3.0-or-later
