@@ -6,7 +6,9 @@ from pathlib import Path
 # Alle Pfade über Umgebungsvariablen konfigurierbar (Defaults für Entwicklung)
 _DASH          = Path(os.environ.get("DASHBOARD_DIR", str(Path.home() / "containers/dashboard")))
 DASHBOARD_DIR  = _DASH  # öffentlicher Alias für Standalone-Skripte ausserhalb von app/
-AI_CONFIG_FILE = _DASH / "ai_config.json"
+# ai_config.json muss im Automat-State-Ordner liegen, damit der Automat GI-Entscheidungen sieht
+_AUTOMAT_STATE = Path(os.environ.get("AUTOMAT_STATE_DIR", str(Path.home() / "containers/kanban-automat/state")))
+AI_CONFIG_FILE = _AUTOMAT_STATE / "ai_config.json"
 BOARDS_DIR     = Path(os.environ.get("BOARDS_DIR", str(_DASH / "boards")))
 MANIFEST       = BOARDS_DIR / "manifest.json"
 PHOTOS_DIR         = _DASH / "html/photos"
@@ -188,8 +190,6 @@ _BUG_BOARD_KEYWORDS: list[tuple[list[str], str]] = [
     (["paperless"], "paperless-app-bugs"),
     (["metabase"], "metabase-app-bugs"),
     (["open-webui", "openwebui", "open webui"], "open-webui-app-bugs"),
-    (["rpa", "calendar sync", "energyportal"], "rpa-app-bugs"),
-    (["receipts", "migros bon"], "receipts-app-bugs"),
     (["gesprächsbegleiter", "gespraechsbegleiter"], "gespraechsbegleiter-app-bugs"),
     (["lernspiegel"], "lernspiegel-app-bugs"),
     (["n8n"], "n8n-app-bugs"),
@@ -211,7 +211,7 @@ log = logging.getLogger("trigger-server")
 # Public identifiers only — the instance never holds a shared secret. Users sign
 # in with their own GitHub account via the GitHub App device flow; the resulting
 # user token lives in GITHUB_DATA_DIR (0600), never in user_settings.json.
-GITHUB_ISSUES_REPO       = os.environ.get("ILI_GITHUB_ISSUES_REPO", "Toa1984/ili-dashboard")
+GITHUB_ISSUES_REPO       = os.environ.get("ILI_GITHUB_ISSUES_REPO", "Toa1984/ili-public")
 GITHUB_APP_CLIENT_ID     = os.environ.get("ILI_GITHUB_APP_CLIENT_ID", "")
 GITHUB_DATA_DIR          = _DASH / "data" / "github"
 GITHUB_AUTH_FILE         = GITHUB_DATA_DIR / "github_auth.json"

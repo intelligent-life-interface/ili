@@ -36,17 +36,21 @@ services:
       # Project folders (CLAUDE.md/TAGS.md from the KI preparation) must be the same
       # directory the terminal sessions and the automat workers run in.
       PROJEKTE_DIR: /projects
+      # Automat-State: Worker-Info und KI-Konfiguration (ai_config.json)
+      AUTOMAT_STATE_DIR: /opt/ili-automat/state
     volumes:
       - ./projects:/projects:z
       # Nur lesen: api darf den Login-Zustand PRÜFEN, nie verändern. Das Senden des
       # Device-Codes läuft client-seitig über das Terminal-iframe, nicht über api.
       - terminal-home:/claude-home:ro
+      # Automat-State: rw für ai_config.json (GUI-Einstellungen)
+      - automat-state:/opt/ili-automat/state
 
   terminal:
     build:
       context: .
       dockerfile: deploy/Containerfile.terminal
-    image: ghcr.io/toa1984/ili-dashboard-terminal:${ILI_VERSION:-latest}
+    image: ghcr.io/toa1984/ili-terminal:${ILI_VERSION:-latest}
     container_name: ili-terminal
     restart: unless-stopped
     # Credentials (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY) and tuning knobs come
@@ -78,7 +82,7 @@ services:
   # shares the Claude login (terminal-home). Pause: touch state/automat.disabled in the
   # automat-state volume.
   automat:
-    image: ghcr.io/toa1984/ili-dashboard-terminal:${ILI_VERSION:-latest}
+    image: ghcr.io/toa1984/ili-terminal:${ILI_VERSION:-latest}
     container_name: ili-automat
     restart: unless-stopped
     # Credentials (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY) and tuning knobs come

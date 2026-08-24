@@ -1,6 +1,6 @@
 # Reporting bugs and ideas to the ili project — what leaves your instance
 
-ili can talk back to its home repository (`Toa1984/ili-dashboard`) in three ways.
+ili can talk back to its home repository (`Toa1984/ili-public`) in three ways.
 **All of them are off by default, and nothing is sent without your account.**
 
 | Path | Needs | What is sent | When |
@@ -48,5 +48,5 @@ opening a new one. At most 10 new issues/comments per day per instance.
 ## Operator notes
 
 * `ILI_GITHUB_APP_CLIENT_ID` — public client id of the GitHub App (set in the compose `environment`).
-* `ILI_GITHUB_ISSUES_REPO` — defaults to `Toa1984/ili-dashboard`; forks can point it elsewhere.
+* `ILI_GITHUB_ISSUES_REPO` — defaults to `Toa1984/ili-public`; forks can point it elsewhere.
 * `ILI_GITHUB_REPORTS_PER_DAY` — daily cap, default 10.

@@ -11,7 +11,7 @@ FROM docker.io/library/node:20-bookworm-slim
 LABEL org.opencontainers.image.title="ili Project Terminal"
 LABEL org.opencontainers.image.description="ttyd + tmux + Claude Code, one session per Kanban board"
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
-LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-dashboard"
+LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
 
 # ttyd is not packaged in Debian 12 — the project publishes static binaries per
 # architecture (asset names match `uname -m`: x86_64, aarch64, armhf, ...).

@@ -1,10 +1,4 @@
-FROM docker.io/library/python:3.11-slim
-
-LABEL org.opencontainers.image.title="ili Dashboard"
-LABEL org.opencontainers.image.description="Lightweight self-hosted Kanban Dashboard"
-LABEL org.opencontainers.image.licenses="AGPL-3.0"
-LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-dashboard"
-LABEL org.opencontainers.image.url="https://github.com/Toa1984/ili-dashboard"
+FROM docker.io/library/python:3.11-slim as builder
 
 WORKDIR /app
 
@@ -13,9 +7,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Python Dependencies (separate layer for better caching)
+# Build Python dependencies (separate layer for better caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Final stage: minimal runtime image
+FROM docker.io/library/python:3.11-slim
+
+LABEL org.opencontainers.image.title="ili Dashboard"
+LABEL org.opencontainers.image.description="Lightweight self-hosted Kanban Dashboard"
+LABEL org.opencontainers.image.licenses="AGPL-3.0"
+LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
+LABEL org.opencontainers.image.url="https://github.com/Toa1984/ili-public"
+
+WORKDIR /app
+
+# System Dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python dependencies from builder stage
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Version + build metadata (ILI_COMMIT/ILI_BUILD_DATE are passed by ili-update.sh,
 # plain `compose build` leaves them "unknown" — git is not needed inside the image)

@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Idea / feature from your ili instance
-    url: https://github.com/Toa1984/ili-dashboard/issues/new?labels=from-instance&title=%5Bidea%5D+
+    url: https://github.com/Toa1984/ili-public/issues/new?labels=from-instance&title=%5Bidea%5D+
     about: Export a card as an issue from inside ili ("Als Issue exportieren") or describe it here.

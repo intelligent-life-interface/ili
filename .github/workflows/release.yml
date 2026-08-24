@@ -4,9 +4,9 @@
 # Versioning is manual semver (project decision) — see docs/RELEASING.md.
 #
 # Images (namespace must be lowercase for ghcr):
-#   ghcr.io/toa1984/ili-dashboard           FastAPI backend   (Containerfile)
-#   ghcr.io/toa1984/ili-dashboard-web       nginx frontend    (Containerfile.web)
-#   ghcr.io/toa1984/ili-dashboard-terminal  browser terminal  (deploy/Containerfile.terminal)
+#   ghcr.io/toa1984/ili           FastAPI backend   (Containerfile)
+#   ghcr.io/toa1984/ili-web       nginx frontend    (Containerfile.web)
+#   ghcr.io/toa1984/ili-terminal  browser terminal  (deploy/Containerfile.terminal)
 #
 # Tags per image: X.Y.Z, X.Y, latest (latest only for non-prerelease tags).
 # The packages inherit the repository visibility (private until the publish gate
@@ -24,7 +24,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_BASE: ghcr.io/toa1984/ili-dashboard
+  IMAGE_BASE: ghcr.io/toa1984/ili
 
 jobs:
   build:

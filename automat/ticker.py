@@ -56,6 +56,13 @@ def main() -> None:
         time.sleep(5)
         waited += 5
     while True:
+        # Reap dead children before the tick to avoid zombies (PID 1 is the reaper)
+        try:
+            while os.waitpid(-1, os.WNOHANG)[0] > 0:
+                pass
+        except ChildProcessError:
+            pass  # No children to reap (normal case most ticks)
+
         if DISABLED.exists():
             log.info("paused: %s exists", DISABLED)
         else:

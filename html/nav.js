@@ -435,6 +435,12 @@
         ds.src = '/js/darstellung.js?v=20260716c';
         document.head.appendChild(ds);
     }
+    // Sprachumschalter (de/en/es) — ebenfalls ueberall
+    if (!document.querySelector('script[src^="/lang.js"]')) {
+        const ln = document.createElement('script');
+        ln.src = '/lang.js?v=20260823';
+        document.head.appendChild(ln);
+    }
     // GitHub-Rückkanal: Frontend-Fehler melden (nur bei Opt-in, prüft selbst) — ebenfalls überall
     if (!document.querySelector('script[src^="/js/github-report.js"]')) {
         const gr = document.createElement('script');

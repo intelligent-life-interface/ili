@@ -20,6 +20,7 @@ Endpunkte:
 """
 from __future__ import annotations
 
+import os
 import re
 import json
 import logging
@@ -365,7 +366,8 @@ def status():
     auto = [{"id": b.get("id"), "name": b.get("name", b.get("id"))}
             for b in manifest.get("boards", []) if b.get("auto") is True]
     workers = []
-    wdir = Path.home() / "containers/kanban-automat/state/workers"
+    automat_state_dir = Path(os.getenv("AUTOMAT_STATE_DIR", "/opt/ili-automat/state"))
+    wdir = automat_state_dir / "workers"
     if wdir.is_dir():
         for f in wdir.glob("*.json"):
             try:

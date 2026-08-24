@@ -7,9 +7,9 @@ A release is a git tag; GitHub Actions builds and pushes the images.
 
 | Image | Built from | Role |
 |---|---|---|
-| `ghcr.io/toa1984/ili-dashboard` | `Containerfile` | FastAPI backend (`api`) |
-| `ghcr.io/toa1984/ili-dashboard-web` | `Containerfile.web` | nginx frontend (`web`) |
-| `ghcr.io/toa1984/ili-dashboard-terminal` | `deploy/Containerfile.terminal` | optional browser terminal |
+| `ghcr.io/toa1984/ili` | `Containerfile` | FastAPI backend (`api`) |
+| `ghcr.io/toa1984/ili-web` | `Containerfile.web` | nginx frontend (`web`) |
+| `ghcr.io/toa1984/ili-terminal` | `deploy/Containerfile.terminal` | optional browser terminal |
 
 Each tag `vX.Y.Z` produces the image tags `X.Y.Z`, `X.Y` and `latest`
 (`latest` is skipped for pre-releases such as `v0.2.0-rc1`). A manual run of the

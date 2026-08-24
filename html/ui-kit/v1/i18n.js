@@ -8,18 +8,39 @@
  * Include order matters (defer runs in document order):
  *   <script src="/i18n/de.js" defer></script>      <- sets window.I18N
  *   <script src="/ui-kit/v1/i18n.js" defer></script>
+ *   <script src="/nav.js" defer></script>           <- builds nav labels from window.I18N
  *
  * Dictionary = flat object, dotted keys:
  *   window.I18N = { "nav.fragen": "Offene Fragen", ... };
  *
  * Fail-safe by design: t() always takes a fallback and returns it when the
  * dictionary or the key is missing, so a page never depends on this file.
+ *
+ * Non-German language: /lang.js (loaded dynamically by nav.js, see there) lets
+ * the user switch language, caches the chosen dictionary in localStorage and
+ * reloads the page. THIS file takes that cache over synchronously below —
+ * before nav.js (the very next <script defer>) builds the nav from
+ * window.I18N. Without that, the nav would stay German forever for non-German
+ * users, because lang.js itself only runs after DOMContentLoaded.
  * ========================================================================== */
 "use strict";
 
 window.I18n = (function () {
     var DEBUG = document.documentElement.dataset.uiDebug !== "off";
     var missing = [];   // Schluessel ohne Eintrag — am Ende EINMAL gesammelt loggen
+
+    (function applyCachedLanguage() {
+        try {
+            var lang = localStorage.getItem("ds_lang");
+            var cached = lang && lang !== "de" ? localStorage.getItem("ds_lang_dict") : null;
+            if (cached) {
+                window.I18N = JSON.parse(cached);
+                if (DEBUG) console.debug("[i18n] gecachtes Woerterbuch uebernommen (" + lang + "):", Object.keys(window.I18N).length, "Eintraege");
+            }
+        } catch (e) {
+            console.warn("[i18n] gecachtes Woerterbuch konnte nicht uebernommen werden:", e);
+        }
+    })();
 
     function dict() { return window.I18N || {}; }
 

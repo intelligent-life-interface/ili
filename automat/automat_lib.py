@@ -734,6 +734,19 @@ def pid_alive(pid: int) -> bool:
     if not pid:
         return False
     try:
+        # Check if process is a zombie: stat field 3 (state) is 'Z'
+        proc_file = Path(f"/proc/{pid}/stat")
+        if proc_file.exists():
+            stat_line = proc_file.read_text()
+            # Field 3 (state) is after the second space in format: "pid (name) state ..."
+            # Split by space carefully — process name can contain spaces if quoted
+            fields = stat_line.split()
+            if len(fields) > 2 and fields[2] == 'Z':
+                logger.debug("pid_alive: pid %d is zombie", pid)
+                return False
+    except Exception:
+        pass  # Proceed with os.kill check if /proc check fails
+    try:
         os.kill(pid, 0)
         return True
     except (ProcessLookupError, ValueError):

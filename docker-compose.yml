@@ -4,7 +4,7 @@
 #
 # Zwei Wege, dieselbe Datei:
 #   Registry (kein Clone noetig):  docker compose pull && docker compose up -d
-#       Images: ghcr.io/toa1984/ili-dashboard{,-web}:latest — Version pinnen
+#       Images: ghcr.io/toa1984/ili{,-web}:latest — Version pinnen
 #       mit ILI_VERSION=0.1.0 in .env. (Solange das Repo privat ist, vorher
 #       `docker login ghcr.io` mit einem read:packages-Token.)
 #   Aus dem Quelltext:             docker compose up -d --build
@@ -33,7 +33,7 @@ services:
       args:
         ILI_COMMIT: ${ILI_COMMIT:-unknown}
         ILI_BUILD_DATE: ${ILI_BUILD_DATE:-unknown}
-    image: ghcr.io/toa1984/ili-dashboard:${ILI_VERSION:-latest}
+    image: ghcr.io/toa1984/ili:${ILI_VERSION:-latest}
     container_name: ili-api
     restart: unless-stopped
     # Kein veroeffentlichter Port: das Frontend erreicht die API unter dem
@@ -45,6 +45,9 @@ services:
       # Boards persistent speichern (beim ersten Start werden Demo-Boards kopiert)
       - dashboard-boards:/app/boards
       - dashboard-data:/app/data
+      # Automat-State (Worker-Info, KI-Konfiguration) — wird mit dem Terminal-Service
+      # gemountet, aber die api braucht Zugriff auf Worker-Status und ai_config.json
+      - automat-state:/opt/ili-automat/state
     environment:
       # KI-Features: Anthropic API-Key (optional — ohne Key laufen Kanban-Grundfunktionen)
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
@@ -52,6 +55,8 @@ services:
       OLLAMA_URL: "${OLLAMA_URL:-}"
       # URL unter der das Dashboard erreichbar ist (für interne Links)
       DASHBOARD_URL: "${DASHBOARD_URL:-http://localhost:8798}"
+      # Automat-State: Worker-Info und KI-Konfiguration (ai_config.json)
+      AUTOMAT_STATE_DIR: "/opt/ili-automat/state"
     healthcheck:
       # Die API bedient /boards; das /api-Praefix strippt erst das nginx-Frontend.
       test: ["CMD", "curl", "-fs", "http://localhost:8798/boards"]
@@ -67,7 +72,7 @@ services:
     build:
       context: .
       dockerfile: Containerfile.web
-    image: ghcr.io/toa1984/ili-dashboard-web:${ILI_VERSION:-latest}
+    image: ghcr.io/toa1984/ili-web:${ILI_VERSION:-latest}
     container_name: ili-web
     restart: unless-stopped
     depends_on:
@@ -89,3 +94,4 @@ services:
 volumes:
   dashboard-boards:
   dashboard-data:
+  automat-state:

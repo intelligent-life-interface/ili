@@ -1,0 +1,4 @@
+# Development & Testing — NOT for runtime image
+pytest
+pytest-cov
+ruff

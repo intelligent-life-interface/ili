@@ -63,20 +63,20 @@ build takes a minute; subsequent starts are instant.
 ### Alternative: install from the registry (no clone, no build)
 
 Prebuilt images live on GitHub Container Registry:
-`ghcr.io/toa1984/ili-dashboard` (api), `ghcr.io/toa1984/ili-dashboard-web` (web) and
-`ghcr.io/toa1984/ili-dashboard-terminal` (optional terminal), for `linux/amd64` and
+`ghcr.io/toa1984/ili` (api), `ghcr.io/toa1984/ili-web` (web) and
+`ghcr.io/toa1984/ili-terminal` (optional terminal), for `linux/amd64` and
 `linux/arm64`. The api image carries its own compose files — let it write them:
 
 ```bash
 mkdir ili && cd ili
-docker run --rm --pull always -v "$PWD":/out ghcr.io/toa1984/ili-dashboard init
+docker run --rm --pull always -v "$PWD":/out ghcr.io/toa1984/ili init
 docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   # note: no --build
 ```
 
 Podman: same thing, `:Z` on the mount and `podman-compose` for the stack:
 
 ```bash
-podman run --rm --pull always -v "$PWD":/out:Z ghcr.io/toa1984/ili-dashboard init
+podman run --rm --pull always -v "$PWD":/out:Z ghcr.io/toa1984/ili init
 podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
 ```
 

@@ -9,7 +9,8 @@
 <script src="/ui-kit/v1/i18n.js" defer></script>
 <script src="/nav.js" defer></script>
 <link rel="stylesheet" href="/css/zones.css?v=20260804-zones">
-<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260816">
+<link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260821">
+<script src="/ui-kit/v1/ui-kit.js" defer></script>
 <style>
   :root {
     --bg: var(--t-bg, #0f1117); --surface: var(--t-surface, #1a1d27); --border: var(--t-raised, #2a2d3e);
@@ -43,7 +44,8 @@
   .question { margin-top: 8px; font-size: .95rem; }
   .answer { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .answer input[type=text] { flex: 1 1 220px; min-width: 160px; padding: 8px 10px; border-radius: 8px;
-         border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: .9rem; }
+         border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: .9rem;
+         white-space: normal; word-wrap: break-word; overflow-wrap: break-word; }
   button.btn, a.btn { text-decoration: none; padding: 7px 14px; border-radius: 8px; font-size: .88rem; font-weight: 600;
           background: var(--accent); color: var(--accent-text, #fff); border: 1px solid var(--accent); cursor: pointer; }
   .btn.ghost { background: transparent; color: var(--text); border-color: var(--border); font-weight: 500; }

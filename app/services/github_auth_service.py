@@ -34,7 +34,7 @@ _DEVICE_CODE_URL = "https://github.com/login/device/code"
 _TOKEN_URL = "https://github.com/login/oauth/access_token"
 _USER_URL = "https://api.github.com/user"
 _TIMEOUT = 15.0
-_HEADERS = {"Accept": "application/json", "User-Agent": "ili-dashboard"}
+_HEADERS = {"Accept": "application/json", "User-Agent": "ili"}
 
 
 # ---------------------------------------------------------------- storage --

@@ -10,17 +10,10 @@ import re
 from fastapi import APIRouter, HTTPException, Query
 
 from app.services import misc_service
-from app.services import version_service
 from app.services import bot_status_service
 
 log = logging.getLogger("dashboard.api.misc")
 router = APIRouter(tags=["misc"])
-
-
-@router.get("/api/version")
-def api_version():
-    """Installed version of this ili instance (VERSION file + build metadata)."""
-    return version_service.version_info()
 
 
 @router.get("/bot-status")

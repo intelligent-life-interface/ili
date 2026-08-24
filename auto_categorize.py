@@ -31,7 +31,7 @@ _HEURISTIC = [
                         "reha", "ergotherap", "therap", "adhs", "puls", "blutdruck", "wellness")),
     ("lernen",         ("lern", "matur", "schul", "schüler", "bildung", "vokabel", "sprachen",
                         "vorlesen", "nachhilfe", "studium", "forvo", "biologie", "chemie")),
-    ("finanzen",       ("steuer", "finanz", "rechnung", "kassenbon", "migros", "budget", "konto", "zahlung")),
+    ("finanzen",       ("steuer", "finanz", "rechnung", "kassenbon", "budget", "konto", "zahlung")),
     # KI/AI-Software (Modelle, Sprachverarbeitung, Ollama/Claude-Anbindung) — NICHT Technik.
     ("ki-projekte",    ("ollama", "ki-", "claude", "llm", "huggingface", "whisper", "tts",
                         "sprachmodell", "neurofeedback", "prompt", "chatbot")),

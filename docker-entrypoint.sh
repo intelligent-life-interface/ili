@@ -11,8 +11,8 @@
 #        env               print .env.example to stdout
 #        help              this list
 #      Works the same with Docker and Podman:
-#        docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili-dashboard init
-#        podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili-dashboard init
+#        docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
+#        podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili init
 #
 #   2. Anything else (the CMD = uvicorn): seed the starter boards, then exec.
 #      A fresh installation would otherwise show an empty dashboard. The boards
@@ -26,6 +26,7 @@ set -e
 
 BOARDS_DIR="${BOARDS_DIR:-/app/boards}"
 SEED_DIR="${SEED_DIR:-/app/demo/boards}"
+AUTOMAT_STATE_DIR="${AUTOMAT_STATE_DIR:-/opt/ili-automat/state}"
 
 log() { echo "[entrypoint] $*" >&2; }
 
@@ -37,8 +38,8 @@ usage() {
 ili image — usage:
   init              write docker-compose.yml, docker-compose.terminal.yml, .env into /out
                     (existing .env is kept). Mount your folder:
-                      docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili-dashboard init
-                      podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili-dashboard init
+                      docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
+                      podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili init
                     then:  docker compose up -d   (or: podman-compose up -d)
   compose           print docker-compose.yml
   compose-terminal  print docker-compose.terminal.yml
@@ -90,6 +91,7 @@ case "${1:-}" in
 esac
 
 mkdir -p "$BOARDS_DIR"
+mkdir -p "$AUTOMAT_STATE_DIR/workers"
 
 if [ -n "$(ls -A "$BOARDS_DIR" 2>/dev/null)" ]; then
     log "boards directory holds $(ls -1 "$BOARDS_DIR" | wc -l) file(s) — keeping them, no seed"

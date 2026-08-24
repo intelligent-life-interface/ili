@@ -179,7 +179,7 @@ def _gh(method: str, path: str, token: str, body: dict) -> httpx.Response:
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "ili-dashboard",
+        "User-Agent": "ili",
     })
 
 

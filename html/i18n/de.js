@@ -193,5 +193,15 @@ window.I18N = {
     "gh.export.send": "Senden",
     "gh.export.deeplink": "Im Browser auf GitHub öffnen (ohne Anmeldung)",
     "gh.export.done": "Issue erstellt:",
-    "gh.export.fail": "Export fehlgeschlagen:"
+    "gh.export.fail": "Export fehlgeschlagen:",
+
+    // ── Update-Banner (index.html, js/update-banner.js) ─────────────────────
+    "update.banner.title": "ili {available} verfügbar",
+    "update.banner.installed": "installiert: {version}",
+    "update.banner.beta": "🧪 Beta",
+    "update.banner.changes": "→ Änderungen",
+    "update.banner.howto": "Zum Aktualisieren:",
+    "update.banner.close": "Schliessen",
+    "update.banner.copy_title": "In Zwischenablage kopieren",
+    "update.banner.copy_aria": "Kopieren"
 };

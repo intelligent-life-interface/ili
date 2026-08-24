@@ -149,6 +149,7 @@ def _register_routers() -> None:
     from app.api import wa_whitelist as wa_whitelist_api
     from app.api import token_guard as token_guard_api
     from app.api import usage as usage_api
+    from app.api import version as version_api
     from app.api import github_issues as github_issues_api
 
     app.include_router(config_api.router)
@@ -182,8 +183,16 @@ def _register_routers() -> None:
     app.include_router(manager_api.router)
     app.include_router(token_guard_api.router)
     app.include_router(usage_api.router)
+    app.include_router(version_api.router)
     app.include_router(github_issues_api.router)
     log.info("Router registriert: config (W1), boards+kanban (W2/3), ki (W4), chat+photos (W5), misc (W6), logs/streaming (W7), dashboard (Phase 6), isehauer (F1), attachments, web-adressen, brainstorm, recent, github-status, user-settings, manager, token-guard")
 
 
 _register_routers()
+
+
+@app.on_event("startup")
+async def on_startup():
+    """Initialize background tasks at app startup."""
+    from app.background_tasks import startup
+    await startup()
