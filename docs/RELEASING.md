@@ -11,6 +11,13 @@ A release is a git tag; GitHub Actions builds and pushes the images.
 | `ghcr.io/toa1984/ili-web` | `Containerfile.web` | nginx frontend (`web`) |
 | `ghcr.io/toa1984/ili-terminal` | `deploy/Containerfile.terminal` | optional browser terminal |
 
+Every image is pushed to **two registries in the same build**: `ghcr.io/toa1984/*`
+and `docker.io/toa1984/*` (Docker Hub mirror — only Docker Hub is indexed by
+`docker search`, ghcr is not). The Hub push needs the repo secrets
+`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (personal access token, read/write;
+stored in `config.env` on the home server as `DOCKERHUB_USER`/`DOCKERHUB_TOKEN`).
+Repo short descriptions and READMEs on Docker Hub are maintained manually.
+
 Each tag `vX.Y.Z` produces the image tags `X.Y.Z`, `X.Y` and `latest`
 (`latest` is skipped for pre-releases such as `v0.2.0-rc1`). A manual run of the
 workflow (*Actions → Release images → Run workflow*) pushes `edge` from the
