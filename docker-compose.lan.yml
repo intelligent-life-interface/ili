@@ -1,0 +1,43 @@
+# docker-compose.lan.yml — gives the web container its OWN address in your LAN
+# (macvlan). Optional overlay; the normal way to reach ili is the address of the
+# machine it runs on (see QUICKSTART.md, "Reaching ili by its own address").
+#
+# Start:
+#     docker compose -f docker-compose.yml -f docker-compose.lan.yml up -d
+# or add the file to COMPOSE_FILE in .env.
+#
+# Needs LAN_PARENT, LAN_SUBNET, LAN_GATEWAY and LAN_IP in .env (see .env.example).
+#
+# Limits — all of them come from Docker / the Linux kernel, not from ili:
+#   * Linux only. Docker Desktop (macOS/Windows) does not support macvlan.
+#   * The IP is STATIC: Docker has no DHCP client for containers. Pick an
+#     address outside your router's DHCP range (or reserve it there).
+#   * Use a wired interface as LAN_PARENT. Wi-Fi access points usually accept
+#     one MAC per association and drop the container's second MAC.
+#   * The ili machine itself cannot reach the macvlan address (kernel
+#     restriction) — every OTHER device in the LAN can. Test from a phone or
+#     another computer, not from the host.
+#   * Podman: macvlan needs root (rootless has no access to host interfaces).
+#     With root, Podman can even use real DHCP — see QUICKSTART.md.
+#
+# web stays on the default network too: that is how it reaches the api
+# container (/api proxy). Removing "default" here breaks the dashboard.
+
+name: ili
+
+services:
+  web:
+    networks:
+      default: {}
+      lan:
+        ipv4_address: ${LAN_IP}
+
+networks:
+  lan:
+    driver: macvlan
+    driver_opts:
+      parent: ${LAN_PARENT}
+    ipam:
+      config:
+        - subnet: ${LAN_SUBNET}
+          gateway: ${LAN_GATEWAY}
