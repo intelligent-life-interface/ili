@@ -3,11 +3,12 @@
 #
 #   1. Subcommands that hand out the compose files baked into the image, so an
 #      installation needs neither a clone nor a download (variant A, 2026-08-22):
-#        init              write docker-compose.yml, docker-compose.terminal.yml and
-#                          .env into /out (mount your folder there); an existing .env
+#        init              write docker-compose.yml, docker-compose.terminal.yml,
+#                          docker-compose.lan.yml and .env into /out (mount your folder there); an existing .env
 #                          is never overwritten
 #        compose           print docker-compose.yml to stdout
 #        compose-terminal  print docker-compose.terminal.yml to stdout
+#        compose-lan       print docker-compose.lan.yml to stdout
 #        env               print .env.example to stdout
 #        help              this list
 #      Works the same with Docker and Podman:
@@ -36,7 +37,8 @@ OUT_DIR="${OUT_DIR:-/out}"
 usage() {
     cat >&2 <<'USAGE'
 ili image — usage:
-  init              write docker-compose.yml, docker-compose.terminal.yml, .env into /out
+  init              write docker-compose.yml, docker-compose.terminal.yml,
+                    docker-compose.lan.yml and .env into /out
                     (existing .env is kept). Mount your folder:
                       docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
                       podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili init
@@ -46,6 +48,7 @@ ili image — usage:
                       docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
   compose           print docker-compose.yml
   compose-terminal  print docker-compose.terminal.yml
+  compose-lan       print docker-compose.lan.yml (own LAN address via macvlan, optional)
   env               print .env.example
   help              this text
 Docs, source & issues: https://github.com/Toa1984/ili-public  (QUICKSTART.md)
@@ -70,7 +73,7 @@ do_init() {
         log "ERROR: $OUT_DIR is not writable (SELinux? add :Z to the -v option)"
         exit 1
     fi
-    for f in docker-compose.yml docker-compose.terminal.yml; do
+    for f in docker-compose.yml docker-compose.terminal.yml docker-compose.lan.yml; do
         if [ -f "$OUT_DIR/$f" ]; then
             log "$f exists — replacing with the version from this image"
         fi
@@ -95,6 +98,7 @@ case "${1:-}" in
     init)             do_init; exit 0 ;;
     compose)          emit docker-compose.yml; exit 0 ;;
     compose-terminal) emit docker-compose.terminal.yml; exit 0 ;;
+    compose-lan)      emit docker-compose.lan.yml; exit 0 ;;
     env)              emit .env.example; exit 0 ;;
     help|-h|--help)   usage; exit 0 ;;
 esac
