@@ -3,7 +3,7 @@
 
 Usage: compose-dist.py <src-dir> <dist-dir>
 
-Copies docker-compose.yml and docker-compose.terminal.yml from <src-dir> to
+Copies the compose files (FILES below) from <src-dir> to
 <dist-dir> with every service-level `build:` block removed. The files in the
 repository keep their build blocks for source installs; the copies baked into
 the api image are handed out by `... init` to installations without a checkout,
@@ -16,7 +16,8 @@ Runs at image build time; fails the build if a `build:` survives.
 import os
 import sys
 
-FILES = ("docker-compose.yml", "docker-compose.terminal.yml")
+FILES = ("docker-compose.yml", "docker-compose.terminal.yml",
+         "docker-compose.lan.yml")
 SERVICE_INDENT = 4
 
 
