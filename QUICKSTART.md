@@ -7,6 +7,15 @@ Welcome! **ili** is a lightweight, self-hosted Kanban dashboard for organizing p
 - **Docker Compose** or **podman-compose** (`podman compose` also works on recent Podman)
 - A couple of minutes
 
+**Where to run it — ideally on a machine of its own.** ili is not a passive web
+app: the project terminal is full shell access, and Claude acts inside it
+autonomously (the Kanban automat works on cards while you are away). Upcoming
+features let projects start their own containers. Everything ili can do, it can
+do to the machine it runs on — so give it a dedicated one: an old laptop, a
+mini PC, a Raspberry Pi 4/5 (arm64 images are provided), a small VM or a cheap
+VPS. Your daily workstation works for a first look, but is not where ili should
+live long-term.
+
 **Very old `podman-compose` (seen: a Debian package reporting `0.0.1`) does not
 substitute `${VAR}` placeholders in `docker-compose.yml` at all — it passes the
 literal text through.** Terminal login (`TERMINAL_USER`/`TERMINAL_PASSWORD`) is
