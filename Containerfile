@@ -65,7 +65,7 @@ COPY demo/ demo/
 # registry variant in dist/ must not — without a checkout docker compose would
 # fall back to building when a pull fails and die on the missing deploy/ folder.
 COPY .env.example dist/
-COPY docker-compose.yml docker-compose.terminal.yml deploy/compose-dist.py /tmp/compose-src/
+COPY docker-compose.yml docker-compose.terminal.yml docker-compose.lan.yml deploy/compose-dist.py /tmp/compose-src/
 RUN python3 /tmp/compose-src/compose-dist.py /tmp/compose-src dist \
     && rm -rf /tmp/compose-src
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
