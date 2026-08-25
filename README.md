@@ -20,7 +20,9 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 > (`docker run --rm --pull always -v "$PWD":/out ghcr.io/toa1984/ili init && docker compose up -d`,
 > kein Clone nötig — das Image liefert seine Compose-Dateien selbst) oder
 > `git clone` + `docker compose up -d --build`. Dieselben Images gibt es auch auf
-> Docker Hub als `toa1984/ili{,-web,-terminal}`. Dieses README beschreibt daneben
+> Docker Hub als `toa1984/ili{,-web,-terminal}`. In der `.env` danach Claude-Zugang
+> (`CLAUDE_CODE_OAUTH_TOKEN` oder `ANTHROPIC_API_KEY`) und `TERMINAL_PASSWORD` setzen
+> (leer = wird beim Start erzeugt: `docker compose logs web | grep ili-setup`). Dieses README beschreibt daneben
 > den Aufbau und die Installation aus dem Quelltext. Releases: [docs/RELEASING.md](docs/RELEASING.md).
 
 ---
