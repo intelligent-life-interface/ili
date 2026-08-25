@@ -48,6 +48,7 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 ## Voraussetzungen
 
 - Linux mit systemd (rootless Podman oder Docker)
+- **Adresse im LAN:** ili antwortet unter der Adresse der Maschine (empfohlen: `ILI_PORT=80` + mDNS → `http://ili.local/`); eine eigene LAN-IP für den Web-Container gibt es optional per macvlan (`docker-compose.lan.yml`, statisch — Docker kennt kein DHCP für Container; echtes DHCP nur mit Podman als root). Details: [QUICKSTART → Reaching ili by its own address](QUICKSTART.md#reaching-ili-by-its-own-address).
 - **Idealerweise ein eigener Rechner** (alter Laptop, Mini-PC, Raspberry Pi, kleine VM/VPS): Das Projekt-Terminal ist voller Shell-Zugriff, Claude arbeitet darin autonom (Kanban-Automat), und Projekte sollen künftig eigene Container starten können — alles, was ili kann, kann es mit der Maschine machen, auf der es läuft. Der Arbeits-PC taugt zum Ausprobieren, nicht als Dauerheimat.
 - Python 3.11+
 - nginx (für das Frontend-Serving)
