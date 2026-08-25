@@ -52,7 +52,10 @@ Lessons from 0.1.8–0.1.10 — every item here once cost a release or a user.
       written compose files contain **no `build:` block** (`grep build: *.yml`)
       and that `.env` has `COMPOSE_FILE=` active. Then `docker compose up -d` and
       open the browser — the terminal container must be running too.
-- [ ] **Every user-facing hint says the same thing:** `init` output
+- [ ] **Every user-facing hint says the same thing** — including the two
+      settings a first-time user must make: Claude access (`CLAUDE_CODE_OAUTH_TOKEN`
+      or `ANTHROPIC_API_KEY`) and `TERMINAL_PASSWORD` (empty = generated, read via
+      `docker compose logs web | grep ili-setup`): `init` output
       (`docker-entrypoint.sh`), QUICKSTART.md, README, Docker Hub description
       (`hub.docker.com/r/toa1984/ili`). Docker Hub is edited by hand — do not
       forget it.
