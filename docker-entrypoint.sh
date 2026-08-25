@@ -40,7 +40,9 @@ ili image — usage:
                     (existing .env is kept). Mount your folder:
                       docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
                       podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili init
-                    then edit .env (CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY) and:
+                    then edit .env — CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY, and
+                    TERMINAL_PASSWORD for the browser terminal (empty = generated at start,
+                    read it with: docker compose logs web | grep ili-setup) — and:
                       docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
   compose           print docker-compose.yml
   compose-terminal  print docker-compose.terminal.yml
@@ -81,7 +83,9 @@ do_init() {
         cp "$DIST_DIR/.env.example" "$OUT_DIR/.env"
         log "wrote .env (from .env.example — edit ILI_PORT, passwords etc. as needed)"
     fi
-    log "done. Next: edit .env (CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY), then:"
+    log "done. Next: edit .env — CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY (required),"
+    log "  TERMINAL_PASSWORD for the browser terminal (empty = generated at start:"
+    log "  docker compose logs web | grep ili-setup) — then:"
     log "  docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   →  http://localhost:8080"
     log "  (podman: podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d)"
     log "docs & issues: https://github.com/Toa1984/ili-public"
