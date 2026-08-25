@@ -48,6 +48,7 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 ## Voraussetzungen
 
 - Linux mit systemd (rootless Podman oder Docker)
+- **Idealerweise ein eigener Rechner** (alter Laptop, Mini-PC, Raspberry Pi, kleine VM/VPS): Das Projekt-Terminal ist voller Shell-Zugriff, Claude arbeitet darin autonom (Kanban-Automat), und Projekte sollen künftig eigene Container starten können — alles, was ili kann, kann es mit der Maschine machen, auf der es läuft. Der Arbeits-PC taugt zum Ausprobieren, nicht als Dauerheimat.
 - Python 3.11+
 - nginx (für das Frontend-Serving)
 - Claude-Zugang — **Pflicht** (ohne ihn bleibt jedes neu angelegte Projekt eine leere Vorlage; die Projekt-Vorbereitung, der Board-Assistent und der Kanban-Automat laufen über die Claude-Bridge im Terminal-Container). **Eines von beiden genügt:**
