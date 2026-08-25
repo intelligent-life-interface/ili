@@ -246,6 +246,76 @@ Two things worth knowing:
 - **New settings appear in `.env.example`, not in your `.env`.** After an update,
   compare the two (`diff .env .env.example`) to see what is new.
 
+## Reaching ili by its own address
+
+Three ways, from simple to special. The first one is what we recommend.
+
+### A. The machine's address is ili's address (recommended)
+
+Run ili on a machine of its own (see Prerequisites) and that machine already
+has an IP from your router's DHCP — you only need ili to answer on the normal
+web port and to have a name:
+
+1. `ILI_PORT=80` in `.env`, then `docker compose up -d`. Rootless Docker/Podman
+   cannot bind ports below 1024 by default; allow it once on the host:
+   ```bash
+   echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/80-ili.conf
+   sudo sysctl --system
+   ```
+2. A name instead of an IP: name the machine `ili` and install mDNS on the host
+   (`sudo apt install avahi-daemon` on Debian/Ubuntu/Raspberry Pi OS; macOS and
+   Windows resolve `.local` names out of the box). Then `http://ili.local/`
+   works from every device in your LAN — no DNS, no router config.
+
+Works with Docker and Podman, wired or Wi-Fi, on every OS.
+
+### B. A separate IP for the web container (macvlan, static)
+
+For a shared Linux box where ili should appear as its own device in the LAN.
+Docker has **no DHCP client for containers** — the address is static; pick one
+outside the router's DHCP range (or reserve it there).
+
+1. In `.env`: `LAN_PARENT` (wired interface, e.g. `eth0`), `LAN_SUBNET`,
+   `LAN_GATEWAY`, `LAN_IP`.
+2. Add the overlay: `COMPOSE_FILE=docker-compose.yml:docker-compose.terminal.yml:docker-compose.lan.yml`
+   (or pass all three `-f`), then `docker compose up -d`.
+
+Limits (Docker / Linux kernel, not ili): Linux only — Docker Desktop on macOS
+and Windows does not support macvlan. **The ili machine itself cannot reach
+the macvlan address** — every other device can, so test from a phone or a
+second computer. Wi-Fi as parent interface usually fails (one MAC per
+association). The web container stays on the default network as well; that is
+how it reaches the api container — keep both.
+
+### C. Real DHCP with Podman (root)
+
+Podman can let the container ask your DHCP server itself — with `netavark` ≥ 1.6
+/ Podman ≥ 4.5, and **only as root** (rootless Podman has no access to the host
+interfaces, with or without DHCP):
+
+```bash
+sudo systemctl enable --now netavark-dhcp-proxy.socket
+sudo podman network create -d macvlan -o parent=eth0 --ipam-driver=dhcp ili-lan
+```
+
+Then use an overlay that attaches `web` to that external network **without** a
+fixed address (the DHCP server assigns it):
+
+```yaml
+services:
+  web:
+    networks:
+      default: {}
+      lan: {}
+networks:
+  lan:
+    external: true
+    name: ili-lan
+```
+
+Because the network is root-owned, the whole stack runs as root then
+(`sudo podman-compose …`). The kernel restriction from B applies here too.
+
 ## Data Persistence
 
 Data lives in named volumes, prefixed with the compose project name `ili`
