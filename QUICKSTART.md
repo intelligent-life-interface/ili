@@ -71,38 +71,60 @@ build takes a minute; subsequent starts are instant.
 
 ### Alternative: install from the registry (no clone, no build)
 
-Prebuilt images live on GitHub Container Registry:
-`ghcr.io/toa1984/ili` (api), `ghcr.io/toa1984/ili-web` (web) and
-`ghcr.io/toa1984/ili-terminal` (optional terminal), for `linux/amd64` and
-`linux/arm64`. The api image carries its own compose files — let it write them:
+Prebuilt images for `linux/amd64` and `linux/arm64` (Apple Silicon, Raspberry Pi)
+live on GitHub Container Registry — `ghcr.io/toa1984/ili` (api), `ghcr.io/toa1984/ili-web`
+(web), `ghcr.io/toa1984/ili-terminal` (optional terminal) — and as a mirror on Docker Hub
+(`toa1984/ili`, `toa1984/ili-web`, `toa1984/ili-terminal`). Both are public, no login
+needed; the commands below use ghcr.io, swap in `toa1984/ili` if you prefer Docker Hub.
+
+The api image carries its own compose files — let it write them (`init`), then start.
+
+**macOS / Linux (Docker Desktop, Docker Engine, OrbStack) — bash/zsh:**
 
 ```bash
-mkdir ili && cd ili
+mkdir -p ~/ili && cd ~/ili
 docker run --rm --pull always -v "$PWD":/out ghcr.io/toa1984/ili init
-docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   # note: no --build
+printf 'TERMINAL_USER=me\nTERMINAL_PASSWORD=change-me\n' >> .env      # optional, see step 4
+docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   # no --build
 ```
 
-Podman: same thing, `:Z` on the mount and `podman-compose` for the stack:
+**Windows (Docker Desktop) — PowerShell:**
+
+```powershell
+New-Item -ItemType Directory -Force ~/ili | Out-Null; cd ~/ili
+docker run --rm --pull always -v "${PWD}:/out" ghcr.io/toa1984/ili init
+Add-Content -Path .env -Value "TERMINAL_USER=me`nTERMINAL_PASSWORD=change-me" -Encoding utf8   # optional
+docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
+```
+
+Two PowerShell traps: the mount must be quoted as `"${PWD}:/out"` — `"$PWD":/out`
+splits the argument and Docker answers `invalid reference format`; and always append
+to `.env` with `Add-Content -Encoding utf8` — `echo >> .env` writes UTF-16 in
+Windows PowerShell 5 and Compose then cannot read the file.
+
+**Linux with Podman (rootless):**
 
 ```bash
+mkdir -p ~/ili && cd ~/ili
 podman run --rm --pull always -v "$PWD":/out:Z ghcr.io/toa1984/ili init
 podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
 ```
 
-`--pull always` matters: without it an older `latest` already on your machine is
-used silently (its entrypoint then fails with `exec: init: not found`).
+`:Z` relabels the folder on SELinux hosts; harmless elsewhere. Podman needs
+`netavark` + `aardvark-dns` for container DNS (see Prerequisites).
+
+**All platforms:** open <http://localhost:8080> after ~30 s. Leave the terminal file
+out (`docker compose up -d` with only `docker-compose.yml`) if you do not want the
+browser terminal. `--pull always` matters: without it an older `latest` already on
+your machine is used silently (its entrypoint then fails with `exec: init: not found`).
+
 `init` writes `docker-compose.yml`, `docker-compose.terminal.yml` and `.env` (from
 `.env.example`; an existing `.env` is never touched). Other subcommands print a single
 file instead: `... compose`, `... compose-terminal`, `... env`, `... help`.
 
-Pin a version with `ILI_VERSION=0.1.1` in `.env` (default `latest`). Updates:
+Pin a version with `ILI_VERSION=0.1.11` in `.env` (default `latest`). Updates:
 `docker compose pull && docker compose up -d` — rerun `init` after a release to pick
 up compose changes (your `.env` stays).
-
-> **While the repository is still private** this path needs a login first:
-> `docker login ghcr.io` (or `podman login ghcr.io`) with a GitHub token that has
-> `read:packages`. Once the repository and its packages are public, no login is
-> required. Until then the clone-and-build path above is the documented default.
 
 ### 3. Access the Dashboard
 

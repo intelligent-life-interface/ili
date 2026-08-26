@@ -1,0 +1,125 @@
+# docker-compose.sandbox.yml — Docker-in-Docker Sandbox für Projekt-Container.
+#
+# Erlaubt dem Terminal, Projekt-Container zu bauen und zu starten, ohne den Host
+# zu beeinflussen. Der Sandbox ist ein eigenständiger Docker-Daemon mit völlig
+# isoliertem /var/lib/docker.
+#
+# Nutzung:
+#   docker compose -f docker-compose.yml -f docker-compose.terminal.yml \
+#                  -f docker-compose.sandbox.yml up -d --build
+#
+# Oder:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.terminal.yml:docker-compose.sandbox.yml
+#   docker compose up -d
+#
+# Projekt-Container in der Sandbox:
+#   podman exec ili-terminal docker build -t my-app ./projects/board-name
+#   podman exec ili-terminal docker run --name=my-app \
+#     -v /projects/board-name:/app:z -p 8100:3000 my-app
+#
+# Ports: die Sandbox selbst veroeffentlicht KEINEN Port. Den Bereich reserviert der
+# `gateway`-Service auf dem Host und leitet ihn 1:1 nach innen weiter (Host-Port N
+# -> sandbox:N). Default 8100–8119, ueber SANDBOX_PORT_FROM/TO in der .env
+# aenderbar — jeder Port kostet einen nginx-Block und ein Host-Port-Mapping, darum
+# 20 statt der frueher dokumentierten 100.
+#
+# Cleanup: docker system prune läuft nur INNERHALB der Sandbox; der Host wird
+# nie berührt.
+
+name: ili
+
+services:
+  api:
+    environment:
+      # Terminal erreicht den Docker Daemon der Sandbox per TLS
+      DOCKER_HOST: "tcp://sandbox:2376"
+      DOCKER_CERT_PATH: "/docker-certs"
+      DOCKER_TLS_VERIFY: "1"
+    volumes:
+      - docker-certs:/docker-certs:ro
+
+  terminal:
+    environment:
+      # Docker-CLI nutzt die Sandbox per TLS
+      DOCKER_HOST: "tcp://sandbox:2376"
+      DOCKER_CERT_PATH: "/docker-certs"
+      DOCKER_TLS_VERIFY: "1"
+    volumes:
+      - docker-certs:/docker-certs:ro
+      # /projects ist in der Sandbox unter demselben Pfad erreichbar
+      - ./projects:/projects:z
+    depends_on:
+      - sandbox
+
+  automat:
+    environment:
+      DOCKER_HOST: "tcp://sandbox:2376"
+      DOCKER_CERT_PATH: "/docker-certs"
+      DOCKER_TLS_VERIFY: "1"
+    volumes:
+      - docker-certs:/docker-certs:ro
+      - ./projects:/projects:z
+    depends_on:
+      - sandbox
+
+  sandbox:
+    image: docker.io/library/docker:dind
+    container_name: ili-sandbox-docker
+    restart: unless-stopped
+    privileged: true
+    # Socket auf Port 2375 (unverschlüsselt, NUR intern, Compose-Netz)
+    # DOCKER_HOST=unix:///var/run/docker.sock geht nicht (Socket ist nicht im
+    # Netz erreichbar) — deshalb TCP mit TLS.
+    environment:
+      DOCKER_TLS_CERTDIR: "/certs"
+    volumes:
+      # Sandbox hat sein eigenes Docker-Datenverzeichnis, unabhängig vom Host
+      - sandbox-docker:/var/lib/docker
+      # TLS-Zertifikate werden zwischen Sandbox und Clients geteilt
+      - docker-certs:/certs:rw
+      # /projects auch in der Sandbox erreichbar, damit Projekt-Container
+      # ihre Dateien dort finden
+      - ./projects:/projects:z
+    # Health: Docker-Socket in der Sandbox erreichbar
+    healthcheck:
+      test: ["CMD", "docker", "ps"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Netzwerk-Container: reserviert den Port-Bereich auf dem Host und leitet ihn in
+  # die Sandbox weiter. Bewusst ein eigener Container statt eines ports:-Blocks am
+  # sandbox-Service: die Reservierung steht damit an einer Stelle, die Sandbox
+  # bleibt ohne veroeffentlichte Ports, und Namens-Routing/Zugangsschutz koennen
+  # spaeter hier ansetzen, ohne den Docker-Daemon anzufassen.
+  gateway:
+    image: docker.io/library/nginx:alpine
+    container_name: ili-gateway
+    restart: unless-stopped
+    depends_on:
+      - sandbox
+    ports:
+      - "${SANDBOX_PORT_FROM:-8100}-${SANDBOX_PORT_TO:-8119}:${SANDBOX_PORT_FROM:-8100}-${SANDBOX_PORT_TO:-8119}"
+    environment:
+      # Muessen zum ports:-Bereich oben passen — das Skript erzeugt daraus die
+      # nginx-Bloecke. Auseinanderlaufende Werte = veroeffentlichte Ports ohne Ziel.
+      SANDBOX_PORT_FROM: "${SANDBOX_PORT_FROM:-8100}"
+      SANDBOX_PORT_TO: "${SANDBOX_PORT_TO:-8119}"
+      # DNS des Compose-Netzes. 127.0.0.11 ist Dockers eingebauter Resolver und
+      # damit hier richtig; unter Podman/netavark liegt er auf der Gateway-IP des
+      # Netzes (podman network inspect) — dann diesen Wert setzen.
+      NGINX_RESOLVER: "${NGINX_RESOLVER:-127.0.0.11}"
+    volumes:
+      - ./deploy/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/gateway/10-generate-streams.sh:/docker-entrypoint.d/10-generate-streams.sh:ro
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  docker-certs:
+  sandbox-docker:

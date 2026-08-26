@@ -78,6 +78,7 @@ window.I18N = {
     "idx.kidrawer.zu": "KI-Bereich schliessen",
     "idx.kidrawer.titel": "⚙️ KI-Einstellungen",
     "idx.kidrawer.intro": "Wähle welches KI-Modell für die einzelnen Features verwendet wird. Claude-Modelle kosten API-Tokens, Ollama läuft lokal kostenlos.",
+    "idx.kidrawer.cost_warning": "⚠️ Tokenkosten entstehen bei dir: Alle API-Kosten (z.B. für Claude) zahlst du selbst. Es gibt keine automatische Kontrolle — überprüfe regelmässig deine Limits und Rechnungen.",
     "idx.kidrawer.chat.label": "💬 Kanban Chat",
     "idx.kidrawer.chat.desc": "Modell für den Chat auf Projekt-Boards",
     "idx.kidrawer.vision.label": "📸 Foto-Titel",

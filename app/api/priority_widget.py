@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from app.services import priority_widget_service
-from app.services.priority_widget_service import Priority WidgetDownError
+from app.services.priority_widget_service import PriorityWidgetDownError
 
 log = logging.getLogger("dashboard.api.priority_widget")
 router = APIRouter(tags=["priority_widget"])
@@ -38,7 +38,7 @@ def patch_item(body: dict):
         return priority_widget_service.patch_item(project, fields)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"{e}")
-    except Priority WidgetDownError as e:
+    except PriorityWidgetDownError as e:
         log.warning("Priority Widget down bei PATCH für '%s': %s", project, e)
         return JSONResponse(status_code=503, content={"error": str(e)})
     except Exception as e:

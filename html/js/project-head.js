@@ -171,7 +171,7 @@ function renderProjectHead() {
                 const active = item?.quadrant === q;
                 const meta = QUADRANT_META[q];
                 return `<button class="ph-qbtn ${active ? 'active' : ''}" style="--qc:${meta.color}" title="${title}"
-                         onclick="setPriority Widget({quadrant:'${q}'})">${lbl}</button>`;
+                         onclick="setPriorityWidget({quadrant:'${q}'})">${lbl}</button>`;
             };
             iseHtml = `<div class="ph-section ph-pp">
                 <span class="ph-section-label">🗓️ Priorität (${escHtmlRel(projHeadIse.week || '')})</span>
@@ -180,11 +180,11 @@ function renderProjectHead() {
                 ${qBtn('Q3', '−d', 'Q3: dringend, nicht wichtig')}
                 ${qBtn('Q4', '−−', 'Q4: weder noch')}
                 <button class="ph-qbtn ${item?.frog_date ? 'active' : ''}" style="--qc:#3fb950" title="Frosch heute (wichtigste Aufgabe des Tages)"
-                        onclick="togglePriority WidgetFrog()">🐸</button>
+                        onclick="togglePriorityWidgetFrog()">🐸</button>
                 <button class="ph-qbtn ${item?.pareto ? 'active' : ''}" style="--qc:#d29922" title="Pareto-Hebel (80/20)"
-                        onclick="setPriority Widget({pareto:${item?.pareto ? 'false' : 'true'}})">⭐</button>
+                        onclick="setPriorityWidget({pareto:${item?.pareto ? 'false' : 'true'}})">⭐</button>
                 <button class="ph-qbtn" style="--qc:#6e7681" title="Zurück in den Eingang (unsortiert)"
-                        onclick="setPriority Widget({clear_quadrant:true})">→ Eingang</button>
+                        onclick="setPriorityWidget({clear_quadrant:true})">→ Eingang</button>
             </div>`;
         }
 
@@ -291,7 +291,7 @@ function cancelProjHeadEditor() {
 }
 
 // ── Priority Widget-Aktionen ──
-async function loadPriority Widget() {
+async function loadPriorityWidget() {
     try {
         projHeadIse = await API.get('/api/priority_widget/item?project=' + encodeURIComponent(BOARD_ID) + '&t=' + Date.now());
         console.log('[Project] Priority Widget:', JSON.stringify(projHeadIse));
@@ -302,8 +302,8 @@ async function loadPriority Widget() {
     renderProjectHead();
 }
 
-async function setPriority Widget(fields) {
-    console.log('[Project] setPriority Widget:', JSON.stringify(fields));
+async function setPriorityWidget(fields) {
+    console.log('[Project] setPriorityWidget:', JSON.stringify(fields));
     try {
         const body = Object.assign({ project: BOARD_ID }, fields);
         projHeadIse = await API.patch('/api/priority_widget/item', body);
@@ -316,10 +316,10 @@ async function setPriority Widget(fields) {
     renderProjectHead();
 }
 
-function togglePriority WidgetFrog() {
+function togglePriorityWidgetFrog() {
     const item = projHeadIse?.item;
-    if (item?.frog_date) setPriority Widget({ clear_frog: true });
-    else setPriority Widget({ frog_date: new Date().toISOString().slice(0, 10) });
+    if (item?.frog_date) setPriorityWidget({ clear_frog: true });
+    else setPriorityWidget({ frog_date: new Date().toISOString().slice(0, 10) });
 }
 
 // ── Manifest-Aktionen (Kategorie / Status / Farbe / Icon) ──
@@ -422,7 +422,7 @@ loadSubprojects();
 loadRollup();
 loadProjHeadCategories();
 loadProjHeadStatuses();
-loadPriority Widget();
+loadPriorityWidget();
 
 // Board-Höhe initial setzen + bei Viewport-Änderung nachführen
 adjustBoardHeight();

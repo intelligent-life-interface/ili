@@ -58,6 +58,9 @@ if ! has_credentials; then
   │                                                                     │
   │  The login is stored and survives restarts.                          │
   │                                                                     │
+  │  ⚠️  API costs are yours: All tokens/API costs are billed to you.    │
+  │  There is no automatic control — check your limits regularly.       │
+  │                                                                     │
   │  Prefer no login at all? Put ANTHROPIC_API_KEY (Anthropic Console)   │
   │  or CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`) into .env and     │
   │  restart the stack.                                                 │

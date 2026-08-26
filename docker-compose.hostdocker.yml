@@ -1,0 +1,69 @@
+# docker-compose.hostdocker.yml — Host Docker/Podman Socket als Fallback.
+#
+# Alternative zur Sandbox (docker-compose.sandbox.yml) für:
+# - Nutzer, die Projekt-Container als normale Host-Container wollen
+# - Podman-Hosts (die Sandbox braucht privileged: true und faellt unter rootless
+#   Podman damit aus — hier ist dies der EINZIGE Weg zu Projekt-Containern)
+#
+# ⚠️ SICHERHEITSHINWEIS: Der Docker-Socket ist FAKTISCH ROOT auf der Maschine.
+# Das Terminal ist ohnehin ein Browser-Shell (hinter Passwort), dies verschiebt
+# nur die Grenze auf die ganze Maschine. Nur auf dediziertem Rechner sinnvoll!
+#
+# Nutzung:
+#   docker compose -f docker-compose.yml -f docker-compose.terminal.yml \
+#                  -f docker-compose.hostdocker.yml up -d --build
+#
+# WICHTIG:
+# - DOCKER_SOCKET in .env setzen — der Pfad unterscheidet sich je nach Engine:
+#       Docker:            /var/run/docker.sock
+#       Podman rootless:   /run/user/<uid>/podman/podman.sock   (id -u)
+#       Podman rootful:    /run/podman/podman.sock
+#   Rootless Podman braucht den Socket-Dienst: systemctl --user enable --now podman.socket
+#   Ohne ihn existiert die Datei gar nicht und der Mount legt ein leeres
+#   Verzeichnis an — der `docker`-Befehl im Terminal laeuft dann in einen Timeout.
+# - PROJECTS_HOST_DIR in .env setzen (z.B. PROJECTS_HOST_DIR=/home/user/ili).
+#   Projekt-Container werden vom HOST-Daemon gestartet; ihre Bind-Mounts sind
+#   deshalb Host-Pfade, keine Pfade innerhalb des Terminal-Containers.
+#
+# ⚠️ podman-compose 1.0.3 (Debian 12) interpoliert ${VAR} GAR NICHT — dieselbe
+# Falle, die docker-compose.terminal.yml im Kopf beschreibt. Wer diese Version
+# nutzt (podman-compose --version), traegt die Pfade unten direkt ein.
+#
+# KEIN Gateway in diesem Modus: Projekt-Container laufen als normale
+# Host-Container, ein `docker run -p 8100:3000` veroeffentlicht bereits einen
+# Host-Port. Der gateway-Service aus docker-compose.sandbox.yml waere hier ohne
+# Aufgabe. Konvention bleibt der Bereich 8100–8119, damit Projekt-Ports nicht mit
+# ili selbst kollidieren — hier allerdings ungeschuetzt, Konflikte mit anderen
+# Diensten auf dem Host sind moeglich.
+
+name: ili
+
+services:
+  # api schreibt die von der KI erzeugte CLAUDE.md nach PROJEKTE_DIR=/projects und
+  # muss darum denselben Ordner sehen wie Terminal und Automat — sonst landet sie
+  # im Container statt beim Projekt.
+  api:
+    volumes:
+      - ${PROJECTS_HOST_DIR:-.}/projects:/projects:z
+
+  terminal:
+    environment:
+      # Docker-CLI arbeitet direkt mit dem Host-Socket
+      DOCKER_HOST: "unix://${DOCKER_SOCKET}"
+      # Bind-Mounts von Projekt-Containern werden vom HOST-Daemon aufgeloest. Ohne
+      # diesen Wert im Terminal kann der Nutzer den richtigen Pfad nicht bilden:
+      #   docker run -v "$PROJECTS_HOST_DIR/projects/<board>:/app:z" …
+      PROJECTS_HOST_DIR: "${PROJECTS_HOST_DIR:-.}"
+    volumes:
+      # Innen derselbe Pfad wie aussen — sonst zeigt DOCKER_HOST ins Leere
+      - ${DOCKER_SOCKET}:${DOCKER_SOCKET}
+      # Host-Pfade damit die Projekt-Container ihre Dateien finden
+      - ${PROJECTS_HOST_DIR:-.}/projects:/projects:z
+
+  automat:
+    environment:
+      DOCKER_HOST: "unix://${DOCKER_SOCKET}"
+      PROJECTS_HOST_DIR: "${PROJECTS_HOST_DIR:-.}"
+    volumes:
+      - ${DOCKER_SOCKET}:${DOCKER_SOCKET}
+      - ${PROJECTS_HOST_DIR:-.}/projects:/projects:z

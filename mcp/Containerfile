@@ -1,0 +1,19 @@
+FROM docker.io/library/python:3.11-slim
+
+LABEL org.opencontainers.image.title="ili Kanban MCP Server"
+LABEL org.opencontainers.image.description="MCP Server for ili Dashboard Kanban boards"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
+
+WORKDIR /app
+
+# Copy MCP Server (Python, no external dependencies)
+COPY server.py /app/server.py
+COPY LICENSE /app/LICENSE
+
+# Environment: Dashboard API URL (default for Docker: host.containers.internal:8798)
+# Clients override via --env DASHBOARD_URL=http://dashboard:8798 or similar
+ENV DASHBOARD_URL=http://127.0.0.1:8798
+
+# MCP stdio protocol: reads JSON-RPC from stdin, writes responses to stdout
+ENTRYPOINT ["/usr/local/bin/python3", "/app/server.py"]

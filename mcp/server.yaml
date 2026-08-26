@@ -1,0 +1,160 @@
+name: ili-kanban
+displayName: ili Kanban Dashboard
+
+description: |
+  MCP Server for ili Dashboard Kanban boards. Exposes tools for reading and
+  writing Kanban boards, cards, and notes via the local ili Dashboard REST API
+  (Port 8798).
+
+  Supported operations:
+    - list_boards: Enumerate all boards (optional parent filter)
+    - get_board: Fetch board with cards and trimmed descriptions
+    - get_card: Fetch individual card details
+    - create_card: Add new card to a column
+    - move_card: Move card between columns or reorder within column
+    - update_card: Update card fields (title, description, owner, labels, status)
+    - add_note: Append timestamped note to a card
+
+  Designed for use in Claude, Cursor, VS Code, and other MCP-compatible clients.
+
+license: MIT
+author: ~Toa1984
+homepage: https://github.com/Toa1984/ili-public
+
+mcp:
+  image: ghcr.io/toa1984/ili-mcp:latest
+  imageSource: oci
+
+  # Environment configuration for the MCP server
+  env:
+    DASHBOARD_URL: "http://host.containers.internal:8798"
+
+  # Docker MCP Gateway options (security, resource limits)
+  resources:
+    cpus: "1"
+    memory: "256M"
+
+  # Client-facing tool definitions (reference only; actual tools come from server)
+  tools:
+    - name: list_boards
+      description: |
+        Enumerate all Kanban boards in the dashboard.
+        Optional parent filter to return child boards of a specific board.
+      inputSchema:
+        type: object
+        properties:
+          parent:
+            type: string
+            description: Filter to child boards of this parent board ID
+
+    - name: get_board
+      description: |
+        Fetch a single board with all its cards (descriptions trimmed to 200 chars).
+        Returns board metadata and cards grouped by column.
+      inputSchema:
+        type: object
+        properties:
+          board_id:
+            type: string
+            description: ID of the board to fetch (required)
+        required:
+          - board_id
+
+    - name: get_card
+      description: |
+        Fetch full details of a single card (including notes history).
+      inputSchema:
+        type: object
+        properties:
+          card_id:
+            type: string
+            description: ID of the card to fetch (required)
+        required:
+          - card_id
+
+    - name: create_card
+      description: |
+        Create a new card in a specified column of a board.
+      inputSchema:
+        type: object
+        properties:
+          board_id:
+            type: string
+            description: ID of the board (required)
+          column_id:
+            type: string
+            description: ID of the column (required)
+          title:
+            type: string
+            description: Card title (required)
+          description:
+            type: string
+            description: Card description (optional)
+        required:
+          - board_id
+          - column_id
+          - title
+
+    - name: move_card
+      description: |
+        Move a card to a different column or reorder it within the same column.
+      inputSchema:
+        type: object
+        properties:
+          card_id:
+            type: string
+            description: ID of the card to move (required)
+          target_column_id:
+            type: string
+            description: ID of the target column (required)
+          position:
+            type: integer
+            description: Position in the target column (0 = first; optional, appends if omitted)
+        required:
+          - card_id
+          - target_column_id
+
+    - name: update_card
+      description: |
+        Update card fields (title, description, owner, labels, status).
+      inputSchema:
+        type: object
+        properties:
+          card_id:
+            type: string
+            description: ID of the card to update (required)
+          title:
+            type: string
+            description: New card title (optional)
+          description:
+            type: string
+            description: New card description (optional)
+          owner:
+            type: string
+            description: New card owner (optional)
+          labels:
+            type: array
+            items:
+              type: string
+            description: Card labels / tags (optional)
+          status:
+            type: string
+            description: Card status (optional)
+        required:
+          - card_id
+
+    - name: add_note
+      description: |
+        Append a timestamped note to a card (non-destructive; creates history).
+      inputSchema:
+        type: object
+        properties:
+          card_id:
+            type: string
+            description: ID of the card (required)
+          text:
+            type: string
+            description: Note text (required)
+        required:
+          - card_id
+          - text

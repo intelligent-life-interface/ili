@@ -21,6 +21,11 @@ LABEL org.opencontainers.image.documentation="https://github.com/Toa1984/ili-pub
 ARG TTYD_VERSION=1.7.7
 
 # `apt-get upgrade` picks up the security fixes the base image does not carry yet.
+# docker-cli, NOT docker.io: on Debian trixie the docker.io package ships only the
+# daemon, the client lives in its own package — with docker.io the build fails at
+# `docker --version` (exit 127). A daemon has no place here anyway: the terminal
+# talks to the sandbox or the host socket via DOCKER_HOST (see
+# docker-compose.sandbox.yml / docker-compose.hostdocker.yml).
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
       tmux \
       git \
@@ -30,12 +35,14 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
       less \
       jq \
       python3 \
+      docker-cli \
     && arch="$(uname -m)" \
     && echo "[build] downloading ttyd ${TTYD_VERSION} for ${arch}" \
     && curl -fsSL -o /usr/local/bin/ttyd \
         "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${arch}" \
     && chmod +x /usr/local/bin/ttyd \
     && ttyd --version \
+    && docker --version \
     && rm -rf /var/lib/apt/lists/*
 
 # Claude Code CLI — the reason the terminal exists. Optional at runtime: without

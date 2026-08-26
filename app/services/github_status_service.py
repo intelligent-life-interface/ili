@@ -1,10 +1,12 @@
 """GitHub-Status-Service: eigene Repos + letzter Commit für GET /api/projects/github.
 
 Datenquelle: GitHub REST API `/user/repos` (Owner-Repos, alle Sichtbarkeiten),
-authentifiziert mit GH_ADMIN_TOKEN (siehe github_integration._gh_admin_token —
-das gh-Keyring-Token/GH_PUSH_TOKEN sind fine-grained und für Repo-Listing zu
-eng gescoped). Kurzer In-Memory-Cache, damit wiederholtes Laden der Seite nicht
-bei jedem Aufruf gegen die GitHub-API geht.
+authenticated with the device-flow token from github_auth_service (same source as
+github_issue_service) or, as a headless fallback, the GITHUB_TOKEN env variable.
+26.08.2026: previously imported `_gh_admin_token` from the home-stack-only
+`github_integration.py`, which the release cleanup (97b8371) removed — that
+ModuleNotFoundError crash-looped v0.1.11 at startup. Kurzer In-Memory-Cache, damit
+wiederholtes Laden der Seite nicht bei jedem Aufruf gegen die GitHub-API geht.
 
 Bewusst OHNE Pro-Repo-Zusatzcalls für offene PRs/CI-Status (v1): bei >100 Repos
 wären das >200 zusätzliche Requests pro Seitenaufruf — Scope-Entscheidung laut
@@ -12,10 +14,11 @@ Kanban-Karte "Anzeige-Felder für Projektstatus klären".
 """
 import json
 import logging
+import os
 import urllib.error
 import urllib.request
 
-from github_integration import _gh_admin_token
+from app.services import github_auth_service
 from app.services.ttl_cache import TTLCache
 
 log = logging.getLogger("dashboard.services.github_status")
@@ -47,12 +50,25 @@ def _fetch_all_repos(token: str) -> list[dict]:
     return repos
 
 
+def _github_token() -> str:
+    """Device-flow token (github_auth_service) first, GITHUB_TOKEN env as fallback, else ""."""
+    tok = github_auth_service.get_token()
+    if tok:
+        log.debug("_github_token: using github_auth_service token")
+        return tok
+    tok = os.environ.get("GITHUB_TOKEN", "").strip()
+    log.debug("_github_token: github_auth_service has no token, GITHUB_TOKEN env %s",
+              "set" if tok else "unset")
+    return tok
+
+
 def _fetch_and_process_repos() -> list[dict]:
     """Hole Repos von GitHub-API und verarbeite sie."""
-    token = _gh_admin_token()
+    token = _github_token()
     if not token:
-        log.error("GH_ADMIN_TOKEN fehlt (env/config.env) — kann Repo-Liste nicht laden")
-        raise RuntimeError("GH_ADMIN_TOKEN fehlt (env/config.env)")
+        log.error("no GitHub token (not logged in via GitHub auth, GITHUB_TOKEN unset) — "
+                  "cannot load repo list")
+        raise RuntimeError("GitHub-Login fehlt (GitHub-Anmeldung im Dashboard oder GITHUB_TOKEN)")
 
     try:
         raw = _fetch_all_repos(token)

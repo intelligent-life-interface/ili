@@ -114,6 +114,122 @@ services:
       CLAUDE_CONFIG_DIR: /projects/.home/.claude
 ```
 
+## Running project containers (Docker / Podman)
+
+From within a project terminal, you can build and run Docker containers for your own projects.
+This requires either a **Sandbox** (Docker-in-Docker, isolated) or **Socket mount** (direct host access).
+
+### Option 1: Sandbox (Docker-in-Docker, recommended)
+
+The sandbox is a separate Docker daemon inside ili, completely isolated from your host.
+**Use this if:**
+- You want experiments to never break the host
+- You're on Docker (Desktop Mac/Windows or Linux Docker)
+- You want to clean up later: just delete the sandbox volume and nothing is left on the host
+
+**Start with the sandbox:**
+```bash
+docker compose -f docker-compose.yml -f docker-compose.terminal.yml \
+               -f docker-compose.sandbox.yml up -d --build
+```
+
+**Or set `COMPOSE_FILE` once in `.env`:**
+```ini
+COMPOSE_FILE=docker-compose.yml:docker-compose.terminal.yml:docker-compose.sandbox.yml
+```
+
+Then `docker compose up -d` will always include all three files.
+
+**Inside the terminal:**
+```bash
+docker build -t my-app ./projects/board-name
+docker run --name my-app -v /projects/board-name:/app:z -p 8100:3000 my-app
+```
+
+**Ports:** Bind your project container to a port between **8100 and 8119** and reach it
+at `http://<host>:<port>` — nothing else to configure.
+
+Behind that: the sandbox publishes no port at all. A small `gateway` container
+(`nginx:alpine`) reserves the range on the host and forwards it 1:1 into the sandbox
+(host port N → `sandbox:N`, plain TCP, so WebSockets and databases pass through
+unchanged). Keeping the reservation in its own container is what later allows name
+based routing or an access check in front of project containers, without touching the
+Docker daemon. Config: `deploy/gateway/nginx.conf` plus `deploy/gateway/10-generate-streams.sh`,
+which writes one nginx block per port at container start (nginx' `listen` has no port
+ranges). Widen the range with `SANDBOX_PORT_FROM` / `SANDBOX_PORT_TO` in `.env` — every
+port costs one nginx block and one host mapping, upper limit 200.
+
+**Cleanup:** `docker system prune` runs inside the sandbox, never touching the host.
+
+**Limitation:** Sandbox requires `privileged: true`, which means Docker not rootless Podman.
+If you're on rootless Podman, use **Option 2** instead (Socket mount).
+
+### Option 2: Socket mount (direct host Docker / Podman)
+
+Mount the host's Docker socket directly into the terminal. Project containers then run
+as regular host containers.
+
+**⚠️ Security:** The Docker socket is **equivalent to root access** to your entire machine.
+The terminal is already a full browser shell (behind a password), so this only shifts
+the boundary to the whole system. **Only use this on a machine dedicated to ili.**
+
+**Start with socket mount:**
+```bash
+# Docker
+docker compose -f docker-compose.yml -f docker-compose.terminal.yml \
+               -f docker-compose.hostdocker.yml up -d
+
+# Podman — start the socket service first, it is off by default
+systemctl --user enable --now podman.socket
+podman-compose -f docker-compose.yml -f docker-compose.terminal.yml \
+               -f docker-compose.hostdocker.yml up -d
+```
+
+**Configure socket and project path** (in `.env`):
+```ini
+# Docker
+DOCKER_SOCKET=/var/run/docker.sock
+# Podman rootless — run `id -u` for your uid; rootful: /run/podman/podman.sock
+# DOCKER_SOCKET=/run/user/1000/podman/podman.sock
+
+# Directory that HOLDS the projects folder — without a trailing /projects,
+# the compose file appends it
+PROJECTS_HOST_DIR=/home/you/ili
+```
+
+`DOCKER_SOCKET` is mounted at the same path inside the container as outside, and
+`DOCKER_HOST` points at it. Project containers are started by the **host** daemon, so
+their bind mounts are host paths — that is what `PROJECTS_HOST_DIR` is for.
+
+**⚠️ podman-compose 1.0.3** (Debian 12) does not interpolate `${VAR}` at all. Check with
+`podman-compose --version`; on that version write the paths straight into
+`docker-compose.hostdocker.yml`.
+
+**Inside the terminal:**
+```bash
+# The build context is read by the CLI, so the container path is correct here
+docker build -t my-app ./projects/board-name
+
+# The bind mount is resolved by the HOST daemon — it needs a host path, not the
+# /projects path inside the terminal. Using /projects/... here would silently give
+# you an empty auto-created directory instead of your project.
+docker run --name my-app -v "$PROJECTS_HOST_DIR/projects/board-name:/app:z" \
+           -p 8100:3000 my-app
+```
+
+`PROJECTS_HOST_DIR` is passed into the terminal by the overlay, so it is available
+as a shell variable.
+
+**Ports:** Use 8100–8119 by convention (same range as the sandbox). There is no gateway
+here — project containers are plain host containers, so `-p 8100:3000` already publishes
+a host port. Nothing reserves the range for you, so conflicts with other services on the
+host are possible.
+
+**Cleanup:** `docker system prune` cleans up the host's Docker daemon. Be careful.
+
+**Good for:** Podman, or if you specifically want your project containers to be normal
+host containers with direct host network access.
+
 ## How it is wired
 
 ```

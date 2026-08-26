@@ -33,6 +33,10 @@ usage_week(week=None) -> dict
       the exact same bug in the ~15min after local midnight — see `_query_influx_usage`
       docstring for the actual (stricter) fallback behaviour.
 
+    * 26.08.2026: `claude_limits_service` is OPTIONAL (the release cleanup 97b8371
+      dropped the home-stack-only InfluxDB reader, v0.1.11 crash-looped on the hard
+      import). Missing module ⇒ source="estimate" only, never an ImportError.
+
 check_allowance(now=None) -> dict
     {allowed: bool, week_pct: float, window_pct: float, day_allowance_tokens: int,
      today_used: int, window: {from, to, max_pct}, reason: str, source: str}
@@ -51,11 +55,24 @@ Config-Keys (ai_config.json via config_handler):
 import logging
 from datetime import date, datetime, timezone
 
-from app.services import claude_limits_service, cost_service  # Scan-Funktionen via Attribut (monkeypatch-bar)
+from app.services import cost_service  # Scan-Funktionen via Attribut (monkeypatch-bar)
 from app.services.ttl_cache import TTLCache
 from config_handler import _load_ai_config
 
 log = logging.getLogger("dashboard.services.budget")
+
+# Optional module (26.08.2026, cleanup commit 97b8371 dropped it from the release):
+# claude_limits_service reads the home-stack-only InfluxDB bucket `claude_limits`
+# (fed by the claude-limit-watcher, which is NOT shipped). Without it every usage
+# query falls back to the log-based estimate — the app must never fail to import
+# because of it (v0.1.11 crash-looped exactly that way). Kept as a module attribute
+# so tests can monkeypatch it and a home-stack can still provide the module.
+try:
+    from app.services import claude_limits_service
+except ImportError:
+    claude_limits_service = None
+    log.debug("claude_limits_service not available — budget source 'usage' disabled, "
+              "using the log-based estimate only")
 
 # Single-Flight-Caches gegen Cache-Stampede (opt_cache_stampede_0806): schützen die
 # dünne lokale Memo (Double-Checked Locking). Der eigentliche Datei-Scan liegt seit
@@ -118,6 +135,10 @@ def _query_influx_usage() -> dict | None:
 
     Returns: {pct_now: float, pct_start_of_day: float, last_update_utc: str} or None.
     """
+    if claude_limits_service is None:
+        log.debug("_query_influx_usage: claude_limits_service not available — "
+                  "falling back to estimate")
+        return None
     try:
         latest = claude_limits_service.latest_claude_limits()
         seven_day = latest.get("seven_day") or {}
@@ -169,11 +190,11 @@ def _query_influx_usage() -> dict | None:
             "pct_start_of_day": pct_start_of_day,
             "last_update_utc": latest_ts.isoformat(),
         }
-    except claude_limits_service.ClaudeLimitsError as e:
-        log.debug("_query_influx_usage: InfluxDB unreachable: %s", e)
-        return None
     except Exception as e:
-        log.debug("_query_influx_usage: error: %s", e)
+        # Covers claude_limits_service.ClaudeLimitsError (InfluxDB unreachable /
+        # not configured) as well as anything unexpected — both mean "use estimate".
+        log.debug("_query_influx_usage: InfluxDB usage unavailable (%s: %s) — "
+                  "falling back to estimate", type(e).__name__, e)
         return None
 
 

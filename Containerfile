@@ -55,6 +55,10 @@ COPY VERSION .
 COPY *.py .
 COPY app/ app/
 COPY html/ html/
+# Build-time import gate: app.main registers every router at import time, so a
+# missing module (v0.1.11: claude_limits_service) fails the build here instead of
+# shipping an image that crash-loops at runtime.
+RUN python -c "import app.main" && echo "[build] app.main import OK"
 
 # Starter boards: the entrypoint copies them into the boards volume on first start
 # only, so an update never touches an existing installation.

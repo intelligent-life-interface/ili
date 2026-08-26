@@ -3,7 +3,7 @@
 Schnittstelle
 -------------
 get_item(project_id)          -> dict  # {available, week, sorted, item|None}; nie Exception
-patch_item(project_id, fields)-> dict  # Whitelist-Felder setzen; Priority Widget down -> Priority WidgetDownError
+patch_item(project_id, fields)-> dict  # Whitelist-Felder setzen; Priority Widget down -> PriorityWidgetDownError
 
 Priority Widget-API (Port 3005, keine Auth): GET /api/week/current, GET /api/week/{iso},
 PATCH /api/week/{iso}/item/{item_id}, POST /api/week/{iso}/item.
@@ -24,7 +24,7 @@ TIMEOUT = 2.5  # Sekunden — Priority Widget ist lokal, länger warten lohnt ni
 PATCH_WHITELIST = {"quadrant", "frog_date", "pareto", "clear_quadrant", "clear_frog"}
 
 
-class Priority WidgetDownError(Exception):
+class PriorityWidgetDownError(Exception):
     """Priority Widget nicht erreichbar (Timeout/ConnectError) bei einer Schreib-Operation."""
 
 
@@ -88,7 +88,7 @@ def patch_item(project_id: str, fields: dict, client: httpx.Client | None = None
     """Eisenhower-Felder setzen. Whitelist: quadrant, frog_date, pareto, clear_quadrant, clear_frog.
 
     PATCH auf das Item; 404 (Item noch nicht in der Woche) -> POST-Upsert-Fallback.
-    Priority Widget down -> raise Priority WidgetDownError.
+    Priority Widget down -> raise PriorityWidgetDownError.
     Return: das Service-Result von get_item() nach dem Schreiben (frischer Stand).
     """
     payload = {k: v for k, v in (fields or {}).items() if k in PATCH_WHITELIST}
@@ -120,10 +120,10 @@ def patch_item(project_id: str, fields: dict, client: httpx.Client | None = None
     except httpx.HTTPStatusError as e:
         log.error("Priority Widget-Fehler bei patch_item %s: HTTP %s — %s",
                   project_id, e.response.status_code, e.response.text[:200])
-        raise Priority WidgetDownError(f"Priority Widget antwortet mit HTTP {e.response.status_code}") from e
+        raise PriorityWidgetDownError(f"Priority Widget antwortet mit HTTP {e.response.status_code}") from e
     except httpx.HTTPError as e:
         log.error("Priority Widget nicht erreichbar bei patch_item %s: %s", project_id, e)
-        raise Priority WidgetDownError(f"Priority Widget nicht erreichbar: {e}") from e
+        raise PriorityWidgetDownError(f"Priority Widget nicht erreichbar: {e}") from e
     finally:
         if client is None:
             c.close()

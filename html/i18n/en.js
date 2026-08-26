@@ -53,6 +53,7 @@ window.I18N = {
     "idx.kidrawer.fehler": "✗ Error",
     "idx.kidrawer.gespeichert": "✓ Saved",
     "idx.kidrawer.intro": "Choose which AI model to use for individual features. Claude models cost API tokens, Ollama runs locally for free.",
+    "idx.kidrawer.cost_warning": "⚠️ API costs are yours: All API costs (e.g., for Claude) are billed to you. There is no automatic cost control — regularly check your limits and billing.",
     "idx.kidrawer.modelle": "Available Models",
     "idx.kidrawer.panel.desc": "Multiple models discussing (Ctrl+click = multi-select)",
     "idx.kidrawer.panel.label": "🎭 AI Advisor Panel",

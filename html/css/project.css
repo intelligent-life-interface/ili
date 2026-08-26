@@ -1374,7 +1374,7 @@
         .proj-link {
             display:inline-flex; align-items:center; gap:.3rem;
             font-size:.82rem; text-decoration:none;
-            color:var(--t-text2, #c7d3e3); background:var(--t-surface2, #22303f); border:1px solid #3a536b;
+            color:var(--t-text, #e2e8f0); background:var(--t-surface2, #1a2535); border:1px solid #2d3748;
             padding:.25rem .7rem; border-radius:14px; white-space:nowrap;
         }
         .proj-link:hover { border-color:#4f9cf9; background:var(--t-raised, #27384a); }
@@ -1386,13 +1386,13 @@
         .proj-files-drop {
             position:absolute; top:100%; left:1rem; z-index:60;
             min-width:300px; max-width:480px; max-height:50vh; overflow-y:auto;
-            background:var(--t-surface2, #22303f); border:1px solid #3a536b; border-radius:10px;
+            background:var(--t-surface2, #1a2535); border:1px solid #2d3748; border-radius:10px;
             box-shadow:0 8px 24px rgba(0,0,0,.45); padding:.35rem;
         }
         .proj-file-row {
             display:flex; align-items:center; gap:.45rem;
             padding:.3rem .55rem; border-radius:6px;
-            font-size:.82rem; text-decoration:none; color:#c7d3e3;
+            font-size:.82rem; text-decoration:none; color:#cbd5e0;
         }
         .proj-file-row:hover { background:var(--t-raised, #27384a); color:var(--accent-soft, #76b9f7); }
         .proj-file-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
