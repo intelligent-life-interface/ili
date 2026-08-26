@@ -74,7 +74,12 @@ OPENWEBUI_PASSWORD = os.environ.get("OPENWEBUI_PASSWORD", "")
 # nichts mehr. dashboard-api.service setzt OLLAMA_URL bewusst nicht (config.env-Kommentar
 # 16.07.26: eine globale OLLAMA_URL überschreibt die skript-eigenen Proxy-Aufrufernamen
 # /c/<skript> und macht das Proxy-Log unbrauchbar) — darum der Fallback hier, nicht dort.
-OLLAMA_URL         = os.environ.get("OLLAMA_URL", "http://localhost:11435")
+# `or` statt reinem `.get(..., default)`: docker-compose.yml setzt OLLAMA_URL bei
+# Fremdinstallationen ohne eigenes .env als "${OLLAMA_URL:-}" — die Variable ist dann
+# GESETZT, aber leer, .get greift also nicht auf den Default zurück. Ohne Schema führt
+# das in ollama_client zu "unknown url type: '/api/tags'" statt einer sauberen
+# Connection-refused-Fehlermeldung.
+OLLAMA_URL         = os.environ.get("OLLAMA_URL") or "http://localhost:11435"
 PRIORITY_WIDGET_URL       = os.environ.get("PRIORITY_WIDGET_URL", "http://localhost:3005")
 ANTHROPIC_API_KEY  = os.environ.get("ANTHROPIC_API_KEY", "")
 # Claude-Abo via lokale CLI-Bridge (claude-cli-bridge.service, Port 8950) — nutzt die

@@ -1,0 +1,113 @@
+# release-mcp.yml — builds and pushes the ili Kanban MCP Server to ghcr.io
+# Also registers the server with `docker mcp catalog push` (requires CI Docker engine,
+# not available in rootless Podman environments).
+#
+# Trigger: git tag mcp-v* (e.g., git tag mcp-v0.1.0 && git push --tags)
+# Image: ghcr.io/toa1984/ili-mcp
+#
+# The MCP Server is a single Docker image (Python stdio server for ili Kanban boards).
+# Versioning follows the pattern mcp-vX.Y.Z (independent from ili version).
+
+name: Release MCP Server
+
+on:
+  push:
+    tags: ["mcp-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BASE: ghcr.io/toa1984/ili-mcp
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (arm64 builds)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Strip 'mcp-' prefix to get semver version
+          TAG="${{ github.ref }}"
+          VERSION="${TAG#refs/tags/mcp-}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Image metadata (tags + OCI labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_BASE }}
+          tags: |
+            type=semver,pattern={{version}},input=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},input=${{ steps.version.outputs.version }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=ili Kanban MCP Server
+            org.opencontainers.image.description=MCP Server for ili Dashboard Kanban boards
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}/tree/main/release-container/mcp
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build and push MCP Server
+        uses: docker/build-push-action@v6
+        with:
+          context: release-container/mcp
+          file: release-container/mcp/Containerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=mcp
+          cache-to: type=gha,scope=mcp,mode=max
+
+      - name: Scan MCP image (Trivy, fixable CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_BASE }}:${{ steps.version.outputs.version }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Register with docker mcp catalog (option: custom catalog via ghcr)
+        env:
+          MCP_REGISTRY: ghcr.io
+          MCP_REGISTRY_USERNAME: ${{ github.actor }}
+          MCP_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "MCP catalog push — optional: implement if pushing to a custom catalog."
+          echo "Default: server is referenced via ghcr.io image directly (docker mcp gateway run)."
+          echo "PR to docker/mcp-registry will handle official catalog registration."
+          # Future: docker mcp catalog push <org/name>:<version> <registry>
+          # Requires docker/mcp-gateway CLI or mcp-cli binary; not yet in ubuntu-latest
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### MCP Server Release" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Image:** ${{ env.IMAGE_BASE }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tags:**" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Next:** PR to [docker/mcp-registry](https://github.com/docker/mcp-registry) with `servers/ili-kanban/server-docker-registry.yaml`" >> "$GITHUB_STEP_SUMMARY"

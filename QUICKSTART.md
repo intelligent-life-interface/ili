@@ -159,7 +159,9 @@ Tired of typing both files? Remember the file list once, then plain `up`/`down`/
 `logs` commands include the terminal:
 
 ```bash
-# Docker Compose: put it in .env
+# Docker Compose: put it in .env (the separator line makes it work on Windows too,
+# where Compose expects `;` between files by default)
+echo 'COMPOSE_PATH_SEPARATOR=:' >> .env
 echo 'COMPOSE_FILE=docker-compose.yml:docker-compose.terminal.yml' >> .env
 
 # podman-compose: it does not read COMPOSE_FILE from .env — export it in your shell

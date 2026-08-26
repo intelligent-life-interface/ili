@@ -180,6 +180,14 @@ def _collect_containers() -> dict:
             "services": services,
             "auto_detected": auto,
         }
+    except FileNotFoundError:
+        # `podman`-Binary fehlt — bei Docker-basierten Fremdinstallationen (docker-compose.yml,
+        # ili-api läuft dort als reiner Docker-Container ohne Podman-Host-Zugriff) ist das ein
+        # dauerhafter, erwarteter Zustand, kein Fehler: sonst loggt jeder /api/dashboard-Poll
+        # (alle paar Sekunden vom Frontend) eine ERROR-Zeile für etwas, das nie behoben wird.
+        log.debug("Dashboard: 'podman' nicht installiert — Container-Status bleibt leer "
+                  "(erwartet bei Docker-Deployments ohne Podman-Host-Zugriff)")
+        return {"running": [], "services": [], "auto_detected": []}
     except Exception as e:
         log.error("Dashboard: Container-Status fehlgeschlagen: %s", e)
         return {"running": [], "services": [], "auto_detected": [], "error": str(e)}
