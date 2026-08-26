@@ -11,6 +11,11 @@
 # Debug: docker compose logs web | grep ili-setup
 FROM docker.io/library/nginx:alpine
 
+# `upgrade` picks up the security fixes the base image does not carry yet
+# (0.1.12: Trivy gate failed on fixable openssl HIGHs in libcrypto3 — same
+# treatment as the apt upgrade in the api image).
+RUN apk upgrade --no-cache
+
 LABEL org.opencontainers.image.title="ili Dashboard (web)"
 LABEL org.opencontainers.image.description="nginx frontend for the ili Kanban dashboard — serves html/ and proxies /api to the api container"
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
