@@ -26,12 +26,12 @@ about:
       - update_card: Update card fields
       - add_note: Append note to card
 
-  icon: https://github.com/Toa1984/ili-public/blob/main/html/favicon.ico
+  icon: https://raw.githubusercontent.com/Toa1984/ili-public/main/html/img/favicon-64.png
 
 source:
   project: https://github.com/Toa1984/ili-public
   branch: main
-  commit: ""  # Will be updated by PR submitter with latest commit from release-container/mcp
+  commit: "df24a24c89d12492852ce6d9887e68c66a0ba14d"  # HEAD of Toa1984/ili-public at PR prep time (2026-08-26); bump before actually opening the PR
 
 config:
   description: Configure the connection to ili Dashboard

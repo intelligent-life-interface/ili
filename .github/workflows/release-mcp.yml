@@ -1,6 +1,10 @@
 # release-mcp.yml — builds and pushes the ili Kanban MCP Server to ghcr.io
-# Also registers the server with `docker mcp catalog push` (requires CI Docker engine,
-# not available in rootless Podman environments).
+# Also registers a custom `docker mcp` catalog (ghcr.io/toa1984/mcp-catalog) via the
+# docker/mcp-gateway CLI plugin — installed at runtime since it's not part of the
+# ubuntu-latest image (plain Docker Engine, no Docker Desktop). CLI is pre-release
+# (no stable 1.0 yet), so this step is continue-on-error and doesn't block the image
+# build/push/scan. Official docker/mcp-registry listing still needs a separate PR
+# (servers/ili-kanban/server-docker-registry.yaml).
 #
 # Trigger: git tag mcp-v* (e.g., git tag mcp-v0.1.0 && git push --tags)
 # Image: ghcr.io/toa1984/ili-mcp
@@ -63,14 +67,14 @@ jobs:
           labels: |
             org.opencontainers.image.title=ili Kanban MCP Server
             org.opencontainers.image.description=MCP Server for ili Dashboard Kanban boards
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}/tree/main/release-container/mcp
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}/tree/main/mcp
             org.opencontainers.image.licenses=MIT
 
       - name: Build and push MCP Server
         uses: docker/build-push-action@v6
         with:
-          context: release-container/mcp
-          file: release-container/mcp/Containerfile
+          context: mcp
+          file: mcp/Containerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -87,17 +91,34 @@ jobs:
           exit-code: "1"
           format: table
 
-      - name: Register with docker mcp catalog (option: custom catalog via ghcr)
+      - name: Install docker mcp CLI plugin
+        # docker/mcp-gateway has no stable 1.0 release yet (all tags are prereleases);
+        # don't let install/CLI-syntax drift block the image build+push+scan above.
+        continue-on-error: true
         env:
-          MCP_REGISTRY: ghcr.io
-          MCP_REGISTRY_USERNAME: ${{ github.actor }}
-          MCP_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          MCP_GATEWAY_VERSION: v0.43.3
         run: |
-          echo "MCP catalog push — optional: implement if pushing to a custom catalog."
-          echo "Default: server is referenced via ghcr.io image directly (docker mcp gateway run)."
-          echo "PR to docker/mcp-registry will handle official catalog registration."
-          # Future: docker mcp catalog push <org/name>:<version> <registry>
-          # Requires docker/mcp-gateway CLI or mcp-cli binary; not yet in ubuntu-latest
+          mkdir -p ~/.docker/cli-plugins/
+          curl -fsSL "https://github.com/docker/mcp-gateway/releases/download/${MCP_GATEWAY_VERSION}/docker-mcp-linux-amd64.tar.gz" \
+            | tar -xz -C ~/.docker/cli-plugins/
+          chmod +x ~/.docker/cli-plugins/docker-mcp
+          docker mcp version
+          # Required on plain Docker Engine (no Docker Desktop) per docker/mcp-gateway docs.
+          docker mcp feature enable profiles
+
+      - name: Register with own docker mcp catalog (ghcr.io)
+        continue-on-error: true
+        env:
+          CATALOG_REF: ghcr.io/toa1984/mcp-catalog:latest
+        run: |
+          echo "Building catalog entry from mcp/server.yaml"
+          docker mcp catalog create "${CATALOG_REF}" \
+            --server file://mcp/server.yaml \
+            --title "ili Kanban MCP Catalog"
+          echo "Pushing catalog to ${CATALOG_REF}"
+          docker mcp catalog push "${CATALOG_REF}"
+          echo "Custom catalog: docker mcp catalog add ${CATALOG_REF} (client-side usage)"
+          echo "PR to docker/mcp-registry (servers/ili-kanban/server-docker-registry.yaml) still needed for the official catalog."
 
       - name: Summary
         if: always()
