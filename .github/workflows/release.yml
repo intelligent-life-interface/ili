@@ -1,20 +1,28 @@
-# release.yml — builds the three ili images and pushes them to ghcr.io AND Docker Hub.
+# release.yml — builds the three ili images and pushes them to container registries.
 #
 # Trigger: a version tag (git tag v0.1.0 && git push --tags) or a manual run.
 # Versioning is manual semver (project decision) — see docs/RELEASING.md.
 #
-# Images (namespace must be lowercase for ghcr):
-#   ghcr.io/toa1984/ili           FastAPI backend   (Containerfile)
-#   ghcr.io/toa1984/ili-web       nginx frontend    (Containerfile.web)
-#   ghcr.io/toa1984/ili-terminal  browser terminal  (deploy/Containerfile.terminal)
+# The same file lives in BOTH repos (the workshop→public sync copies it 1:1),
+# so the image namespace is derived from the repository the workflow runs in —
+# each repo builds ONLY its own images, never cross-project (decision 2026-08-24):
 #
-# Docker Hub mirrors (discoverability via docker search — ghcr is not indexed there):
-#   docker.io/toa1984/ili{,-web,-terminal} — same tags, pushed in the same build.
-#   Requires repo secrets DOCKERHUB_USERNAME + DOCKERHUB_TOKEN (PAT, read/write).
+#   Toa1984/ili-public  -> ghcr.io/toa1984/ili{,-web,-terminal}
+#                          + Docker Hub mirror docker.io/toa1984/ili{,-web,-terminal}
+#                            (discoverability via docker search; needs repo secrets
+#                            DOCKERHUB_USERNAME + DOCKERHUB_TOKEN)
+#   any other repo (e.g. Toa1984/ili-coding, the private workshop)
+#                       -> ghcr.io/toa1984/<repo-name>{,-web,-terminal}
+#                          ghcr only, NO Docker Hub (a Hub push would be public).
+#
+# Images per suffix (namespace must be lowercase for ghcr):
+#   <base>           FastAPI backend   (Containerfile)
+#   <base>-web       nginx frontend    (Containerfile.web)
+#   <base>-terminal  browser terminal  (deploy/Containerfile.terminal)
 #
 # Tags per image: X.Y.Z, X.Y, latest (latest only for non-prerelease tags).
-# The packages inherit the repository visibility (private until the publish gate
-# is passed) — switching them public is a manual, separate step.
+# New ghcr packages inherit the repository visibility — switching them public
+# is a manual, separate step.
 name: Release images
 
 on:
@@ -28,7 +36,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_BASE: ghcr.io/toa1984/ili
+  # ili-public keeps the published name "ili"; every other repo uses its own name.
+  IMAGE_BASE: ghcr.io/toa1984/${{ github.repository == 'Toa1984/ili-public' && 'ili' || github.event.repository.name }}
 
 jobs:
   build:
@@ -64,6 +73,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
+        if: github.repository == 'Toa1984/ili-public'
         uses: docker/login-action@v3
         with:
           registry: docker.io
@@ -76,7 +86,7 @@ jobs:
         with:
           images: |
             ${{ env.IMAGE_BASE }}${{ matrix.suffix }}
-            docker.io/toa1984/ili${{ matrix.suffix }}
+            name=docker.io/toa1984/ili${{ matrix.suffix }},enable=${{ github.repository == 'Toa1984/ili-public' }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}

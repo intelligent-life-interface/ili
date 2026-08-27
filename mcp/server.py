@@ -39,7 +39,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("mcp-dashboard")
 
-DASHBOARD_URL = "http://127.0.0.1:8798"
+DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://127.0.0.1:8798")
 
 
 def _detect_kanban_source() -> str:
@@ -498,7 +498,7 @@ class MCPServer:
     def handle_call_tool(self, params: dict) -> Any:
         """Handle tool/call request."""
         name = params.get("name")
-        tool_params = params.get("params", {})
+        tool_params = params.get("arguments", {})
 
         try:
             result = self.handle_tool_call(name, tool_params)
@@ -529,11 +529,16 @@ class MCPServer:
 
                 try:
                     msg = json.loads(line)
-                    self.request_id = msg.get("id")
-
                     method = msg.get("method")
                     params = msg.get("params", {})
 
+                    if "id" not in msg:
+                        # JSON-RPC notification (e.g. notifications/initialized) —
+                        # no response allowed, not even an error.
+                        log.debug("Received notification: %s", method)
+                        continue
+
+                    self.request_id = msg.get("id")
                     log.debug("Received: %s (id=%s)", method, self.request_id)
 
                     if method == "initialize":

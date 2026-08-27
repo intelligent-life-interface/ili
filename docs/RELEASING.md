@@ -11,16 +11,22 @@ A release is a git tag; GitHub Actions builds and pushes the images.
 | `ghcr.io/toa1984/ili-web` | `Containerfile.web` | nginx frontend (`web`) |
 | `ghcr.io/toa1984/ili-terminal` | `deploy/Containerfile.terminal` | optional browser terminal |
 
-Every image is pushed to **two registries in the same build**: `ghcr.io/toa1984/*`
-and `docker.io/toa1984/*` (Docker Hub mirror — only Docker Hub is indexed by
-`docker search`, ghcr is not). The Hub push needs the repo secrets
-`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (personal access token, read/write;
-stored in `config.env` on the home server as `DOCKERHUB_USER`/`DOCKERHUB_TOKEN`).
-Repo short descriptions and READMEs on Docker Hub are maintained manually.
+**Each repo builds only its own images — never cross-project** (decision
+2026-08-24). The workflow derives the image namespace from the repository it
+runs in:
 
-The workflow must run in **`Toa1984/ili-public`** — the ghcr packages are
-linked to that repository. A run from the private workshop repo is denied
-with `permission_denied: write_package`.
+| Repository | Images | Registries |
+|---|---|---|
+| `Toa1984/ili-public` | `ghcr.io/toa1984/ili{,-web,-terminal}` | ghcr + Docker Hub mirror `docker.io/toa1984/ili{,-web,-terminal}` |
+| `Toa1984/ili-coding` (private workshop) | `ghcr.io/toa1984/ili-coding{,-web,-terminal}` | ghcr only (private packages), no Docker Hub |
+
+The published `ili*` ghcr packages are linked to `Toa1984/ili-public`; only
+runs from that repo can write them. The Docker Hub mirror exists for
+discoverability (only Docker Hub is indexed by `docker search`, ghcr is not)
+and needs the repo secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`
+(personal access token, read/write; stored in `config.env` on the home server
+as `DOCKERHUB_USER`/`DOCKERHUB_TOKEN`). Repo short descriptions and READMEs
+on Docker Hub are maintained manually.
 
 Each tag `vX.Y.Z` produces the image tags `X.Y.Z`, `X.Y` and `latest`
 (`latest` is skipped for pre-releases such as `v0.2.0-rc1`). A manual run of the
