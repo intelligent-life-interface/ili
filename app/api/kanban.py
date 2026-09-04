@@ -128,6 +128,12 @@ class CardOwnerIn(BaseModel):
     owner: str | None = None   # "me" (👤), "ki" (🤖) oder leer/null = löschen
 
 
+class CardGithubIssueIn(BaseModel):
+    board_id: str
+    card_id: str
+    github_issue_id: str | None = None  # GitHub-Issue-URL oder leer/null = löschen
+
+
 @router.post("/card-owner")
 def card_owner(req: CardOwnerIn):
     """Setzt den Besitzer einer Karte (👤 me / 🤖 ki / leer) und spiegelt sofort.
@@ -150,6 +156,24 @@ def card_owner(req: CardOwnerIn):
     except Exception as e:  # Spiegeln darf das Setzen nie scheitern lassen
         log.warning("card-owner: Sammel-Job übersprungen: %s", e)
         res["collected"] = None
+    return res
+
+
+@router.post("/card-github-issue")
+def card_github_issue(req: CardGithubIssueIn):
+    """Setzt die GitHub-Issue-URL einer Karte (für Seed-Karten → automatische Issues).
+
+    Body: {board_id, card_id, github_issue_id}. Die ID speichert den Link
+    zur automatisch erstellten GitHub-Issue. Leer/null = löschen.
+    Antwort: {board_id, card_id, github_issue_id}.
+    """
+    from app.services.board_service import set_card_github_issue_id
+    if not req.board_id.strip() or not req.card_id.strip():
+        raise HTTPException(status_code=400, detail="board_id und card_id sind Pflicht")
+    try:
+        res = set_card_github_issue_id(req.board_id, req.card_id, req.github_issue_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"{e}")
     return res
 
 

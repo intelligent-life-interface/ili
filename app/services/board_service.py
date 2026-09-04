@@ -382,3 +382,34 @@ def set_card_owner(board_id: str, card_id: str, owner: str | None) -> dict:
         raise ValueError(f"Karte '{card_id}' in Board '{board_id}' nicht gefunden")
     log.info("Karte %s/%s owner=%s gesetzt", board_id, card_id, owner)
     return {"board_id": board_id, "card_id": card_id, "owner": owner}
+
+
+def set_card_github_issue_id(board_id: str, card_id: str, github_issue_id: str | None) -> dict:
+    """Setzt die GitHub-Issue-URL einer Karte (für Seed-Karten → automatische Issues).
+
+    Atomar via Repository-Lock (read-modify-write).
+
+    Returns: {"board_id", "card_id", "github_issue_id"}.
+    Raises: ValueError (Board/Karte fehlt).
+    """
+    found = {"hit": False}
+
+    def mutate(b: dict):
+        for col in b.get("columns", []):
+            for card in col.get("cards", []):
+                if (card.get("id") or "") == card_id:
+                    if github_issue_id is None:
+                        card.pop("github_issue_id", None)
+                    else:
+                        card["github_issue_id"] = github_issue_id
+                    found["hit"] = True
+                    return b
+        return b
+
+    if not _boards.exists(board_id):
+        raise ValueError(f"Board '{board_id}' existiert nicht")
+    _boards.update(board_id, mutate, sync_claude_md=False)
+    if not found["hit"]:
+        raise ValueError(f"Karte '{card_id}' in Board '{board_id}' nicht gefunden")
+    log.info("Karte %s/%s github_issue_id=%s gesetzt", board_id, card_id, github_issue_id)
+    return {"board_id": board_id, "card_id": card_id, "github_issue_id": github_issue_id}

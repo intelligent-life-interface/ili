@@ -6,8 +6,15 @@
 # build/push/scan. Official docker/mcp-registry listing still needs a separate PR
 # (servers/ili-kanban/server-docker-registry.yaml).
 #
-# Trigger: git tag mcp-v* (e.g., git tag mcp-v0.1.0 && git push --tags)
-# Image: ghcr.io/toa1984/ili-mcp
+# Trigger: git tag mcp-v* (e.g., git tag mcp-v0.1.0 && git push --tags) or a manual run.
+#
+# The same file lives in BOTH repos (the workshop→public sync copies it 1:1), so the
+# image namespace is derived from the repository the workflow runs in — each repo
+# builds ONLY its own images, never cross-project (decision 2026-08-24):
+#   Toa1984/ili-public -> ghcr.io/toa1984/ili-mcp        (+ docker mcp catalog push)
+#   any other repo     -> ghcr.io/toa1984/<repo-name>-mcp (private, no catalog push)
+#
+# Tags per image: X.Y.Z, X.Y, latest (tag runs) or edge (manual runs).
 #
 # The MCP Server is a single Docker image (Python stdio server for ili Kanban boards).
 # Versioning follows the pattern mcp-vX.Y.Z (independent from ili version).
@@ -25,7 +32,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_BASE: ghcr.io/toa1984/ili-mcp
+  # ili-public keeps the published name "ili-mcp"; every other repo uses "<repo-name>-mcp".
+  IMAGE_BASE: ghcr.io/toa1984/${{ github.repository == 'Toa1984/ili-public' && 'ili-mcp' || format('{0}-mcp', github.event.repository.name) }}
 
 jobs:
   build:
@@ -50,9 +58,14 @@ jobs:
       - name: Extract version from tag
         id: version
         run: |
-          # Strip 'mcp-' prefix to get semver version
-          TAG="${{ github.ref }}"
-          VERSION="${TAG#refs/tags/mcp-}"
+          # Tag refs/tags/mcp-vX.Y.Z -> X.Y.Z (plain semver, so metadata-action's
+          # semver input matches); any other ref (manual run) -> edge.
+          REF="${{ github.ref }}"
+          case "$REF" in
+            refs/tags/mcp-v*) VERSION="${REF#refs/tags/mcp-v}" ;;
+            *)                VERSION="edge" ;;
+          esac
+          echo "DEBUG: ref=$REF -> version=$VERSION"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Image metadata (tags + OCI labels)
@@ -63,7 +76,8 @@ jobs:
           tags: |
             type=semver,pattern={{version}},input=${{ steps.version.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},input=${{ steps.version.outputs.version }}
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/mcp-v') }}
+            type=raw,value=edge,enable=${{ !startsWith(github.ref, 'refs/tags/mcp-v') }}
           labels: |
             org.opencontainers.image.title=ili Kanban MCP Server
             org.opencontainers.image.description=MCP Server for ili Dashboard Kanban boards
@@ -85,7 +99,7 @@ jobs:
       - name: Scan MCP image (Trivy, fixable CRITICAL/HIGH)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.IMAGE_BASE }}:${{ steps.version.outputs.version }}
+          image-ref: ${{ env.IMAGE_BASE }}:${{ steps.meta.outputs.version }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
@@ -94,6 +108,8 @@ jobs:
       - name: Install docker mcp CLI plugin
         # docker/mcp-gateway has no stable 1.0 release yet (all tags are prereleases);
         # don't let install/CLI-syntax drift block the image build+push+scan above.
+        # Catalog registration is a publish-only concern -> ili-public only.
+        if: github.repository == 'Toa1984/ili-public'
         continue-on-error: true
         env:
           MCP_GATEWAY_VERSION: v0.43.3
@@ -107,6 +123,7 @@ jobs:
           docker mcp feature enable profiles
 
       - name: Register with own docker mcp catalog (ghcr.io)
+        if: github.repository == 'Toa1984/ili-public'
         continue-on-error: true
         env:
           CATALOG_REF: ghcr.io/toa1984/mcp-catalog:latest

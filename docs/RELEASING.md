@@ -19,6 +19,8 @@ runs in:
 |---|---|---|
 | `Toa1984/ili-public` | `ghcr.io/toa1984/ili{,-web,-terminal}` | ghcr + Docker Hub mirror `docker.io/toa1984/ili{,-web,-terminal}` |
 | `Toa1984/ili-coding` (private workshop) | `ghcr.io/toa1984/ili-coding{,-web,-terminal}` | ghcr only (private packages), no Docker Hub |
+| `Toa1984/ili-public` (MCP, `release-mcp.yml`, tag `mcp-v*`) | `ghcr.io/toa1984/ili-mcp` | ghcr + `docker mcp` catalog push |
+| `Toa1984/ili-coding` (MCP) | `ghcr.io/toa1984/ili-coding-mcp` | ghcr only (private), no catalog push |
 
 The published `ili*` ghcr packages are linked to `Toa1984/ili-public`; only
 runs from that repo can write them. The Docker Hub mirror exists for

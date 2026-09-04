@@ -33,7 +33,7 @@ services:
     environment:
       # Terminal erreicht den Docker Daemon der Sandbox per TLS
       DOCKER_HOST: "tcp://sandbox:2376"
-      DOCKER_CERT_PATH: "/docker-certs"
+      DOCKER_CERT_PATH: "/docker-certs/client"
       DOCKER_TLS_VERIFY: "1"
     volumes:
       - docker-certs:/docker-certs:ro
@@ -42,7 +42,7 @@ services:
     environment:
       # Docker-CLI nutzt die Sandbox per TLS
       DOCKER_HOST: "tcp://sandbox:2376"
-      DOCKER_CERT_PATH: "/docker-certs"
+      DOCKER_CERT_PATH: "/docker-certs/client"
       DOCKER_TLS_VERIFY: "1"
     volumes:
       - docker-certs:/docker-certs:ro
@@ -54,7 +54,7 @@ services:
   automat:
     environment:
       DOCKER_HOST: "tcp://sandbox:2376"
-      DOCKER_CERT_PATH: "/docker-certs"
+      DOCKER_CERT_PATH: "/docker-certs/client"
       DOCKER_TLS_VERIFY: "1"
     volumes:
       - docker-certs:/docker-certs:ro
@@ -67,10 +67,16 @@ services:
     container_name: ili-sandbox-docker
     restart: unless-stopped
     privileged: true
-    # Socket auf Port 2375 (unverschlüsselt, NUR intern, Compose-Netz)
-    # DOCKER_HOST=unix:///var/run/docker.sock geht nicht (Socket ist nicht im
-    # Netz erreichbar) — deshalb TCP mit TLS.
+    # Das dind-Image baut die Namen im Server-Zertifikat aus /etc/hostname, "docker"
+    # und "localhost". Die Clients verbinden aber unter dem Service-Namen `sandbox`;
+    # ohne diese zwei Zeilen bricht die TLS-Pruefung mit "certificate is valid for
+    # <container-id>, not sandbox" ab, sobald der Hostname nicht zufaellig passt.
+    hostname: sandbox
     environment:
+      DOCKER_TLS_SAN: "DNS:sandbox,DNS:ili-sandbox-docker"
+      # Socket auf Port 2375 (unverschlüsselt, NUR intern, Compose-Netz)
+      # DOCKER_HOST=unix:///var/run/docker.sock geht nicht (Socket ist nicht im
+      # Netz erreichbar) — deshalb TCP mit TLS.
       DOCKER_TLS_CERTDIR: "/certs"
     volumes:
       # Sandbox hat sein eigenes Docker-Datenverzeichnis, unabhängig vom Host

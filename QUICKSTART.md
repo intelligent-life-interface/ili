@@ -247,6 +247,16 @@ Docker Compose users can shorten this to `up -d --build`. **podman-compose canno
 it ignores `--build` on `up` and keeps existing containers on the old image, so
 `git pull` would appear to change nothing. The four steps above work on both.
 
+**If you installed from the registry** (without cloning the source), update with:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+This pulls the new images and restarts the containers. Your boards, data, and
+settings in `.env` stay untouched — only the images are replaced.
+
 That is the whole update. Afterwards the footer of the start page shows the new
 version; `curl http://localhost:8080/api/version` prints it as JSON (version,
 commit, build date, channel). Set `ILI_UPDATE_CHANNEL=beta` in `.env` to follow

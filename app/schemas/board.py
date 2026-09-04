@@ -23,6 +23,7 @@ class Card(BaseModel):
     rejected: Optional[bool] = None
     rejection_reason: Optional[str] = None
     rejected_at: Optional[str] = None
+    github_issue_id: Optional[str] = None  # GitHub-Issue-URL (für Seed-Karten → automatische Issues)
 
 
 class Column(BaseModel):

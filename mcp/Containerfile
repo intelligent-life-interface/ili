@@ -5,6 +5,14 @@ LABEL org.opencontainers.image.description="MCP Server for ili Dashboard Kanban 
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
 
+# Security: pull the base image's pending Debian fixes (e.g. openssl) and drop
+# pip/setuptools/wheel — the server has no dependencies, and their vendored
+# packages are the only python-pkg findings Trivy reports (fixable HIGH gate).
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m pip uninstall -y pip setuptools wheel
+
 WORKDIR /app
 
 # Copy MCP Server (Python, no external dependencies)

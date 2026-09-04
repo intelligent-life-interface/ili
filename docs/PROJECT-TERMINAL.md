@@ -22,8 +22,8 @@ The second command prints the password for the terminal route. Without
 
 ```
 [ili-setup] ================ ili project terminal ================
-[ili-setup]    user:     ili
-[ili-setup]    password: 7Kq2mXbA91LpZr4t
+[ili-setup]    user:     your_username
+[ili-setup]    password: YOUR_PASSWORD_HERE
 ```
 
 Then open a board and switch to the terminal — the browser asks for those
@@ -159,10 +159,16 @@ which writes one nginx block per port at container start (nginx' `listen` has no
 ranges). Widen the range with `SANDBOX_PORT_FROM` / `SANDBOX_PORT_TO` in `.env` — every
 port costs one nginx block and one host mapping, upper limit 200.
 
+**Surviving a restart:** the sandbox keeps images and containers in its own volume, but a
+stopped container stays stopped. Start project containers with `--restart unless-stopped`
+if they should come back up with the sandbox.
+
 **Cleanup:** `docker system prune` runs inside the sandbox, never touching the host.
 
-**Limitation:** Sandbox requires `privileged: true`, which means Docker not rootless Podman.
-If you're on rootless Podman, use **Option 2** instead (Socket mount).
+**Limitation:** the sandbox needs `privileged: true`. That is unproblematic on Docker; on
+rootless Podman it depends on the host — it *did* run on ours (cgroups v2, Podman 4.9),
+but if the daemon refuses to start, use **Option 2** instead (socket mount), which needs
+no privileges.
 
 ### Option 2: Socket mount (direct host Docker / Podman)
 

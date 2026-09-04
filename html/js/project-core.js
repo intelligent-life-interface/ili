@@ -726,5 +726,62 @@ async function cleanupBoard(btn) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// AUTO-RELOAD (Feature: automatisches Neuladen von Kanban + Beschreibung)
+// ══════════════════════════════════════════════════════════════
+
+let autoReloadInterval = null;
+let autoReloadEnabled = false;
+const AUTO_RELOAD_INTERVAL_MS = 60000;  // 60 Sekunden
+
+function startAutoReload() {
+    if (autoReloadEnabled) return;
+    autoReloadEnabled = true;
+    console.log('[Project] Auto-Reload gestartet (' + AUTO_RELOAD_INTERVAL_MS + 'ms)');
+    updateAutoReloadButton();
+
+    autoReloadInterval = setInterval(async () => {
+        try {
+            console.log('[Project] Auto-Reload: Kanban + Beschreibung werden neu geladen');
+            await loadBoard(true);
+            await loadProjectHead();
+        } catch (e) {
+            console.warn('[Project] Auto-Reload Fehler:', e.message);
+        }
+    }, AUTO_RELOAD_INTERVAL_MS);
+}
+
+function stopAutoReload() {
+    if (!autoReloadEnabled) return;
+    autoReloadEnabled = false;
+    console.log('[Project] Auto-Reload gestoppt');
+    if (autoReloadInterval) {
+        clearInterval(autoReloadInterval);
+        autoReloadInterval = null;
+    }
+    updateAutoReloadButton();
+}
+
+function toggleAutoReload() {
+    if (autoReloadEnabled) {
+        stopAutoReload();
+    } else {
+        startAutoReload();
+    }
+}
+
+function updateAutoReloadButton() {
+    const btn = document.querySelector('[data-auto-reload]') || document.getElementById('auto-reload-btn');
+    if (btn) {
+        if (autoReloadEnabled) {
+            btn.classList.add('active');
+            btn.textContent = '🔄 Auto-Reload: AN';
+        } else {
+            btn.classList.remove('active');
+            btn.textContent = '🔄 Auto-Reload: AUS';
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════════════════════════

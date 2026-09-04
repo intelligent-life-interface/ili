@@ -53,6 +53,9 @@ services:
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
       # Lokales Ollama (optional)
       OLLAMA_URL: "${OLLAMA_URL:-}"
+      # GitHub feedback channel: public client id of the GitHub App "ili" (device-flow
+      # login, no secret). Empty → "Mit GitHub anmelden" stays disabled, deep links still work.
+      ILI_GITHUB_APP_CLIENT_ID: "${ILI_GITHUB_APP_CLIENT_ID:-}"
       # URL unter der das Dashboard erreichbar ist (für interne Links)
       DASHBOARD_URL: "${DASHBOARD_URL:-http://localhost:8798}"
       # Automat-State: Worker-Info und KI-Konfiguration (ai_config.json)

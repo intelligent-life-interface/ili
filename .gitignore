@@ -58,5 +58,3 @@ projects/*
 html/photos/
 # runtime data (GitHub token, dedup state, audit log) — never commit
 data/
-docs/PUBLISH-CHECKLISTE.md
-.secretgateignore
