@@ -373,9 +373,11 @@ def status():
             try:
                 w = json.loads(f.read_text())
                 pid = w.get("pid", 0)
+                # NOTE: no `import os` inside this function — a local import makes
+                # `os` a local name for the whole function and the os.getenv() above
+                # then raises UnboundLocalError (500 on every call, seen in 0.1.14).
                 alive = False
                 try:
-                    import os
                     os.kill(pid, 0)
                     alive = True
                 except Exception:
