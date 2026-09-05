@@ -4,11 +4,16 @@
 #   1. Subcommands that hand out the compose files baked into the image, so an
 #      installation needs neither a clone nor a download (variant A, 2026-08-22):
 #        init              write docker-compose.yml, docker-compose.terminal.yml,
-#                          docker-compose.lan.yml and .env into /out (mount your folder there); an existing .env
-#                          is never overwritten
+#                          docker-compose.lan.yml, docker-compose.sandbox.yml,
+#                          docker-compose.hostdocker.yml, deploy/gateway/nginx.conf,
+#                          deploy/gateway/10-generate-streams.sh and .env into /out
+#                          (mount your folder there); an existing .env is never
+#                          overwritten
 #        compose           print docker-compose.yml to stdout
 #        compose-terminal  print docker-compose.terminal.yml to stdout
 #        compose-lan       print docker-compose.lan.yml to stdout
+#        compose-sandbox   print docker-compose.sandbox.yml to stdout
+#        compose-hostdocker print docker-compose.hostdocker.yml to stdout
 #        env               print .env.example to stdout
 #        help              this list
 #      Works the same with Docker and Podman:
@@ -38,7 +43,9 @@ usage() {
     cat >&2 <<'USAGE'
 ili image — usage:
   init              write docker-compose.yml, docker-compose.terminal.yml,
-                    docker-compose.lan.yml and .env into /out
+                    docker-compose.lan.yml, docker-compose.sandbox.yml,
+                    docker-compose.hostdocker.yml, deploy/gateway/nginx.conf,
+                    deploy/gateway/10-generate-streams.sh and .env into /out
                     (existing .env is kept). Mount your folder:
                       docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
                       podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili init
@@ -49,6 +56,8 @@ ili image — usage:
   compose           print docker-compose.yml
   compose-terminal  print docker-compose.terminal.yml
   compose-lan       print docker-compose.lan.yml (own LAN address via macvlan, optional)
+  compose-sandbox   print docker-compose.sandbox.yml (project-container sandbox overlay)
+  compose-hostdocker print docker-compose.hostdocker.yml (project-container socket-mount overlay)
   env               print .env.example
   help              this text
 Docs, source & issues: https://github.com/Toa1984/ili-public  (QUICKSTART.md)
@@ -73,12 +82,21 @@ do_init() {
         log "ERROR: $OUT_DIR is not writable (SELinux? add :Z to the -v option)"
         exit 1
     fi
-    for f in docker-compose.yml docker-compose.terminal.yml docker-compose.lan.yml; do
+    for f in docker-compose.yml docker-compose.terminal.yml docker-compose.lan.yml \
+             docker-compose.sandbox.yml docker-compose.hostdocker.yml; do
         if [ -f "$OUT_DIR/$f" ]; then
             log "$f exists — replacing with the version from this image"
         fi
         cp "$DIST_DIR/$f" "$OUT_DIR/$f"
         log "wrote $f"
+    done
+    # The sandbox overlay bind-mounts these by relative path (./deploy/gateway/...);
+    # without them here, `docker compose -f docker-compose.sandbox.yml up` fails
+    # with "no such file or directory" on a registry install.
+    mkdir -p "$OUT_DIR/deploy/gateway"
+    for f in nginx.conf 10-generate-streams.sh; do
+        cp "$DIST_DIR/gateway/$f" "$OUT_DIR/deploy/gateway/$f"
+        log "wrote deploy/gateway/$f"
     done
     if [ -f "$OUT_DIR/.env" ]; then
         log ".env exists — keeping it (compare with: ... env > .env.example)"
@@ -99,6 +117,8 @@ case "${1:-}" in
     compose)          emit docker-compose.yml; exit 0 ;;
     compose-terminal) emit docker-compose.terminal.yml; exit 0 ;;
     compose-lan)      emit docker-compose.lan.yml; exit 0 ;;
+    compose-sandbox)  emit docker-compose.sandbox.yml; exit 0 ;;
+    compose-hostdocker) emit docker-compose.hostdocker.yml; exit 0 ;;
     env)              emit .env.example; exit 0 ;;
     help|-h|--help)   usage; exit 0 ;;
 esac

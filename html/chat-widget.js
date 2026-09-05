@@ -11,6 +11,7 @@
         { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku (günstig)' },
     ];
 
+    let _rendered    = false;  // widget mounted? false when no AI is configured
     let _models      = [];
     let _history     = [];   // {role, content}
     let _currentModel = null;
@@ -145,6 +146,39 @@
     }
 
     // ── Init ─────────────────────────────────────────────────────
+    /**
+     * Is any AI backend usable on this instance?
+     *
+     * The model dropdown is no proof: CLAUDE_MODELS above is a hardcoded list, so
+     * it looks populated even on an instance without any credentials. Ask the
+     * backend instead — Claude (subscription token or API key) or at least one
+     * Ollama model has to be there, otherwise every message would fail at /chat.
+     *
+     * On an error we report "not configured": if these endpoints are unreachable,
+     * /chat is unreachable too, and a widget that cannot answer is worse than none.
+     */
+    async function isAiAvailable() {
+        let claude = false;
+        try {
+            const s = await fetch('/api/claude-status').then(r => r.ok ? r.json() : null);
+            claude = !!(s && s.logged_in);
+            console.debug('[ChatWidget] claude-status:', s);
+        } catch (e) {
+            console.debug('[ChatWidget] /api/claude-status nicht erreichbar:', e.message);
+        }
+        if (claude) return true;
+
+        try {
+            const m = await fetch('/api/models').then(r => r.ok ? r.json() : null);
+            const count = ((m && m.data) || []).length;
+            console.debug('[ChatWidget] Ollama-Modelle:', count);
+            return count > 0;
+        } catch (e) {
+            console.debug('[ChatWidget] /api/models nicht erreichbar:', e.message);
+            return false;
+        }
+    }
+
     function init() {
         // Styles einfügen
         const style = document.createElement('style');
@@ -424,6 +458,10 @@
     let _bugContext = null;
     function openWithBug(bug) {
         if (!bug) return;
+        if (!_rendered) {
+            console.warn('[ChatWidget] openWithBug ohne konfigurierte KI — ignoriert');
+            return;
+        }
         _history = [];
         _bugContext = bug;
         const msgs = document.getElementById('cw-messages');
@@ -465,10 +503,24 @@
     window.ChatWidget = { openWithBug };
 
     // ── Start ────────────────────────────────────────────────────
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
+    /**
+     * Only mount the widget when an AI backend is actually usable. Without
+     * credentials the button used to be there, open, accept input and then fail
+     * at /chat — a dead control on every fresh install.
+     */
+    async function start() {
+        if (!(await isAiAvailable())) {
+            console.info('[ChatWidget] Keine KI konfiguriert (weder Claude noch Ollama) — Assistent wird nicht angezeigt');
+            return;
+        }
         init();
+        _rendered = true;
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+    } else {
+        start();
     }
 
 })();

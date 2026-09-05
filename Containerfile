@@ -69,9 +69,16 @@ COPY demo/ demo/
 # registry variant in dist/ must not — without a checkout docker compose would
 # fall back to building when a pull fails and die on the missing deploy/ folder.
 COPY .env.example dist/
-COPY docker-compose.yml docker-compose.terminal.yml docker-compose.lan.yml deploy/compose-dist.py /tmp/compose-src/
+COPY docker-compose.yml docker-compose.terminal.yml docker-compose.lan.yml \
+     docker-compose.sandbox.yml docker-compose.hostdocker.yml \
+     deploy/compose-dist.py /tmp/compose-src/
 RUN python3 /tmp/compose-src/compose-dist.py /tmp/compose-src dist \
     && rm -rf /tmp/compose-src
+# The sandbox overlay bind-mounts these two files by relative path
+# (./deploy/gateway/...) — without them baked in, `init` cannot hand them out
+# and `docker compose -f docker-compose.sandbox.yml up` fails on a registry
+# install (no checkout to bind-mount from).
+COPY deploy/gateway/nginx.conf deploy/gateway/10-generate-streams.sh dist/gateway/
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

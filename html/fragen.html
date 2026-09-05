@@ -264,8 +264,19 @@ async function sendToSession(btn, session, text, key){
   try {
     btn.disabled = true;
     await post("/bot-answer", key ? {session, key} : {session, text});
+    const card = btn.closest(".card");
     feedback(btn, key ? `Taste ${key} gesendet ✓` : "Antwort gesendet ✓", true);
-    setTimeout(() => load(true), 2500);   // Session reagiert -> Status kippt auf "arbeitet"
+    // Karte fade-out lassen (500ms), damit Nutzer Zeit hat, Hand zu heben,
+    // bevor die nächste Karte nach oben rutscht — verhindert versehentliche Klicks
+    if (card) {
+      card.style.transition = "opacity 0.5s ease-out";
+      card.style.opacity = "0";
+      card.style.pointerEvents = "none";
+      setTimeout(() => card.remove(), 500);
+      setTimeout(() => load(true), 1500);   // Session reagiert -> Status kippt auf "arbeitet"
+    } else {
+      setTimeout(() => load(true), 2500);
+    }
   } catch(e){ feedback(btn, "Fehler: " + e.message, false); btn.disabled = false; }
 }
 
@@ -273,10 +284,21 @@ async function decide(el, i, choice){
   const d = DECISIONS[i]; if (!d || !choice) return;
   try {
     const r = await post("/api/automat/decide", {board: d.board, card_id: d.card_id, choice});
+    const card = el.closest(".card");
     feedback(el, r && r.deleted
       ? "🗑️ Gelöscht — wird später endgültig entfernt ✓"
       : "Entscheidung gespeichert ✓ — Board entsperrt", true);
-    setTimeout(() => load(true), 1500);
+    // Karte fade-out lassen (500ms), damit Nutzer Zeit hat, Hand zu heben,
+    // bevor die nächste Karte nach oben rutscht — verhindert versehentliche Klicks
+    if (card) {
+      card.style.transition = "opacity 0.5s ease-out";
+      card.style.opacity = "0";
+      card.style.pointerEvents = "none";
+      setTimeout(() => card.remove(), 500);
+      setTimeout(() => load(true), 800);
+    } else {
+      setTimeout(() => load(true), 1500);
+    }
   } catch(e){ feedback(el, "Fehler: " + e.message, false); }
 }
 

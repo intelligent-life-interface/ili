@@ -118,9 +118,12 @@ out (`docker compose up -d` with only `docker-compose.yml`) if you do not want t
 browser terminal. `--pull always` matters: without it an older `latest` already on
 your machine is used silently (its entrypoint then fails with `exec: init: not found`).
 
-`init` writes `docker-compose.yml`, `docker-compose.terminal.yml` and `.env` (from
+`init` writes `docker-compose.yml`, `docker-compose.terminal.yml`,
+`docker-compose.lan.yml`, `docker-compose.sandbox.yml`, `docker-compose.hostdocker.yml`,
+`deploy/gateway/nginx.conf`, `deploy/gateway/10-generate-streams.sh` and `.env` (from
 `.env.example`; an existing `.env` is never touched). Other subcommands print a single
-file instead: `... compose`, `... compose-terminal`, `... env`, `... help`.
+file instead: `... compose`, `... compose-terminal`, `... compose-lan`,
+`... compose-sandbox`, `... compose-hostdocker`, `... env`, `... help`.
 
 Pin a version with `ILI_VERSION=0.1.11` in `.env` (default `latest`). Updates:
 `docker compose pull && docker compose up -d` — rerun `init` after a release to pick
