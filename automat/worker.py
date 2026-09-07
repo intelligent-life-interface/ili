@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Worker: Start von Dev-/Review-/Fable-Workern + Reaping."""
+import json
 import os
+import shutil
 import sys
 import subprocess
 import uuid
@@ -38,14 +40,84 @@ from budget import refund_start, bump_starts, mark_board_start, age_s
 _ABO_BLOCK_VARS = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
 
 
+# Docker for project containers (GUI: KI-Settings → Docker, app/services/docker_service.py).
+# Same folder as ai_config.json — the api writes it, the automat only reads it.
+DOCKER_CONFIG = Path(os.getenv("ILI_DASHBOARD_DIR", str(Path.home() / "containers/dashboard"))) / "docker_config.json"
+
+
+def _docker_env_overrides() -> dict:
+    """DOCKER_* for `claude -p` from docker_config.json — mode `remote` only. `auto`
+    inherits the compose overlay (sandbox/socket), `off` adds nothing. Mirrors
+    docker_service.env_overrides(); kept in sync by hand (different image, no import)."""
+    try:
+        cfg = json.loads(DOCKER_CONFIG.read_text())
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        logger.warning("docker_config.json nicht lesbar (%s) — ignoriert", e)
+        return {}
+    if cfg.get("mode") != "remote" or not cfg.get("host"):
+        return {}
+    # all three keys — empty means "unset" (sandbox overlay leaves TLS vars behind)
+    return {
+        "DOCKER_HOST": str(cfg["host"]),
+        "DOCKER_TLS_VERIFY": "1" if cfg.get("tls_verify") else "",
+        "DOCKER_CERT_PATH": str(cfg.get("cert_path") or ""),
+    }
+
+
+_guide_synced_mtime: float | None = None
+
+
+def _docker_config_mtime() -> float:
+    try:
+        return DOCKER_CONFIG.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def _sync_docker_guide() -> None:
+    """Refresh /projects/CLAUDE.md (container guide for Claude) through ili-docker-guide —
+    the same marker-guarded script the terminal runs. Absent outside the release image
+    (a host installation keeps its own CLAUDE.md conventions), then this is a no-op."""
+    global _guide_synced_mtime
+    script = shutil.which("ili-docker-guide")
+    if not script:
+        return
+    # once per ticker process, again only when the settings page changed the config —
+    # the probe behind it costs up to ~12s when an engine does not answer, and the
+    # terminal refreshes the file at every Claude start anyway.
+    mtime = _docker_config_mtime()
+    if _guide_synced_mtime is not None and mtime == _guide_synced_mtime:
+        return
+    try:
+        subprocess.run([script, lib.DASHBOARD_URL], timeout=25, check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        _guide_synced_mtime = mtime
+        logger.debug("ili-docker-guide synced (config mtime %s)", mtime)
+    except Exception as e:
+        logger.debug("ili-docker-guide fehlgeschlagen: %s", e)
+
+
 def _abo_env() -> dict:
-    """Kopie der Umgebung ohne API-Credentials — erzwingt Abo-Auth für `claude -p`."""
+    """Kopie der Umgebung für `claude -p`: ohne API-Credentials (erzwingt Abo-Auth, ausser
+    AUTOMAT_ALLOW_API_KEY=1 im Release) und mit DOCKER_* aus docker_config.json.
+    Wird einmal pro Worker-Start aufgerufen — darum hängt hier auch der Guide-Sync."""
     env = dict(os.environ)
-    if os.getenv("AUTOMAT_ALLOW_API_KEY", "0") == "1":
-        return env  # ili release: API key is a valid credential there
-    removed = [k for k in _ABO_BLOCK_VARS if env.pop(k, None) is not None]
-    if removed:
-        logger.debug("Worker-Env: %s entfernt (Abo statt API erzwingen)", ", ".join(removed))
+    if os.getenv("AUTOMAT_ALLOW_API_KEY", "0") != "1":
+        removed = [k for k in _ABO_BLOCK_VARS if env.pop(k, None) is not None]
+        if removed:
+            logger.debug("Worker-Env: %s entfernt (Abo statt API erzwingen)", ", ".join(removed))
+    docker = _docker_env_overrides()
+    if docker:
+        for k, v in docker.items():
+            if v:
+                env[k] = v
+            else:
+                env.pop(k, None)
+        logger.debug("Worker-Env: DOCKER_* aus docker_config.json (Modus remote): %s",
+                     ", ".join(f"{k}={'(unset)' if not v else v}" for k, v in docker.items()))
+    _sync_docker_guide()
     return env
 
 

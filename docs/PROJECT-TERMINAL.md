@@ -119,6 +119,18 @@ services:
 From within a project terminal, you can build and run Docker containers for your own projects.
 This requires either a **Sandbox** (Docker-in-Docker, isolated) or **Socket mount** (direct host access).
 
+The settings page (⚙️ KI-Settings → 🐳 Docker) shows which of the two is active and
+whether the engine answers, prints the matching `.env` lines, and offers a third,
+restart-free option: a **remote daemon over TCP** (`DOCKER_HOST`, e.g. Docker Desktop's
+`tcp://host.docker.internal:2375`; TLS on 2376 for anything beyond localhost). The
+choice is stored in `docker_config.json` next to `ai_config.json`; the terminal picks it
+up when Claude starts, the automat before every run. As soon as an engine is reachable,
+`/projects/CLAUDE.md` is generated with the rules Claude needs (host paths for bind
+mounts, port range, `--restart unless-stopped`) — a hand-written file there is left alone.
+Mode *off* is advisory: it removes those instructions and injects no `DOCKER_*`, but a
+socket mounted by an overlay stays reachable for anyone in the terminal — unmount it
+(drop the overlay from `COMPOSE_FILE`) if that matters.
+
 ### Option 1: Sandbox (Docker-in-Docker, recommended)
 
 The sandbox is a separate Docker daemon inside ili, completely isolated from your host.
@@ -266,6 +278,10 @@ Browser ──► web (nginx, port 80)
   Basic-auth dialog for embedded frames, so the board page would otherwise show
   nginx' raw error text; the page offers a "sign in in a new tab" button instead.
   Status and `WWW-Authenticate` stay untouched, so a direct visit still prompts.
+  The sign-in link carries the board over (`/projterm/?arg=<board>`, read from
+  `location.search` — the 401 body is served under the iframe's own URL). Before
+  0.1.16 it pointed at a bare `/projterm/`, so the sign-in tab opened the generic
+  `home` session instead of the board's — the "wrong terminal" report of 2026-09-07.
 
 ## Do not publish the ttyd port
 

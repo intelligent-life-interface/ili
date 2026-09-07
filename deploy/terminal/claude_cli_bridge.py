@@ -331,6 +331,80 @@ def _call_claude_vision(system: str, prompt: str, images: list, model: str) -> T
     return text.strip(), usage
 
 
+_DOCKER_ENV_KEYS = ("DOCKER_HOST", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH")
+
+
+def _docker_probe(overrides: dict) -> dict:
+    """Run `docker version --format '{{json .}}'` with the container env (+overrides).
+
+    Returns {ok, docker_host, engine{name,version,api_version,os,arch}, projects_host_dir,
+    error}. Only whitelisted DOCKER_* keys are taken from overrides — this endpoint must
+    not become a generic "run with env" primitive. No Claude involved.
+    """
+    env = dict(os.environ)
+    if not isinstance(overrides, dict):
+        overrides = {}
+    # value set → override; key present but empty → drop it (sandbox overlay leaves
+    # DOCKER_TLS_VERIFY/DOCKER_CERT_PATH behind, which would break a plain tcp:// host)
+    applied = {}
+    for k in _DOCKER_ENV_KEYS:
+        if k not in overrides:
+            continue
+        v = str(overrides[k] or "")
+        if v:
+            env[k] = v
+            applied[k] = v
+        else:
+            env.pop(k, None)
+            applied[k] = "(unset)"
+    docker_host = env.get("DOCKER_HOST", "")
+    out = {"ok": False, "docker_host": docker_host, "engine": None,
+           "projects_host_dir": env.get("PROJECTS_HOST_DIR", ""), "error": ""}
+    docker_bin = shutil.which("docker")
+    if not docker_bin:
+        out["error"] = "docker CLI not installed in terminal image"
+        log.warning("[docker-probe] %s", out["error"])
+        return out
+    log.info("[docker-probe] DOCKER_HOST=%s overrides=%s", docker_host or "(default socket)",
+             ",".join(applied) or "-")
+    try:
+        rv = subprocess.run([docker_bin, "version", "--format", "{{json .}}"],
+                            capture_output=True, text=True, timeout=12, env=env)
+    except subprocess.TimeoutExpired:
+        out["error"] = "docker version timed out (12s) — daemon not answering"
+        log.warning("[docker-probe] %s", out["error"])
+        return out
+    except Exception as e:
+        out["error"] = f"{type(e).__name__}: {e}"
+        log.warning("[docker-probe] %s", out["error"])
+        return out
+    server = None
+    try:
+        server = (json.loads(rv.stdout or "{}") or {}).get("Server")
+    except json.JSONDecodeError:
+        pass
+    if rv.returncode != 0 or not server:
+        err = (rv.stderr or "").strip().splitlines()
+        out["error"] = err[-1] if err else f"docker version exit {rv.returncode}"
+        log.info("[docker-probe] not reachable: %s", out["error"])
+        return out
+    platform = server.get("Platform") or {}
+    out["ok"] = True
+    out["engine"] = {
+        "name": platform.get("Name") or "Docker",
+        "version": server.get("Version", "?"),
+        "api_version": server.get("ApiVersion", "?"),
+        "os": server.get("Os", "?"),
+        "arch": server.get("Arch", "?"),
+    }
+    log.info("[docker-probe] ok: %s %s", out["engine"]["name"], out["engine"]["version"])
+    return out
+
+
+# POST /docker/probe  {"env": {DOCKER_HOST…}} → `docker version` from this container
+# (settings page → api → here; see _docker_probe).
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -377,7 +451,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return self._json(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path not in ("/chat", "/vision", "/stream"):
+        if self.path not in ("/chat", "/vision", "/stream", "/docker/probe"):
             return self._json(404, {"error": "not found"})
         if not self._check_auth():
             return
@@ -386,6 +460,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
         except Exception as e:
             return self._json(400, {"error": f"invalid json: {e}"})
+
+        # ── /docker/probe: `docker version` from THIS container ──
+        # The api has no socket in the hostdocker overlay (only terminal+automat), so the
+        # settings page asks here. Optional {"env": {"DOCKER_HOST": ...}} probes a candidate
+        # host without touching the running environment.
+        if self.path == "/docker/probe":
+            return self._json(200, _docker_probe(payload.get("env") or {}))
 
         model = payload.get("model", "claude-sonnet-4-6")
         system = payload.get("system", "") or ""

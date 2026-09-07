@@ -76,6 +76,23 @@ if [[ -n "$BOARD" ]]; then
     echo
 fi
 
+# Docker for project containers (GUI: KI-Settings → Docker). Remote mode hands
+# DOCKER_HOST over at runtime (no restart needed); the guide for Claude goes to
+# /projects/CLAUDE.md — the parent of every board folder, so Claude Code loads it
+# in every session (terminal and automat). Failing silently is fine: without the
+# api the terminal is still a shell.
+ILI_API_URL="${ILI_API_URL:-http://api:8798}"
+if command -v curl >/dev/null 2>&1; then
+    docker_env="$(curl -fsS --max-time 4 "${ILI_API_URL}/api/docker/env" 2>/dev/null || true)"
+    if [[ -n "$docker_env" ]]; then
+        eval "$docker_env"
+        echo "[ili-claude] DOCKER_HOST=${DOCKER_HOST:-} (from KI-Settings → Docker)"
+    fi
+    if command -v ili-docker-guide >/dev/null 2>&1; then
+        ili-docker-guide "$ILI_API_URL"
+    fi
+fi
+
 # Hand over to Claude Code. Its own login flow takes it from here.
 if ! has_credentials && command -v script >/dev/null 2>&1; then
     # Not signed in: run Claude in a pty via `script` and tee its byte stream

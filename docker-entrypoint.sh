@@ -58,6 +58,7 @@ ili image — usage:
   compose-lan       print docker-compose.lan.yml (own LAN address via macvlan, optional)
   compose-sandbox   print docker-compose.sandbox.yml (project-container sandbox overlay)
   compose-hostdocker print docker-compose.hostdocker.yml (project-container socket-mount overlay)
+                    (project containers: status + commands in the GUI, KI-Settings -> Docker)
   env               print .env.example
   help              this text
 Docs, source & issues: https://github.com/Toa1984/ili-public  (QUICKSTART.md)

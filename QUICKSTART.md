@@ -229,6 +229,73 @@ docker compose down -v   # removes containers AND the boards/data volumes
 docker compose up -d     # start fresh
 ```
 
+## Advanced: Project Containers on Windows/Docker Desktop
+
+If you want to run Docker containers from within project terminals on Windows/Docker Desktop, a few extra settings are needed:
+
+**Check first, then configure:** the settings page (⚙️ KI-Settings → 🐳 Docker) shows
+whether the AI can reach a container engine, which overlay is active and the exact
+commands for the two overlays below. It also offers a third way that needs **no
+restart**: point ili at a remote daemon over TCP — on Docker Desktop enable
+*Settings → General → "Expose daemon on tcp://localhost:2375 without TLS"* and enter
+`tcp://host.docker.internal:2375`. Only for a daemon on the same machine; anything
+reachable from the LAN must use TLS (2376). Once an engine is reachable, the AI gets
+its container instructions automatically (`/projects/CLAUDE.md`).
+
+### Socket Mount (Recommended for Windows)
+
+Socket mount gives project terminals direct access to the host Docker daemon via `/var/run/docker.sock` (which Docker Desktop maps from WSL2).
+
+**1. Set up .env:**
+```bash
+DOCKER_SOCKET=/var/run/docker.sock
+PROJECTS_HOST_DIR=C:\Users\your_username\ili
+```
+
+**2. Start the stack with the socket mount overlay:**
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.terminal.yml `
+  -f docker-compose.hostdocker.yml up -d
+```
+
+**3. Open a project terminal and build your container:**
+```bash
+# In the project terminal (http://<your-host>:8080 → Terminal)
+cd /projects/myrouter
+mkdir -p config
+cat > docker-compose.yml << 'EOF'
+version: '3.8'
+services:
+  myservice:
+    image: my-image:latest
+    ports:
+      - "8100:80"
+EOF
+docker compose up -d
+```
+
+### Limitations on Docker Desktop
+
+- **No ipvlan/macvlan:** Containers cannot have their own LAN IP; use port mappings instead
+- **Port 53 (DNS) often taken:** Hyper-V DNS may reserve it; use a different port (e.g., 5353) if you need DNS services
+- **Active user required:** Containers stop when Windows sleeps, logs out, or updates
+- **WireGuard doesn't work:** Only standard networking (ports) is available
+
+### Troubleshooting Project Containers
+
+```bash
+# Check if socket mount is working:
+docker ps   # should list host containers, not empty
+
+# View project container logs:
+docker logs myservice-name
+
+# If `docker` command is not found in the terminal:
+# → make sure -f docker-compose.hostdocker.yml is included in the up command
+```
+
+More details: see **[docs/PROJECT-TERMINAL.md](docs/PROJECT-TERMINAL.md)**.
+
 ## Updating to a Newer Version
 
 ```bash

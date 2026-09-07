@@ -41,9 +41,28 @@
             sign in once in a separate tab, then come back and reload.
         </p>
         <div class="actions">
-            <a class="btn" href="/projterm/" target="_blank" rel="noopener">Sign in in a new tab ↗</a>
+            <a class="btn" id="signin-link" href="/projterm/" target="_blank" rel="noopener">Sign in in a new tab ↗</a>
             <button class="btn secondary" onclick="location.reload()">Reload terminal</button>
         </div>
+        <p style="margin-top:1rem">
+            After signing in, close that tab and press <b>Reload terminal</b> here —
+            the board session only takes one client at a time.
+        </p>
+        <script>
+            // Keep the board: this 401 body is served under the iframe's own URL
+            // (error_page, no redirect), so location.search still carries
+            // "?arg=<board>". Without it the sign-in tab lands in the generic
+            // "home" tmux session instead of the board's — the wrong terminal
+            // (bug seen 2026-09-07 on 0.1.15).
+            (function () {
+                var link = document.getElementById('signin-link');
+                var q = location.search || '';
+                if (link && /[?&]arg=/.test(q)) {
+                    link.href = '/projterm/' + q;
+                }
+                console.debug('[ili-terminal-login] sign-in link ->', link ? link.href : '(no link)');
+            })();
+        </script>
         <p style="margin-top:1.25rem">
             Lost the password? It is printed in the startup log of the web container:
             <code>docker compose logs web | grep ili-setup</code>

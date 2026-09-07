@@ -141,9 +141,24 @@
   .limits-term { background: #05070c; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.78rem; color: #8ee08e; white-space: pre-wrap; min-height: 100px; }
   .limits-copy-btn { position: absolute; top: 8px; right: 8px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 0.72rem; cursor: pointer; }
   .limits-copy-btn:hover { color: var(--text); }
+  /* Docker / project containers (docker-settings.js) */
+  .docker-wrap { display: grid; gap: 10px; }
+  .docker-sub, .docker-note { color: var(--muted); font-size: 0.85rem; margin: 0; }
+  .docker-status { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .docker-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+  .docker-dot.ok { background: #2ea043; }
+  .docker-dot.fail { background: #d1242f; }
+  .docker-meta { color: var(--muted); font-size: 0.8rem; word-break: break-all; }
+  .docker-warn { background: rgba(255,170,0,.12); border-left: 3px solid #e0a000; padding: 8px 10px; font-size: 0.85rem; border-radius: 6px; }
+  .docker-howto { white-space: pre-wrap; }
+  .docker-howto-head { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+  .docker-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .docker-wrap label small { display: block; color: var(--muted); font-weight: normal; }
+  .docker-wrap [hidden] { display: none !important; }  /* label{display:flex} would beat the UA hidden rule */
 </style>
 <script src="/theme.js?v=20260716b" defer></script>
 <script src="/js/darstellung.js?v=20260716c" defer></script>
+<script src="/js/docker-settings.js?v=20260907" defer></script>
 </head>
 <body data-ui-autoinit="off">
 
@@ -229,6 +244,41 @@
       <button class="limits-copy-btn" onclick="copyClaudeLimits()">📋 Kopieren</button>
       <div class="limits-term" id="lim-term">–</div>
     </div>
+  </div>
+
+  <!-- Docker / Projekt-Container: wie die KI eine Container-Engine erreicht (html/js/docker-settings.js,
+       API app/api/docker_config.py). Sandbox/Host-Socket sind Compose-Overlays und nur als Status +
+       Anleitung sichtbar; einzig ein entfernter TCP-Host ist zur Laufzeit setzbar. -->
+  <div class="section-title" data-i18n="docker.title">🐳 Docker / Projekt-Container</div>
+  <div class="docker-wrap">
+    <p class="docker-sub" data-i18n="docker.subtitle">So erreicht die KI eine Container-Engine, um Projekt-Container zu bauen und zu starten.</p>
+    <div class="docker-status"><span class="docker-dot" id="docker-dot"></span><span id="docker-status-text" data-i18n="docker.status.loading">Prüfe Docker-Verbindung…</span></div>
+    <div class="docker-meta" id="docker-meta"></div>
+    <div class="budget-fields">
+      <label><span data-i18n="docker.mode.label">Modus</span>
+        <select id="docker-mode">
+          <option value="auto" data-i18n="docker.mode.auto">Wie gestartet (Compose-Overlay: Sandbox oder Host-Socket)</option>
+          <option value="remote" data-i18n="docker.mode.remote">Entfernter Docker-Host über TCP (ohne Neustart)</option>
+          <option value="off" data-i18n="docker.mode.off">Aus — KI soll keine Container einrichten</option>
+        </select>
+      </label>
+      <label id="docker-host-row"><span data-i18n="docker.host.label">Docker-Host (DOCKER_HOST)</span>
+        <input type="text" id="docker-host" placeholder="tcp://host.docker.internal:2375" autocomplete="off" spellcheck="false">
+        <small data-i18n="docker.host.hint">z.B. tcp://host.docker.internal:2375 (Docker Desktop) oder tcp://docker-host:2376 (TLS)</small>
+      </label>
+      <label class="budget-check" id="docker-tls-row"><input type="checkbox" id="docker-tls"> <span data-i18n="docker.tls.label">TLS prüfen (DOCKER_TLS_VERIFY=1)</span></label>
+      <label id="docker-cert-row"><span data-i18n="docker.cert.label">Zertifikat-Ordner (DOCKER_CERT_PATH, im Terminal gemountet)</span>
+        <input type="text" id="docker-cert" placeholder="/docker-certs/client" autocomplete="off" spellcheck="false">
+      </label>
+    </div>
+    <div class="docker-warn" id="docker-warn" data-i18n="docker.warn.socket">⚠️ Host-Socket und ungeschütztes TCP sind faktisch Root auf dem Rechner. Nur auf einem Gerät, das ili gehört — und TCP nie ohne TLS ins LAN öffnen.</div>
+    <div class="docker-howto-head"><span data-i18n="docker.howto.title">Anleitung</span><button class="limits-copy-btn" id="docker-copy" data-i18n="docker.btn.copy">📋 Kopieren</button></div>
+    <pre class="limits-term docker-howto" id="docker-howto">–</pre>
+    <div class="docker-actions">
+      <button class="btn" id="docker-btn-test" data-i18n="docker.btn.test">🔌 Verbindung testen</button>
+      <button class="btn btn-save" id="docker-btn-save" data-i18n="docker.btn.save">💾 Docker-Einstellungen speichern</button>
+    </div>
+    <p class="docker-note" data-i18n="docker.guide.note">Die KI bekommt die passende Anleitung automatisch (/projects/CLAUDE.md), sobald Docker erreichbar ist.</p>
   </div>
 
   <div class="actions">
