@@ -15,9 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CONF = ROOT / "html" / "_api-locations.conf"
 
 # Pre-existing gaps documented in the 0.1.15 live-test findings — fix + remove here.
-KNOWN_GAPS = {
-    "/api/github",
-}
+KNOWN_GAPS = set()
 # Deliberately compose-internal (terminal/automat call http://api:8798 directly);
 # they hand out DOCKER_HOST/cert paths and must not be reachable through the web container.
 INTERNAL_ONLY = {
