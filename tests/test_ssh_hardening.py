@@ -98,11 +98,25 @@ class SshOverlayTests(unittest.TestCase):
         self.assertIn("docker-compose.ssh.yml", read("Containerfile"))
 
     def test_the_terminal_is_the_only_service_touched(self):
-        """No sshd in api or web — a smaller surface, and neither has a shell to offer."""
-        import yaml
-        with open(os.path.join(ROOT, "docker-compose.ssh.yml"), encoding="utf-8") as fh:
-            services = yaml.safe_load(fh)["services"]
-        self.assertEqual(list(services), ["terminal"])
+        """No sshd in api or web — a smaller surface, and neither has a shell to offer.
+
+        Read as text rather than with PyYAML: that is not a dependency of the
+        app, and the CI test job installs only requirements.txt plus the dev
+        extras (this test failed the 0.1.17 run with ModuleNotFoundError).
+        """
+        services, in_block = [], False
+        for line in read("docker-compose.ssh.yml").splitlines():
+            if line.startswith("services:"):
+                in_block = True
+                continue
+            if in_block:
+                if line and not line.startswith((" ", "\t", "#")):
+                    break  # next top-level key ends the block
+                stripped = line.strip()
+                if (line.startswith("  ") and not line.startswith("   ")
+                        and stripped.endswith(":") and not stripped.startswith("#")):
+                    services.append(stripped[:-1])
+        self.assertEqual(services, ["terminal"])
 
 
 class SshStartGateTests(unittest.TestCase):
