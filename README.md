@@ -112,6 +112,15 @@ Claude-Bridge und Kanban-Automat — Standard seit v0.1.7, ohne sie bleiben neue
 leere Vorlagen) aus den mitgelieferten Compose-Dateien — deckt diesen und den nächsten
 Schritt in einem Rutsch ab, danach direkt bei Schritt 6 weiter.
 
+**SSH-Zugang zum Terminal-Container** (optional, standardmässig aus): für
+scriptbaren Zugriff, `scp`/`rsync` oder einen Editor, der über SSH arbeitet —
+`docker-compose.ssh.yml` dazuschalten und einen öffentlichen Schlüssel nach
+`ssh/authorized_keys` legen. Nur Schlüssel-Anmeldung, kein Passwort, kein
+root-Login, Port `2222` auf `127.0.0.1`. Es ist eine Shell mit den Projektdateien
+und sudo — Details und die Sicherheitsabwägung:
+[QUICKSTART](QUICKSTART.md#optional-ssh-access-to-the-project-terminal) und
+[docs/PROJECT-TERMINAL.md](docs/PROJECT-TERMINAL.md).
+
 ### 5. FastAPI-Backend starten
 
 ```bash

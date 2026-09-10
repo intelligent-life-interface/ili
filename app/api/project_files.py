@@ -1,7 +1,9 @@
 """API-Router: Datei-Panel des Projekts (Liste + gerenderte Markdown-Ansicht).
 
 Routen:
-  * GET /api/project-files?id=<slug>                 → Top-Level-Dateiliste des Arbeitsordners
+  * GET /api/project-files?id=<slug>[&dir=<rel>]     → Dateiliste EINES Ordners im
+                                                        Arbeitsordner (dir leer = Wurzel;
+                                                        Unterordner navigieren mit dir=<pfad>)
   * GET /api/project-files/view?id=<slug>&file=<rel> → .md-Datei als gerendertes HTML
 
 Logik in app.services.project_files.
@@ -17,14 +19,14 @@ router = APIRouter(prefix="/api/project-files", tags=["project-files"])
 
 
 @router.get("")
-def project_files(id: str = Query(default="")):
-    """Dateiliste des Projekt-Arbeitsordners (für das 📂-Panel in project.html)."""
+def project_files(id: str = Query(default=""), dir_: str = Query(default="", alias="dir")):
+    """Dateiliste eines Ordners im Projekt-Arbeitsordner (für das 🗂-Panel in project.html)."""
     if not id.strip():
         raise HTTPException(status_code=400, detail="id fehlt")
     try:
-        return svc.list_files(id.strip())
+        return svc.list_files(id.strip(), dir_.strip())
     except Exception as e:
-        log.error("project-files fehlgeschlagen (id=%s): %s", id, e, exc_info=True)
+        log.error("project-files fehlgeschlagen (id=%s dir=%s): %s", id, dir_, e, exc_info=True)
         raise HTTPException(status_code=500, detail="Interner Serverfehler")
 
 

@@ -7,6 +7,7 @@ log = logging.getLogger("dashboard.background_tasks")
 
 _last_update_check: datetime | None = None
 _check_interval = timedelta(hours=24)
+_log_db_interval = timedelta(hours=1)
 
 
 async def check_for_updates_periodic() -> None:
@@ -40,6 +41,41 @@ async def check_for_updates_periodic() -> None:
             log.error("Periodic update check failed: %s (will retry in 24h)", e)
 
 
+async def maintain_log_db_periodic() -> None:
+    """Keep the optional `logs` table (PostgreSQL) usable, without ever
+    depending on it being there.
+
+    A few quick retries right at startup: on a fresh `docker compose up -d`,
+    `db` is usually not accepting connections yet the moment `api` starts —
+    Compose starts services in parallel and Postgres' own init takes a few
+    seconds. Without this, DB logging would stay off until the next container
+    restart on almost every fresh install. After that, retry hourly for as
+    long as it stays unavailable (deleted db service, wrong credentials,
+    temporary outage — all the same from here), and run the retention cleanup
+    once it is.
+    """
+    from app.services import log_db_service
+
+    for _ in range(5):
+        if await asyncio.to_thread(log_db_service.ensure_schema):
+            break
+        await asyncio.sleep(3)
+
+    while True:
+        try:
+            await asyncio.sleep(_log_db_interval.total_seconds())
+            if log_db_service.is_available():
+                await asyncio.to_thread(log_db_service.cleanup_old)
+            else:
+                await asyncio.to_thread(log_db_service.ensure_schema)
+        except asyncio.CancelledError:
+            log.debug("Log-DB-Wartung abgebrochen")
+            break
+        except Exception as e:
+            log.error("Log-DB-Wartung fehlgeschlagen: %s (nächster Versuch in %ds)",
+                       e, int(_log_db_interval.total_seconds()))
+
+
 async def startup() -> None:
     """Called when the FastAPI app starts.
 
@@ -52,3 +88,6 @@ async def startup() -> None:
     # Create a task that runs the periodic check
     asyncio.create_task(check_for_updates_periodic())
     log.debug("Update checker task scheduled")
+
+    asyncio.create_task(maintain_log_db_periodic())
+    log.debug("Log-DB-Wartung task scheduled")

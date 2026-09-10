@@ -12,6 +12,11 @@ window.I18N = {
     "ai.zuruecksetzen": "↺ Reset",
 
     // ── Docker / Projekt-Container (ai-settings.html, docker-settings.js) ─────────
+    "bug.button": "Report a bug",
+    "bug.title": "Report a bug (opens GitHub in a new tab)",
+    "bug.prefillTitle": "Bug in ili: ",
+    "bug.prefillBody": "What happened?\n\n\nWhat did you expect?\n\n\n---\n",
+    "bug.failed": "The report link could not be created.",
     "docker.title": "🐳 Docker / project containers",
     "docker.subtitle": "How the AI reaches a container engine to build and run project containers.",
     "docker.status.loading": "Checking Docker connection…",
@@ -68,6 +73,7 @@ window.I18N = {
     "bugs.source.all": "All",
     "bugs.source.kanban": "📋 Kanban",
     "bugs.source.log": "📜 Logs",
+    "bugs.source.dblog": "🗄 DB",
     "cost.csv": "⬇ CSV",
     "cost.view.all": "All",
     "cost.view.claude": "☁️ Claude",

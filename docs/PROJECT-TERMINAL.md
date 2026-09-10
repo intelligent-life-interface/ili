@@ -114,6 +114,201 @@ services:
       CLAUDE_CONFIG_DIR: /projects/.home/.claude
 ```
 
+## A database for your projects
+
+The standard stack starts a PostgreSQL container called `db`. It is there so
+the projects you build in the terminal have a database ready without setting
+one up first — ili's own boards stay JSON files, that part has not changed.
+ili's `api` container does use `db` for one thing of its own though: it
+mirrors its WARNING/ERROR log lines into a `logs` table so `bugs.html` has
+real data to show (see below, and `docs/LOGGING.md`) — without `db` that
+falls back to stdout-only logging, nothing breaks.
+
+Reach it from code running in the terminal:
+
+```
+host db · port 5432
+postgresql://ili:CHANGE-ME@db:5432/ili
+```
+
+Credentials come from `.env` (`POSTGRES_USER`, `POSTGRES_PASSWORD`,
+`POSTGRES_DB`). `CHANGE-ME` is what `init` writes into a fresh `.env`, and also
+the fallback the compose file uses when the line is missing entirely — so it is
+the password until you pick one yourself. **Change it before you store anything
+real.** After editing
+`.env` the database has to be recreated, because postgres only reads those
+variables when it initialises an empty data directory:
+
+```bash
+docker compose down
+docker volume rm ili_db-data     # deletes the data in it
+docker compose up -d
+```
+
+The port is not published to the host, so the database is only reachable inside
+the compose network. To attach a database tool, uncomment the `ports:` block in
+the `db` service — it binds to `127.0.0.1` so it does not land on the LAN. If
+port 5432 is already taken on your machine, map a different one (`"127.0.0.1:5433:5432"`).
+
+**The sandbox path is separate.** Project containers started via
+`docker-compose.sandbox.yml` (Docker-in-Docker, below) run in their own network
+and can **not** see `db` — from their point of view the name does not exist.
+Either run them the socket way, or start a database inside the sandbox for them.
+Code running directly in the terminal container is unaffected.
+
+Do not want a database? Delete the `db` service and the `db-data` volume from
+`docker-compose.yml`.
+
+### Connecting a BI tool (e.g. Metabase)
+
+Metabase and most other BI tools ship a PostgreSQL driver already — there is
+nothing to install. The only question is whether the tool can reach `db` on
+the network.
+
+**If the BI tool runs in the same Compose project** (its `docker-compose.yml`
+has no `networks:` section of its own, so Compose joins it to this stack's
+shared default network), it already reaches the database by service name, no
+published port needed:
+
+```
+host db · port 5432
+postgresql://ili:<POSTGRES_PASSWORD>@db:5432/ili
+```
+
+**If the BI tool runs in a different Compose project or a standalone
+container**, it lives in its own network namespace and the name `db` resolves
+nowhere there. Two options, same trade-off as any other cross-project setup:
+
+- Join it to this stack's network. Compose names the default network
+  `<project-directory>_default` (e.g. `ili_default` for a checkout in
+  `~/ili`) — add it as `external: true` under the BI tool's `networks:` and
+  point the tool's service at it. It then reaches `db` by name as above, no
+  port has to be published.
+- Or publish the port (uncomment the `ports:` block on the `db` service,
+  above) and point the BI tool at the Docker/Podman **host's** address
+  instead of `db` — from inside another container that is usually
+  `host.docker.internal` or an equivalent gateway address, not `127.0.0.1`
+  (`127.0.0.1` only works from the host machine itself, or from a BI tool
+  that is not containerized). Check what your container runtime provides.
+
+Either way: the port stays closed by default on purpose (see above) — opening
+it or bridging networks is a decision you make, not something the stack does
+for you.
+
+## SSH into the terminal (optional, off by default)
+
+The browser terminal is the everyday way in. For scripted access — `ssh host
+'command'`, `scp`/`rsync`, an editor that works over SSH — there is a real SSH
+login. It is off unless you switch it on, and it needs two things, so it cannot
+happen by accident:
+
+```bash
+# 1) your PUBLIC key (never the private one) next to the compose files
+mkdir -p ssh
+cat ~/.ssh/id_ed25519.pub >> ssh/authorized_keys     # no key yet? ssh-keygen -t ed25519
+
+# 2) start with the overlay
+docker compose -f docker-compose.yml \
+               -f docker-compose.terminal.yml \
+               -f docker-compose.ssh.yml up -d
+
+# 3) in you go
+ssh -p 2222 ili@127.0.0.1
+```
+
+Registry install without a checkout? `docker run --rm -v "$PWD":/out
+ghcr.io/toa1984/ili init` writes `docker-compose.ssh.yml` along with the others.
+
+### What this login is — read this before you open it up
+
+You get a shell in the terminal container: your project files, and passwordless
+`sudo` (the container runs as root by design, see *How it is wired*). **With
+`docker-compose.hostdocker.yml` in the same stack it also holds the Docker
+socket, and that makes this login equivalent to root on the host machine.**
+
+Whoever holds the matching **private** key holds those rights. Treat that key
+like the machine's own password: no copy on a shared drive, no passphrase-less
+key on a laptop you carry around.
+
+That is why the port binds to `127.0.0.1` by default — reachable from the ili
+machine itself and nowhere else. Everything else is switched off:
+
+| | |
+|---|---|
+| Password login | off — the key is the only way in |
+| Root login | off (`ili` is the only permitted user) |
+| Port forwarding / tunnels | off — otherwise the login would tunnel into the whole compose network, `db:5432` included |
+| Failed attempts per connection | 3, with a 20-second grace time |
+| Host keys | in the `ssh-hostkeys` volume, generated on first start — so the fingerprint survives updates instead of triggering `REMOTE HOST IDENTIFICATION HAS CHANGED` |
+
+Nothing is baked into the image: no key, no host key, no daemon that runs
+without one.
+
+### Working with the project files over SSH
+
+One thing to know before the first attempt, because otherwise it looks like a
+bug: you land as the user `ili`, but the project folders belong to the
+container's root — that is deliberate, it is what keeps them writable for the
+terminal and the automat. So `ili` alone cannot write into `/projects`:
+
+```bash
+$ ssh -p 2222 ili@127.0.0.1 'touch /projects/demo/x'
+touch: cannot touch '/projects/demo/x': Permission denied
+```
+
+`ili` has passwordless `sudo`, so all three normal ways work — you just have to
+say so:
+
+```bash
+# Interactive work. Do this rather than staying as `ili`: as root you are where
+# /projects is writable AND where the Claude login lives (/root/.claude).
+ssh -p 2222 -t ili@127.0.0.1 sudo -i
+
+# Copy a folder in (and back out — just swap the two arguments)
+rsync -a --no-owner --no-group -e 'ssh -p 2222' --rsync-path='sudo rsync' \
+      ./my-project/ ili@127.0.0.1:/projects/my-project/
+
+# A single file, if you would rather not use rsync
+scp -P 2222 file.txt ili@127.0.0.1:/tmp/
+ssh -p 2222 ili@127.0.0.1 'sudo mv /tmp/file.txt /projects/my-project/'
+```
+
+`--no-owner --no-group` matters on rootless Podman: with plain `-a`, rsync keeps
+your workstation's uid, which maps to a nobody-ish id on the ili host — the files
+land there but neither you nor the container can edit them comfortably
+afterwards. Without the flags on the host they end up owned by the container's
+root, which under rootless Podman *is* your own host user.
+
+Running `claude` as `ili` will report that it is not signed in: the login lives
+in root's home. `sudo -i` first.
+
+### Reaching it from another machine
+
+Only when you have decided you want that. `SSH_BIND=0.0.0.0` in `.env` puts the
+port on your LAN:
+
+```bash
+SSH_PORT=2222
+SSH_BIND=0.0.0.0
+```
+
+Into the open internet it does not belong — put it behind a VPN or a tunnel with
+its own access control instead.
+
+### It does not start
+
+`docker compose logs terminal | grep ili-sshd` says why. The usual answers:
+
+* `no SSH access: /etc/ssh/ili/authorized_keys does not exist` — the file is
+  missing. It goes into `ssh/authorized_keys` **next to the compose files**, and
+  the stack has to be restarted afterwards.
+* `holds no public key line` — the file exists but has no key in it (a comment
+  or an empty line does not count). A public key line starts with `ssh-ed25519`
+  or `ssh-rsa`.
+* `Permission denied (publickey)` on the client although the daemon is running —
+  you copied the private key instead of the `.pub` file, or you are connecting
+  as a different user. The user is `ili`, always.
+
 ## Running project containers (Docker / Podman)
 
 From within a project terminal, you can build and run Docker containers for your own projects.

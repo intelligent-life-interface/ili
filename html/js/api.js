@@ -113,6 +113,13 @@
     return apiGet('/scan-logs?since=' + encodeURIComponent(sinceHours));
   }
 
+  // GET /db-logs — api's own WARNING/ERROR lines aus der optionalen PostgreSQL
+  // (Tabelle `logs`, siehe docs/LOGGING.md). Liefert immer 200, auch ohne DB
+  // ({available:false, bugs:[]}) — nie werfen deswegen.
+  function fetchDbLogs(sinceHours) {
+    return apiGet('/db-logs?since=' + encodeURIComponent(sinceHours));
+  }
+
   // GET /search-by-tag?q= — durchsucht ALLE Projekte (Index, inkl. container-
   // Projekte ohne Board) nach Name UND Tags. Liefert {query,count,results:[{id,
   // path,tags,matched,match_in}]}. Ergänzt die clientseitige Kachel-Filterung
@@ -232,6 +239,7 @@
     fetchCategories: fetchCategories,
     fetchAiConfig: fetchAiConfig,
     scanLogs: scanLogs,
+    fetchDbLogs: fetchDbLogs,
     searchByTag: searchByTag,
     analyseBugStream: analyseBugStream,
     kiExplainStream: kiExplainStream,

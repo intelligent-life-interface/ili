@@ -46,6 +46,17 @@ The FastAPI backend (`api`) only serves the JSON API. The static frontend
 `api`. **Running only the `api` container gives you a working JSON backend
 but no browser UI** — always use `docker compose up`, not a bare `docker run`.
 
+A third container, `db`, runs PostgreSQL. It is mainly a building block for
+the projects you build in the project terminal, reachable there as host `db`,
+port 5432 — ili's own boards stay JSON files either way. `api` does use it for
+one thing: mirroring its own WARNING/ERROR log lines into a `logs` table so
+`bugs.html` has real data (see [docs/LOGGING.md](docs/LOGGING.md)); without
+`db` that just falls back to stdout-only logging. Credentials live in `.env`
+(`POSTGRES_*`); change the password before storing anything real. If you do
+not want it, delete the `db` service and the `db-data` volume from
+`docker-compose.yml`. Details:
+[docs/PROJECT-TERMINAL.md](docs/PROJECT-TERMINAL.md#a-database-for-your-projects).
+
 ## Quick Start
 
 ### 1. Prepare a Config File
@@ -228,6 +239,35 @@ services), not `docker run` against the API image alone.
 docker compose down -v   # removes containers AND the boards/data volumes
 docker compose up -d     # start fresh
 ```
+
+## Optional: SSH access to the project terminal
+
+Off by default. For scripted access, `scp`/`rsync` or an SSH-capable editor —
+instead of the browser terminal, whose password is regenerated on every start:
+
+```bash
+mkdir -p ssh
+cat ~/.ssh/id_ed25519.pub >> ssh/authorized_keys      # PUBLIC key; ssh-keygen -t ed25519 if you have none
+docker compose -f docker-compose.yml -f docker-compose.terminal.yml \
+               -f docker-compose.ssh.yml up -d
+ssh -p 2222 ili@127.0.0.1
+```
+
+You land as the user `ili`; the project folders belong to the container's root,
+so writing to them goes through `sudo` (passwordless):
+
+```bash
+ssh -p 2222 -t ili@127.0.0.1 sudo -i          # interactive work, incl. `claude`
+rsync -a --no-owner --no-group -e 'ssh -p 2222' --rsync-path='sudo rsync' \
+      ./my-project/ ili@127.0.0.1:/projects/my-project/
+```
+
+Key login only — no password, no root login — and the port listens on
+`127.0.0.1`, i.e. on the ili machine itself. **This is a shell with your project
+files and passwordless sudo; together with the socket-mount overlay it is root on
+the host.** Guard the private key accordingly, and read
+[docs/PROJECT-TERMINAL.md](docs/PROJECT-TERMINAL.md) before putting the port on
+your LAN with `SSH_BIND=0.0.0.0`.
 
 ## Advanced: Project Containers on Windows/Docker Desktop
 

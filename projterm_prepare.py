@@ -194,6 +194,49 @@ def resolve_work_dir(slug: str) -> Path | None:
     return None
 
 
+def _board_exists(slug: str) -> bool:
+    return (BOARDS_DIR / f"{slug}.json").exists()
+
+
+def resolve_or_create_work_dir(slug: str) -> Path | None:
+    """Wie resolve_work_dir(), legt den Board-Ordner aber im Paket-Modus eager an,
+    falls er noch fehlt.
+
+    Im ausgelieferten Container (docker-compose.terminal.yml) ist PROJEKTE_DIR
+    explizit auf /projects gesetzt (siehe .env/Compose), aber ausser
+    deploy/terminal/ili-term.sh legt bislang NIEMAND den Ordner
+    /projects/<slug> an — der entsteht erst, wenn jemand das Projekt-Terminal
+    mindestens einmal geoeffnet hat. Bis dahin liefert resolve_work_dir() None,
+    das Datei-Panel und die Direktlinks im Projekt-Kopf bleiben leer, obwohl das
+    Board laengst existiert. Hier holen wir das nach — NUR fuer einen gezielten
+    Einzelprojekt-Aufruf (das Board wird tatsaechlich angeschaut), nicht fuer
+    Massen-Iterationen ueber alle Boards (service_project_map()), die weiterhin
+    das reine resolve_work_dir() nutzen.
+
+    Sicherheitsbedingungen, gespiegelt aus ili-term.sh: nur ein Board mit
+    vorhandener boards/<slug>.json bekommt einen Ordner, nur ein sicherer Slug,
+    nur innerhalb PROJEKTE_BASE, und nur wenn PROJEKTE_DIR ueberhaupt explizit
+    gesetzt ist (Home-Stack-Betrieb ohne das Paket bleibt unangetastet).
+    """
+    d = resolve_work_dir(slug)
+    if d is not None:
+        return d
+    if not os.environ.get("PROJEKTE_DIR"):
+        return None
+    if not _slug_is_safe(slug) or not _board_exists(slug):
+        return None
+    d = PROJEKTE_BASE / slug
+    if not _within(PROJEKTE_BASE, d):
+        return None
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        log(f"WARN: Paket-Modus: Arbeitsordner {d} nicht anlegbar: {e}")
+        return None
+    log(f"Paket-Modus: Arbeitsordner {d} eager angelegt (Board existierte, Ordner noch nicht)")
+    return d
+
+
 def render_kanban_block(slug: str, board: dict, entry: dict) -> str:
     """Kompakten Markdown-Block (inkl. Marker) aus Board + Manifest-Eintrag bauen.
 

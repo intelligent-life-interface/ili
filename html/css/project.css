@@ -1395,6 +1395,7 @@
             font-size:.82rem; text-decoration:none; color:#cbd5e0;
         }
         .proj-file-row:hover { background:var(--t-raised, #27384a); color:var(--accent-soft, #76b9f7); }
+        .proj-file-nav { cursor:pointer; user-select:none; -webkit-touch-callout:none; }
         .proj-file-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .proj-file-size { font-size:.7rem; color:#76819a; font-family:monospace; }
         .proj-files-empty { padding:.5rem .7rem; font-size:.8rem; color:#76819a; }

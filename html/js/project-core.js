@@ -111,8 +111,6 @@ async function loadBoard(silent = false) {
 const PROJECT_LINK_DEFS = [
     { key: 'webapp',      icon: '🌐', label: 'Web-App',   title: 'Laufende Web-App öffnen' },
     { key: 'services',    icon: '🖥', label: 'Service',   title: 'Eintrag in der Service-Übersicht' },
-    { key: 'filebrowser', icon: '📁', label: 'Dateien',   title: 'Code-Ordner im Filebrowser öffnen' },
-    { key: 'datadir',     icon: '🗂', label: 'Daten',     title: 'Datenordner (data/) im Filebrowser öffnen' },
     { key: 'github',      icon: '🐙', label: 'GitHub',    title: 'GitHub-Repo öffnen' },
     { key: 'claudemd',    icon: '📄', label: 'CLAUDE.md', title: 'Projekt-Doku (CLAUDE.md) öffnen' },
 ];
@@ -135,7 +133,7 @@ function renderProjectLinks(data) {
     // Aus den Terminal-Protokollen gesammelte Links (LINKS.md, Projekt 'projekt-artefakte')
     const alinks = (data && data.artefakt_links) || [];
     const filesBtn = data.work_dir
-        ? `<span class="proj-link proj-files-btn" id="proj-files-btn" title="Dateien des Projektordners direkt anzeigen">🗂 Datei-Liste ▾</span><div class="proj-files-drop" id="proj-files-drop" hidden></div>`
+        ? `<span class="proj-link proj-files-btn" id="proj-files-btn" title="Ganzen Projektordner durchsuchen (inkl. Unterordner)">🗂 Ordner ▾</span><div class="proj-files-drop" id="proj-files-drop" hidden></div>`
         : '';
     // Klick öffnet die gerenderte LINKS.md direkt (md.html); nur ein Longpress zeigt
     // stattdessen das Dropdown mit der Roh-Liste (analog Datei-Liste, Links anklickbar).
@@ -180,23 +178,32 @@ function renderProjectLinks(data) {
     }
 }
 
-// 🗂 Datei-Liste: Dropdown mit den Dateien des Arbeitsordners (GET /api/project-files).
-// Ordner/Dateien → Filebrowser; .md → gerenderte Ansicht (md.html, Links anklickbar).
-// Als absolutes Overlay, damit adjustBoardHeight() nicht beeinflusst wird.
-let projFilesLoaded = false;
+// 🗂 Ordner-Ansicht: Dropdown mit dem KOMPLETTEN Arbeitsordner, navigierbar
+// (GET /api/project-files?id=&dir=<pfad>). Unterordner werden im selben Dropdown
+// betreten (kein neuer Tab), .md-Dateien öffnen die gerenderte Ansicht (md.html,
+// Links darin anklickbar). Als absolutes Overlay, damit adjustBoardHeight()
+// nicht beeinflusst wird.
+let projFilesCurrentDir = null;   // null = noch nie geladen, sonst aktueller Pfad ('' = Wurzel)
 
 async function toggleProjectFiles() {
     const drop = document.getElementById('proj-files-drop');
     if (!drop) return;
     if (!drop.hidden) { drop.hidden = true; return; }
     drop.hidden = false;
-    if (projFilesLoaded) return;
+    if (projFilesCurrentDir === null) await loadProjectFilesDir('');
+}
+
+async function loadProjectFilesDir(dir) {
+    const drop = document.getElementById('proj-files-drop');
+    if (!drop) return;
     drop.innerHTML = '<div class="proj-files-empty">lädt…</div>';
     try {
-        const data = await API.get('/api/project-files?id=' + encodeURIComponent(BOARD_ID));
-        console.log('[Project] project-files:', (data.files || []).length, 'Einträge');
+        let url = '/api/project-files?id=' + encodeURIComponent(BOARD_ID);
+        if (dir) url += '&dir=' + encodeURIComponent(dir);
+        const data = await API.get(url);
+        console.log('[Project] project-files:', (data.files || []).length, 'Einträge, dir=' + JSON.stringify(data.dir));
+        projFilesCurrentDir = data.dir || '';
         renderProjectFiles(data);
-        projFilesLoaded = true;
     } catch (e) {
         console.warn('[Project] project-files Fehler:', e);
         drop.innerHTML = '<div class="proj-files-empty">Fehler beim Laden der Dateiliste</div>';
@@ -213,16 +220,27 @@ function renderProjectFiles(data) {
     const drop = document.getElementById('proj-files-drop');
     if (!drop) return;
     const files = data.files || [];
-    if (!files.length) { drop.innerHTML = '<div class="proj-files-empty">keine Dateien gefunden</div>'; return; }
-    drop.innerHTML = files.map(f => {
-        const icon = f.is_dir ? '📁' : (f.viewable ? '📖' : '📄');
-        const href = f.viewable
-            ? `/md.html?id=${encodeURIComponent(BOARD_ID)}&file=${encodeURIComponent(f.name)}`
-            : (f.filebrowser || '#');
-        const size = f.is_dir ? '' : `<span class="proj-file-size">${fmtSize(f.size)}</span>`;
-        const title = f.viewable ? 'Gerenderte Ansicht öffnen (Links anklickbar)' : 'Im Filebrowser öffnen';
-        return `<a class="proj-file-row" href="${escHtml(href)}" target="_blank" rel="noopener" title="${title}">${icon} <span class="proj-file-name">${escHtml(f.name)}</span>${size}</a>`;
-    }).join('');
+    const rows = [];
+    if (data.parent !== null && data.parent !== undefined) {
+        rows.push(`<div class="proj-file-row proj-file-nav" data-dir="${escHtml(data.parent)}" title="Eine Ebene zurück">⬆️ <span class="proj-file-name">..</span></div>`);
+    }
+    if (!files.length) {
+        rows.push('<div class="proj-files-empty">' + (data.parent == null ? 'keine Dateien gefunden' : 'Ordner ist leer') + '</div>');
+    }
+    files.forEach(f => {
+        if (f.is_dir) {
+            rows.push(`<div class="proj-file-row proj-file-nav" data-dir="${escHtml(f.path)}" title="Ordner öffnen">📁 <span class="proj-file-name">${escHtml(f.name)}</span></div>`);
+        } else if (f.viewable) {
+            const href = `/md.html?id=${encodeURIComponent(BOARD_ID)}&file=${encodeURIComponent(f.path)}`;
+            rows.push(`<a class="proj-file-row" href="${escHtml(href)}" target="_blank" rel="noopener" title="Gerenderte Ansicht öffnen (Links anklickbar)">📖 <span class="proj-file-name">${escHtml(f.name)}</span><span class="proj-file-size">${fmtSize(f.size)}</span></a>`);
+        } else {
+            rows.push(`<div class="proj-file-row proj-file-plain" title="${escHtml(f.name)}">📄 <span class="proj-file-name">${escHtml(f.name)}</span><span class="proj-file-size">${fmtSize(f.size)}</span></div>`);
+        }
+    });
+    drop.innerHTML = rows.join('');
+    drop.querySelectorAll('.proj-file-nav').forEach(el => {
+        el.addEventListener('click', () => loadProjectFilesDir(el.dataset.dir));
+    });
 }
 
 // 🤖 Auto-Entwicklung: Manifest-Flag `auto` togglen (Kanban-Automat ~/containers/kanban-automat).

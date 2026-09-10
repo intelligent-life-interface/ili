@@ -1,17 +1,19 @@
 """Service: Direktlinks zum (Unter-)Projekt für die Projekt-Ansicht.
 
 Liefert pro Board die Sprung-Ziele für den Kopf von project.html:
-  * webapp      — laufende Web-App (<sub>.intranet.DOMAIN), gemappt über web-adressen.json
-  * filebrowser — Code-Ordner im Filebrowser (root /srv ist auf ~/ gemountet → /files/<rel-zu-home>)
-  * datadir     — der data/-Unterordner im Filebrowser (nur wenn vorhanden) — Direktsprung zu
-                  DuckDB/SQLite/Exporten, ohne erst durch den Code-Ordner zu navigieren
-  * github      — git remote origin (falls vorhanden), normalisiert auf eine https-URL
-  * claudemd    — die zum Arbeitsordner passende CLAUDE.md, direkt im Filebrowser geöffnet
+  * webapp   — laufende Web-App (<sub>.intranet.DOMAIN), gemappt über web-adressen.json
+  * github   — git remote origin (falls vorhanden), normalisiert auf eine https-URL
+  * claudemd — die zum Arbeitsordner passende CLAUDE.md (gerenderte Ansicht, siehe project_files)
 
-Der Arbeitsordner kommt aus ``projterm_prepare.resolve_work_dir(slug)`` — exakt der Ordner,
-in dem auch die Terminal-tmux-Session (Claude Code) dieses Boards läuft. Dadurch zeigt der
-Link immer auf das tatsächlich bearbeitete (Unter-)Projekt: Board ``bohrprofile-3d`` mit
-``code_dir=~/containers/bohr3d`` → Links zeigen auf ``bohr3d``, nicht auf das Stub.
+Der Arbeitsordner kommt aus ``projterm_prepare.resolve_or_create_work_dir(slug)`` — derselbe
+Ordner, in dem auch die Terminal-tmux-Session (Claude Code) dieses Boards läuft (im Paket-
+Modus wird er bei Bedarf eager angelegt, damit die Links nicht auf das erste Terminal-Öffnen
+warten müssen). Dadurch zeigt der Link immer auf das tatsächlich bearbeitete (Unter-)Projekt:
+Board ``bohrprofile-3d`` mit ``code_dir=~/containers/bohr3d`` → Links zeigen auf ``bohr3d``,
+nicht auf das Stub.
+
+Kein Filebrowser-Link: das Paket bringt keinen Filebrowser-Container mit — Code-/Datenordner
+lassen sich stattdessen über das 🗂 Datei-Panel (app.services.project_files) navigieren.
 """
 import json
 import logging
@@ -19,17 +21,16 @@ import os
 import re
 import subprocess
 from pathlib import Path
+from urllib.parse import quote
 
 import projterm_prepare  # Dashboard-Dir liegt via app.main auf sys.path
 from app.storage.manifest_repository import ManifestRepository
 
 log = logging.getLogger("dashboard.services.project_links")
 
-HOME = Path.home()
 WEB_ADRESSEN_JSON = Path(__file__).resolve().parents[2] / "html" / "web-adressen.json"
 _DOMAIN = os.environ.get("DASHBOARD_DOMAIN", "yourdomain.example")
 INTRANET_TPL = f"https://{{sub}}.intranet.{_DOMAIN}"
-FILEBROWSER_BASE = f"https://filebrowser.intranet.{_DOMAIN}/files"
 
 
 _UMLAUTE = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
@@ -63,17 +64,6 @@ def _load_sub_map() -> dict[str, str]:
             if name:
                 mapping.setdefault(_norm(name), sub)
     return mapping
-
-
-def _filebrowser_url(p: Path) -> str | None:
-    """Host-Pfad → Filebrowser-URL. Nur Pfade unterhalb von ~/ sind erreichbar
-    (Container mountet $HOME nach /srv, Filebrowser-root = /srv)."""
-    try:
-        rel = p.resolve().relative_to(HOME)
-    except (ValueError, OSError) as e:
-        log.debug("Pfad %s nicht unter HOME, kein Filebrowser-Link: %s", p, e)
-        return None
-    return f"{FILEBROWSER_BASE}/{rel}".rstrip("/")
 
 
 _LINKS_URL_RE = re.compile(r"<(https?://[^\s>]+)>")
@@ -137,18 +127,23 @@ def _match_sub(slug: str, work_dir: Path | None, sub_map: dict[str, str]) -> str
 def build_links(slug: str) -> dict:
     """Alle Direktlinks für ein Board/(Unter-)Projekt zusammenstellen.
 
-    Rückgabe: {board_id, work_dir, links:{webapp, filebrowser, datadir, github, claudemd}} —
-    nicht ermittelbare Ziele sind None (Frontend blendet sie aus).
+    Rückgabe: {board_id, work_dir, links:{webapp, services, github, claudemd}} —
+    nicht ermittelbare Ziele sind None (Frontend blendet sie aus). Code-/Datenordner
+    laufen NICHT mehr über einen Filebrowser-Link (das Paket bringt keinen mit),
+    sondern über das 🗂 Datei-Panel (GET /api/project-files, app.services.project_files) —
+    das navigiert direkt im Arbeitsordner statt auf einen toten Dienst zu verlinken.
+
+    ``resolve_or_create_work_dir`` statt ``resolve_work_dir``: gezielter Aufruf für
+    GENAU dieses eine Board (der Nutzer schaut sich es gerade an) — legt den Ordner
+    im Paket-Modus notfalls an, statt auf das erste Terminal-Öffnen zu warten.
     """
-    work_dir = projterm_prepare.resolve_work_dir(slug)
+    work_dir = projterm_prepare.resolve_or_create_work_dir(slug)
     sub_map = _load_sub_map()
     sub = _match_sub(slug, work_dir, sub_map)
     links: dict[str, str | None] = {
         "webapp": INTRANET_TPL.format(sub=sub) if sub else None,
         # Eintrag des Dienstes auf der Service-/Web-Adressen-Übersicht (Projekt → Service)
         "services": f"/services.html#svc-{sub}" if sub else None,
-        "filebrowser": None,
-        "datadir": None,
         "github": None,
         "claudemd": None,
     }
@@ -156,15 +151,10 @@ def build_links(slug: str) -> dict:
     artefakt_links: list[str] = []
     if work_dir is not None:
         work_dir_str = str(work_dir)
-        links["filebrowser"] = _filebrowser_url(work_dir)
-        # data/-Unterordner nur verlinken, wenn er wirklich existiert (sonst toter Link)
-        data_dir = work_dir / "data"
-        if data_dir.is_dir():
-            links["datadir"] = _filebrowser_url(data_dir)
         links["github"] = _github_url(work_dir)
         claude_md = work_dir / "CLAUDE.md"
         if claude_md.exists():
-            links["claudemd"] = _filebrowser_url(claude_md)
+            links["claudemd"] = f"/md.html?id={quote(slug)}&file=CLAUDE.md"
         artefakt_links = _artefakt_links(work_dir)
     log.debug("build_links(%s): work_dir=%s links=%s artefakt_links=%d",
               slug, work_dir_str, links, len(artefakt_links))

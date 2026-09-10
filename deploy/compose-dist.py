@@ -18,7 +18,7 @@ import sys
 
 FILES = ("docker-compose.yml", "docker-compose.terminal.yml",
          "docker-compose.lan.yml", "docker-compose.sandbox.yml",
-         "docker-compose.hostdocker.yml")
+         "docker-compose.hostdocker.yml", "docker-compose.ssh.yml")
 SERVICE_INDENT = 4
 
 

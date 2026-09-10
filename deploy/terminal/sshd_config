@@ -1,0 +1,60 @@
+# sshd_config — SSH access to the ili project terminal (opt-in overlay).
+#
+# Enabled only through docker-compose.ssh.yml, and only when the operator has
+# put a public key into the mounted keys directory. Everything a password could
+# be used for is switched off: the key IS the authentication.
+#
+# Reminder for whoever edits this: the terminal container is a full shell with
+# the project files, and in the hostdocker overlay it also holds the Docker
+# socket — which makes this login root-equivalent on the host. Widen nothing
+# here without deciding that consciously.
+
+# Container-internal port. The host mapping (and the bind address) live in
+# docker-compose.ssh.yml: 127.0.0.1:2222 by default.
+Port 22
+AddressFamily any
+ListenAddress 0.0.0.0
+ListenAddress ::
+
+# Host keys live in a named volume, not in the image: baked-in keys would be
+# identical in every installation on earth, and regenerating them on each start
+# would greet the operator with REMOTE HOST IDENTIFICATION HAS CHANGED after
+# every update. ili-sshd.sh creates them on first start.
+HostKey /etc/ssh/hostkeys/ssh_host_ed25519_key
+HostKey /etc/ssh/hostkeys/ssh_host_rsa_key
+
+# ─── Authentication: public key, nothing else ───────────────────────────────
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+UsePAM no
+
+# No direct root login. The `ili` user has passwordless sudo (see the
+# Containerfile) — the container runs as root by design, so full access is one
+# `sudo -i` away, but a misconfiguration or an sshd flaw cannot land on root
+# straight away.
+PermitRootLogin no
+AllowUsers ili
+AuthorizedKeysFile .ssh/authorized_keys
+StrictModes yes
+
+# ─── Cheap hardening ────────────────────────────────────────────────────────
+MaxAuthTries 3
+MaxSessions 10
+LoginGraceTime 20
+
+# Off on purpose. Port forwarding would turn this login into a tunnel into the
+# whole compose network (db:5432, api:8798, the bridge on 8950). Turn it on
+# deliberately if you want to reach the database from a workstation.
+AllowTcpForwarding no
+AllowAgentForwarding no
+GatewayPorts no
+PermitTunnel no
+X11Forwarding no
+
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+LogLevel INFO

@@ -51,6 +51,22 @@ async function loadKanbanBugs() {
   }
 }
 
+// GET /db-logs — ili's eigene WARNING/ERROR-Zeilen aus der optionalen
+// PostgreSQL (Tabelle `logs`, docs/LOGGING.md). Antwortet immer 200
+// ({available:false, bugs:[]} ohne DB), darum kein try/catch-Alarm nötig,
+// nur das Netzwerk-try/catch als letzte Absicherung.
+async function loadDbLogs(sinceHours) {
+  try {
+    const data = await API.fetchDbLogs(sinceHours);
+    const bugs = (data.bugs || []).map(b => ({ ...b, source: 'dblog' }));
+    console.log(`[bugs] DB-Logs geladen: ${bugs.length} (available=${data.available})`);
+    return bugs;
+  } catch(e) {
+    console.warn('[bugs] DB-Logs laden fehlgeschlagen:', e.message);
+    return [];
+  }
+}
+
 // Scan-Bereich ist immer das Maximum (720h = 30d) — die Filterung passiert dann
 // client-side via Age-Filter, dadurch kann der User zwischen den Buttons wechseln
 // ohne neu zu scannen. Server-Last ist vernachlässigbar (~5-10s scan).
@@ -62,22 +78,25 @@ async function scan() {
   document.getElementById('filters').style.display = 'none';
 
   try {
-    const [logRes, kanbanBugs] = await Promise.all([
+    const [logRes, kanbanBugs, dbBugs] = await Promise.all([
       API.scanLogs(since),
       loadKanbanBugs(),
+      loadDbLogs(since),
     ]);
 
     const logBugs = (logRes.bugs || []).map(b => ({ ...b, source: b.source || 'log' }));
-    // Kanban zuerst (höchste Priorität), dann Log-Errors
+    // Kanban zuerst (höchste Priorität), dann DB-Logs, dann Datei-/Journal-Scan
     let nr = 1;
-    allBugs = [...kanbanBugs, ...logBugs].map(b => ({ ...b, nr: nr++ }));
+    allBugs = [...kanbanBugs, ...dbBugs, ...logBugs].map(b => ({ ...b, nr: nr++ }));
 
     const kanbanCount = kanbanBugs.length;
-    document.getElementById('cnt-error').textContent = (logRes.errors || 0) + kanbanCount;
-    document.getElementById('cnt-warn').textContent  = logRes.warnings || 0;
-    document.getElementById('cnt-total').textContent = (logRes.total || 0) + kanbanCount;
+    const dbErrorCount = dbBugs.filter(b => b.level === 'error').length;
+    const dbWarnCount  = dbBugs.filter(b => b.level === 'warning').length;
+    document.getElementById('cnt-error').textContent = (logRes.errors || 0) + kanbanCount + dbErrorCount;
+    document.getElementById('cnt-warn').textContent  = (logRes.warnings || 0) + dbWarnCount;
+    document.getElementById('cnt-total').textContent = (logRes.total || 0) + kanbanCount + dbBugs.length;
     document.getElementById('scanned-at').textContent =
-      `Gescannt: ${logRes.scanned_at || ''} · ${kanbanCount} Kanban-Bugs`;
+      `Gescannt: ${logRes.scanned_at || ''} · ${kanbanCount} Kanban-Bugs · ${dbBugs.length} DB-Logs`;
     document.getElementById('stats').style.display = 'flex';
     document.getElementById('filters').style.display = 'flex';
     renderBugs();

@@ -351,13 +351,11 @@
     log('Karte geöffnet:', c.title);
   }
 
-  // Direktlink-Chips zum Projekt (FileBrowser/Web-App). Quelle: GET /api/project-links?id=
+  // Direktlink-Chips zum Projekt (Web-App/GitHub/Doku). Quelle: GET /api/project-links?id=
   // Gleiche Logik wie der Desktop-Kopf — im Browser-Terminal sind Pfade nicht klickbar,
-  // hier ein Tap zum data/-Ordner (🗂), Code-Ordner (📁) oder der laufenden Web-App.
+  // hier ein Tap zur Doku (📄) oder der laufenden Web-App.
   const BOARD_LINK_DEFS = [
     { key: 'webapp',      icon: '🌐', label: 'Web-App' },
-    { key: 'filebrowser', icon: '📁', label: 'Dateien' },
-    { key: 'datadir',     icon: '🗂', label: 'Daten' },
     { key: 'claudemd',    icon: '📄', label: 'Doku' },
     { key: 'github',      icon: '🐙', label: 'GitHub' },
   ];

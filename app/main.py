@@ -29,6 +29,15 @@ logging.basicConfig(
 )
 log = logging.getLogger("dashboard.api")
 
+# Mirrors WARNING+ records into the optional `logs` table (PostgreSQL service
+# `db`) so bugs.html has real data on a fresh install — see log_db_service for
+# why this is safe to attach unconditionally even without a reachable DB.
+from app.services.log_db_service import PostgresLogHandler  # noqa: E402
+
+_db_log_handler = PostgresLogHandler()
+_db_log_handler.setLevel(logging.WARNING)
+logging.getLogger().addHandler(_db_log_handler)
+
 app = FastAPI(
     title="Dashboard API",
     description="Kanban-/Projekt-Dashboard — FastAPI-Migration von trigger_server.py",
@@ -152,6 +161,7 @@ def _register_routers() -> None:
     from app.api import version as version_api
     from app.api import github_issues as github_issues_api
     from app.api import seed as seed_api
+    from app.api import db_logs as db_logs_api
 
     app.include_router(config_api.router)
     app.include_router(logs_api.router)
@@ -187,6 +197,7 @@ def _register_routers() -> None:
     app.include_router(version_api.router)
     app.include_router(github_issues_api.router)
     app.include_router(seed_api.router)
+    app.include_router(db_logs_api.router)
     from app.api import docker_config as docker_config_api
     app.include_router(docker_config_api.router)
     log.info("Router registriert: config (W1), boards+kanban (W2/3), ki (W4), chat+photos (W5), misc (W6), logs/streaming (W7), dashboard (Phase 6), priority_widget (F1), attachments, web-adressen, brainstorm, recent, github-status, user-settings, manager, token-guard, seed")

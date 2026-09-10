@@ -90,6 +90,15 @@ Lessons from 0.1.8–0.1.10 — every item here once cost a release or a user.
    ```
 4. Watch the run: `gh run watch` (or the Actions tab). Three jobs, one per image.
 5. Check the packages: `gh api /user/packages?package_type=container`.
+6. **Update the version's Kanban board** (`ili-release-X-Y-Z`, e.g.
+   `ili-release-0-1-16`): close cards that are actually shipped (tag pushed, CI
+   green, ghcr/Docker Hub current), correct the board description if it still
+   says "not released". This is mandatory, not optional — a per-version board
+   left stale becomes a false source of truth for later decisions (happened
+   with `ili-release-0-1-15` on 2026-09-08: two real releases had shipped
+   while the board still showed "not approved"). If no board exists yet for
+   this version, create one from the template described in the parent
+   project's `CLAUDE.md` (`ili-release`, section "Ein Board pro Release").
 
 ## Visibility
 

@@ -1,0 +1,45 @@
+# docker-compose.ssh.yml — schaltet einen SSH-Zugang zum Projekt-Terminal zu.
+#
+# Default AUS. Dieses Overlay muss ausdruecklich mitgegeben werden, UND es
+# braucht einen oeffentlichen Schluessel — ohne den startet kein sshd:
+#
+#   1) mkdir -p ssh && cat ~/.ssh/id_ed25519.pub >> ssh/authorized_keys
+#   2) docker compose -f docker-compose.yml \
+#                     -f docker-compose.terminal.yml \
+#                     -f docker-compose.ssh.yml up -d
+#   3) ssh -p 2222 ili@127.0.0.1
+#
+# Ohne Schluesselpaar: ssh-keygen -t ed25519
+#
+# ⚠️ Was dieser Zugang ist: eine Shell im Terminal-Container, mit den Projekt-
+# dateien und passwortlosem sudo darin. Zusammen mit docker-compose.hostdocker.yml
+# (Docker-Socket) ist er faktisch Root auf dem Host-Rechner. Wer den privaten
+# Schluessel hat, hat diese Rechte — Schluessel entsprechend behandeln.
+#
+# Nur Schluessel-Anmeldung, kein Passwort, kein root-Login: deploy/terminal/sshd_config.
+
+name: ili
+
+services:
+  terminal:
+    ports:
+      # Default 127.0.0.1: nur vom ili-Rechner selbst erreichbar. Fuer Zugriff aus
+      # dem LAN SSH_BIND=0.0.0.0 setzen — das ist eine bewusste Entscheidung, kein
+      # Standard. Ins offene Internet gehoert dieser Port nicht.
+      # Nicht Port 22: kollidiert sonst mit einem sshd auf dem Host und faengt
+      # jeden Scanner ein, der das Standard-Tor abklopft.
+      - "${SSH_BIND:-127.0.0.1}:${SSH_PORT:-2222}:22"
+    volumes:
+      # Die erlaubten OEFFENTLICHEN Schluessel. Nur lesbar eingehaengt; der
+      # Container kopiert sie beim Start an die Stelle, die sshd erwartet.
+      # Ein Ordner statt einer einzelnen Datei, weil die Container-Laufzeit einen
+      # fehlenden Pfad stillschweigend als Ordner anlegt — ein leerer Ordner ist
+      # harmlos und erkennbar, ein Ordner anstelle einer Datei nicht.
+      - ${SSH_KEYS_DIR:-./ssh}:/etc/ssh/ili:ro
+      # Host-Schluessel des Servers. Im Volume, damit der Fingerabdruck ueber
+      # Updates und Neustarts hinweg gleich bleibt — sonst meldet jeder Client
+      # nach jedem Update "REMOTE HOST IDENTIFICATION HAS CHANGED".
+      - ssh-hostkeys:/etc/ssh/hostkeys
+
+volumes:
+  ssh-hostkeys:

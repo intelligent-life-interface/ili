@@ -58,3 +58,12 @@ projects/*
 html/photos/
 # runtime data (GitHub token, dedup state, audit log) — never commit
 data/
+
+# SSH access overlay (docker-compose.ssh.yml): the operator's own public keys.
+# Only public keys belong here, but the folder stays out of git either way.
+ssh/
+
+# Kanban automat runtime state (worker info, run/review statistics). Picked up
+# by an auto-sync commit on 2026-09-09 and would have been published with 0.1.17
+# — the automat writes this at runtime, it is never part of the package.
+automat/state/

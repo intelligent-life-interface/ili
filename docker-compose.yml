@@ -60,6 +60,19 @@ services:
       DASHBOARD_URL: "${DASHBOARD_URL:-http://localhost:8798}"
       # Automat-State: Worker-Info und KI-Konfiguration (ai_config.json)
       AUTOMAT_STATE_DIR: "/opt/ili-automat/state"
+      # Same credentials as the `db` service below, so api can mirror its own
+      # WARNING/ERROR log lines into the `logs` table for bugs.html (see
+      # app/services/log_db_service.py). Works even if `db` is not up yet —
+      # startup retries, then falls back to stdout only. Delete the `db`
+      # service entirely and this still degrades cleanly, nothing crashes.
+      POSTGRES_HOST: "db"
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: "${POSTGRES_USER:-ili}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-CHANGE-ME}"
+      POSTGRES_DB: "${POSTGRES_DB:-ili}"
+      # How long rows stay in the `logs` table before the hourly cleanup deletes
+      # them — without this the db-data volume would grow unbounded.
+      LOG_RETENTION_DAYS: "${LOG_RETENTION_DAYS:-30}"
     healthcheck:
       # Die API bedient /boards; das /api-Praefix strippt erst das nginx-Frontend.
       test: ["CMD", "curl", "-fs", "http://localhost:8798/boards"]
@@ -94,7 +107,50 @@ services:
     env_file:
       - .env
 
+  db:
+    # PostgreSQL as a building block for YOUR projects, AND ili's own operational
+    # log lines (WARNING/ERROR, table `logs`, see api's LOG_RETENTION_DAYS
+    # above) — ili's boards themselves stay JSON files in the volumes below,
+    # that part is unchanged. Code running in the project terminal reaches the
+    # database as host `db`, port 5432.
+    #
+    # Note: project containers started the sandbox way (docker-compose.sandbox.yml,
+    # Docker-in-Docker) live in their OWN network and can NOT see `db`. That path
+    # needs its own database inside the sandbox. See docs/PROJECT-TERMINAL.md.
+    image: docker.io/library/postgres:17-alpine
+    container_name: ili-db
+    restart: unless-stopped
+    # No published port: the database is reachable only inside the compose
+    # network. To attach a database tool from the host, uncomment this and bind
+    # to 127.0.0.1 so it does not end up on the LAN:
+    # ports:
+    #   - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # Defaults on purpose, not env_file: postgres refuses to start without a
+    # password, so an existing installation whose .env predates this service
+    # would go into a restart loop after an update. With defaults it comes up
+    # and the user can set real credentials in .env whenever they need it.
+    # (Very old podman-compose versions — 1.0.x — do not interpolate ${VAR} and
+    # would pass the literal string as the password; the container still starts,
+    # but then connect with exactly that. Upgrading podman-compose fixes it.)
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-ili}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-CHANGE-ME}"
+      POSTGRES_DB: "${POSTGRES_DB:-ili}"
+    healthcheck:
+      # -U matters: without it pg_isready connects as the OS user (root), which
+      # still reports success but writes a `FATAL: role "root" does not exist`
+      # into the log on every single check. $$ escapes the variable so compose
+      # leaves it for the container's shell to expand.
+      test: ["CMD-SHELL", "pg_isready -q -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   dashboard-boards:
   dashboard-data:
   automat-state:
+  db-data:

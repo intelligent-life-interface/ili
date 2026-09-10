@@ -9,12 +9,6 @@
 # Node 22 LTS on Debian 13 (Node 20 is end-of-life since 2026-04).
 FROM docker.io/library/node:22-trixie-slim
 
-LABEL org.opencontainers.image.title="ili Project Terminal"
-LABEL org.opencontainers.image.description="ttyd + tmux + Claude Code, one session per Kanban board"
-LABEL org.opencontainers.image.licenses="AGPL-3.0"
-LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
-LABEL org.opencontainers.image.url="https://github.com/Toa1984/ili-public"
-LABEL org.opencontainers.image.documentation="https://github.com/Toa1984/ili-public/blob/main/QUICKSTART.md"
 
 # ttyd comes as a static binary from the project's releases (asset names match
 # `uname -m`: x86_64, aarch64, armhf, ...) — independent of the Debian package.
@@ -36,6 +30,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
       jq \
       python3 \
       docker-cli \
+      openssh-server \
+      sudo \
+      rsync \
     && arch="$(uname -m)" \
     && echo "[build] downloading ttyd ${TTYD_VERSION} for ${arch}" \
     && curl -fsSL -o /usr/local/bin/ttyd \
@@ -51,24 +48,51 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
 # dependencies (tar, minimatch, glob, ...) into the image — refresh it first.
 # npm >= 12 blocks install scripts by default; Claude Code needs its postinstall
 # (downloads the native binary), so allow it for exactly that package.
+# CLAUDE_CODE_VERSION is a cache key: bump it (--build-arg) to rebuild only this
+# layer; the apt layer above stays cached. "latest" keeps today's behaviour.
+ARG CLAUDE_CODE_VERSION=latest
 RUN npm install -g npm@latest \
-    && npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code \
+    && npm install -g --allow-scripts=@anthropic-ai/claude-code "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
     && npm cache clean --force \
     && echo "[build] node $(node --version) npm $(npm --version)" \
     && claude --version
 
-COPY deploy/terminal/entrypoint.sh /usr/local/bin/ili-terminal
-COPY deploy/terminal/ili-term.sh   /usr/local/bin/ili-term
-COPY deploy/terminal/ili-claude.sh /usr/local/bin/ili-claude
-COPY deploy/terminal/ili-login-url-watch.sh /usr/local/bin/ili-login-url-watch
-COPY deploy/terminal/ili-docker-guide.sh /usr/local/bin/ili-docker-guide
+COPY --chmod=755 deploy/terminal/entrypoint.sh /usr/local/bin/ili-terminal
+COPY --chmod=755 deploy/terminal/ili-term.sh   /usr/local/bin/ili-term
+COPY --chmod=755 deploy/terminal/ili-claude.sh /usr/local/bin/ili-claude
+COPY --chmod=755 deploy/terminal/ili-login-url-watch.sh /usr/local/bin/ili-login-url-watch
+COPY --chmod=755 deploy/terminal/ili-docker-guide.sh /usr/local/bin/ili-docker-guide
+# SSH access (opt-in, docker-compose.ssh.yml). The daemon only starts when the
+# operator mounts a public key — see deploy/terminal/ili-sshd.sh.
+COPY --chmod=755 deploy/terminal/ili-sshd.sh /usr/local/bin/ili-sshd
+COPY --chmod=644 deploy/terminal/sshd_config /etc/ssh/sshd_config
+COPY --chmod=755 deploy/terminal/ili-test-deploy.sh /usr/local/bin/ili-test-deploy
+COPY --chmod=755 deploy/terminal/ili-test-promote.sh /usr/local/bin/ili-test-promote
+COPY --chmod=755 deploy/terminal/ili-test-remove.sh /usr/local/bin/ili-test-remove
 # Claude CLI bridge: HTTP (/chat /vision /stream /health) in front of the logged-in
 # Claude Code session. The api container reaches it as http://terminal:8950.
 COPY deploy/terminal/claude_cli_bridge.py /usr/local/bin/claude_cli_bridge.py
 # Kanban automat (headless Claude workers + ticker), run as the `automat` compose
 # service on this same image — see automat/README.md
 COPY automat/ /opt/ili-automat/
-RUN chmod +x /usr/local/bin/ili-terminal /usr/local/bin/ili-term /usr/local/bin/ili-claude /usr/local/bin/ili-login-url-watch /usr/local/bin/ili-docker-guide
+
+# Login user for the optional SSH access. NOT root: PermitRootLogin stays `no`,
+# so a flaw or a slip in the sshd config cannot hand out root directly. It does
+# get passwordless sudo, because the container runs as root by design (next
+# comment block) and project files belong to that root — the same shape every
+# cloud image uses. Whoever holds the private key is root here; that is why the
+# overlay binds to 127.0.0.1 and ships no key of its own.
+# uid 1001: the node base image already occupies 1000 with the `node` user.
+# The password field is set to '*' — no password can ever match it. NOT
+# `passwd --lock`, which writes a leading '!': sshd runs without PAM here and
+# reads that as "account is locked", then refuses the public-key login too
+# (cost one test round on 2026-09-09).
+# Host keys are removed: they belong in a volume, generated on first start.
+RUN useradd --create-home --uid 1001 --shell /bin/bash ili \
+    && printf 'ili ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/ili \
+    && chmod 0440 /etc/sudoers.d/ili \
+    && usermod --password '*' ili \
+    && rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
 
 # Runs as root inside the container by design: with rootless Podman that maps to
 # the unprivileged host user, so bind-mounted project files stay writable. Docker
@@ -85,6 +109,14 @@ ENV HOME=/root \
 
 # /root holds the Claude login (.claude/ + .claude.json) — persist it, otherwise
 # every container restart needs a fresh login.
+# Static labels last: editing them must not invalidate the apt/npm layers above.
+LABEL org.opencontainers.image.title="ili Project Terminal"
+LABEL org.opencontainers.image.description="ttyd + tmux + Claude Code, one session per Kanban board"
+LABEL org.opencontainers.image.licenses="AGPL-3.0"
+LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
+LABEL org.opencontainers.image.url="https://github.com/Toa1984/ili-public"
+LABEL org.opencontainers.image.documentation="https://github.com/Toa1984/ili-public/blob/main/QUICKSTART.md"
+
 VOLUME ["/root", "/projects"]
 
 EXPOSE 7690 8950

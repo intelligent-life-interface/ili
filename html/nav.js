@@ -448,6 +448,14 @@
         document.head.appendChild(gr);
     }
 
+    // "Fehler melden"-Knopf — überall sichtbar. Nutzt den Deep-Link-Weg und
+    // braucht daher keinen GitHub-Login (anders als github-report.js oben).
+    if (!document.querySelector('script[src^="/js/bug-report-button.js"]')) {
+        const bb = document.createElement('script');
+        bb.src = '/js/bug-report-button.js?v=20260909';
+        document.head.appendChild(bb);
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', buildNav);
     } else {

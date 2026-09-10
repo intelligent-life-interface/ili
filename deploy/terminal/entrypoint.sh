@@ -85,6 +85,14 @@ else
     log "ERROR: Claude CLI bridge not available (python3 or script missing) — KI project preparation will FAIL"
 fi
 
+# Optional SSH access (docker-compose.ssh.yml). The helper decides for itself
+# whether to run: without a mounted public key it logs one line and returns, so
+# a stack without the overlay is unaffected. Backgrounded — ttyd stays PID 1's
+# foreground job and remains the health-checked process.
+if [[ -x /usr/local/bin/ili-sshd ]]; then
+    /usr/local/bin/ili-sshd &
+fi
+
 exec /usr/local/bin/ttyd \
     -p "$PORT" \
     -W \

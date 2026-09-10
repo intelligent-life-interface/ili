@@ -25,6 +25,36 @@ Im Projekt-Kopf (zwischen `#project-head` und den Mobile-Tabs) eine Chip-Leiste 
 - **Frontend:** `project.js` `loadProjectLinks`/`renderProjectLinks` (`PROJECT_LINK_DEFS`), aufgerufen in `loadBoard`; CSS `.project-links`/`.proj-link` in `project.css`. **Browser-verifiziert** (Playwright): alle 5 Chips + Arbeitsordner, Service-Seite/Web-Adressen mit Projekt-Links, keine Konsolenfehler.
 - **Deploy:** nginx-Regex (8798-Block) um `api/project-links` ergänzt (deckt auch `/by-service`) → `systemctl --user restart dashboard-api.service` + `podman restart dashboard`. Frontend (project.js/services.html/web-adressen.html) ist nginx-Mount (live, nur Hardreload); Cache-Bust `?v=20260618-projlinks2`.
 
+### 🗂 Ordner-Ansicht ersetzt Filebrowser-Links (2026-09-09)
+
+Die beiden Absätze oben (**🗂 Datei-Liste**, **Direktlinks**) beschreiben den Home-Stack-Stand
+1:1 — im Release-Paket (dieses Repo) gilt seither Folgendes, weil das Paket **keinen
+Filebrowser-Container** mitbringt und der Datei-Knopf mangels `work_dir` faktisch nie
+erschien (Karte `card_r0117_dateien_ganzer_ordner`):
+
+- **`filebrowser`/`datadir` sind aus `build_links()` (`app/services/project_links.py`) raus.**
+  `_filebrowser_url()` war ohnehin schon inert (verlangte einen Pfad unter `$HOME`, der
+  Arbeitsordner liegt im Paket aber unter `/projects/<board>`) — jetzt auch aus dem Code
+  entfernt statt eines toten Links. **`claudemd`** zeigt jetzt auf die gerenderte Ansicht
+  (`/md.html?id=&file=CLAUDE.md`) statt auf den Filebrowser. Frontend-Chips + der
+  Unterprojekt-🗂-Knopf (`html/js/project-subprojects.js`) sind entsprechend entfernt.
+- **`GET /api/project-files` ist jetzt navigierbar**, nicht mehr nur die Top-Level-Liste:
+  `?id=<slug>&dir=<rel>` liefert den Inhalt EINES Unterordners, jeder Eintrag trägt seinen
+  Pfad (`path`) relativ zum Arbeitsordner, `parent` ist der Weg eine Ebene höher (`null` nur
+  an der Wurzel). Das Frontend-Dropdown (`html/js/project-core.js`, `loadProjectFilesDir()`)
+  navigiert Ordner IM Panel (kein neuer Tab mehr), `.md`-Dateien öffnen weiterhin die
+  gerenderte Ansicht.
+- **`work_dir` entsteht jetzt eager, nicht erst beim ersten Terminal-Öffnen:**
+  `projterm_prepare.resolve_or_create_work_dir(slug)` legt `/projects/<slug>` an, sobald
+  jemand ein EINZELNES, existierendes Board tatsächlich anschaut (`build_links`,
+  `project_files.list_files`) — vorher war `deploy/terminal/ili-term.sh` (Terminal-Öffnen)
+  die einzige Stelle, die den Ordner anlegt, darum blieb der Knopf unsichtbar, bis
+  zufällig zuerst das Terminal besucht wurde. Nur im Paket-Modus aktiv (`PROJEKTE_DIR`
+  env explizit gesetzt); die Massen-Iteration `service_project_map()` nutzt weiterhin das
+  reine, seiteneffektfreie `resolve_work_dir()`.
+- Browser-verifiziert (Playwright) gegen einen frisch gebauten Stack: Knopf sichtbar ohne
+  vorheriges Terminal-Öffnen, Unterordner-Navigation inkl. Zurück, 0 Konsolenfehler.
+
 ### Navigation zum übergeordneten Projekt (`project.html`, 2026-07-23)
 
 Krümel-Leiste `#project-nav-crumbs` (`renderNavCrumbs()` in `project.js`, CSS in `project.css`): links der Weg nach oben, rechts klein die Geschwister-Unterprojekte. Datenquelle ist der bereits geladene `allBoardsCache` aus `/boards?all=1` — kein Extra-Request.

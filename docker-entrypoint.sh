@@ -5,7 +5,8 @@
 #      installation needs neither a clone nor a download (variant A, 2026-08-22):
 #        init              write docker-compose.yml, docker-compose.terminal.yml,
 #                          docker-compose.lan.yml, docker-compose.sandbox.yml,
-#                          docker-compose.hostdocker.yml, deploy/gateway/nginx.conf,
+#                          docker-compose.hostdocker.yml, docker-compose.ssh.yml,
+#                          deploy/gateway/nginx.conf,
 #                          deploy/gateway/10-generate-streams.sh and .env into /out
 #                          (mount your folder there); an existing .env is never
 #                          overwritten
@@ -14,6 +15,7 @@
 #        compose-lan       print docker-compose.lan.yml to stdout
 #        compose-sandbox   print docker-compose.sandbox.yml to stdout
 #        compose-hostdocker print docker-compose.hostdocker.yml to stdout
+#        compose-ssh       print docker-compose.ssh.yml to stdout
 #        env               print .env.example to stdout
 #        help              this list
 #      Works the same with Docker and Podman:
@@ -44,7 +46,8 @@ usage() {
 ili image — usage:
   init              write docker-compose.yml, docker-compose.terminal.yml,
                     docker-compose.lan.yml, docker-compose.sandbox.yml,
-                    docker-compose.hostdocker.yml, deploy/gateway/nginx.conf,
+                    docker-compose.hostdocker.yml, docker-compose.ssh.yml,
+                    deploy/gateway/nginx.conf,
                     deploy/gateway/10-generate-streams.sh and .env into /out
                     (existing .env is kept). Mount your folder:
                       docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
@@ -58,6 +61,7 @@ ili image — usage:
   compose-lan       print docker-compose.lan.yml (own LAN address via macvlan, optional)
   compose-sandbox   print docker-compose.sandbox.yml (project-container sandbox overlay)
   compose-hostdocker print docker-compose.hostdocker.yml (project-container socket-mount overlay)
+  compose-ssh       print docker-compose.ssh.yml (SSH access to the project terminal, opt-in)
                     (project containers: status + commands in the GUI, KI-Settings -> Docker)
   env               print .env.example
   help              this text
@@ -84,7 +88,8 @@ do_init() {
         exit 1
     fi
     for f in docker-compose.yml docker-compose.terminal.yml docker-compose.lan.yml \
-             docker-compose.sandbox.yml docker-compose.hostdocker.yml; do
+             docker-compose.sandbox.yml docker-compose.hostdocker.yml \
+             docker-compose.ssh.yml; do
         if [ -f "$OUT_DIR/$f" ]; then
             log "$f exists — replacing with the version from this image"
         fi
@@ -120,6 +125,7 @@ case "${1:-}" in
     compose-lan)      emit docker-compose.lan.yml; exit 0 ;;
     compose-sandbox)  emit docker-compose.sandbox.yml; exit 0 ;;
     compose-hostdocker) emit docker-compose.hostdocker.yml; exit 0 ;;
+    compose-ssh)      emit docker-compose.ssh.yml; exit 0 ;;
     env)              emit .env.example; exit 0 ;;
     help|-h|--help)   usage; exit 0 ;;
 esac

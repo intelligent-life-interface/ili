@@ -111,6 +111,7 @@ window.I18N = {
     "bugs.source.all": "Alle",
     "bugs.source.kanban": "📋 Kanban",
     "bugs.source.log": "📜 Logs",
+    "bugs.source.dblog": "🗄 DB",
     "bugs.age.3": "3 h",
     "bugs.age.24": "heute",
     "bugs.age.168": "7 Tage",
@@ -215,6 +216,11 @@ window.I18N = {
     "leichen.preset.90": "90 Tage",
 
     // GitHub-Rückkanal (Einstellungen-Panel + Karten-Export) — darstellung.js, project-github-export.js
+    "bug.button": "Fehler melden",
+    "bug.title": "Einen Fehler melden (öffnet GitHub in einem neuen Tab)",
+    "bug.prefillTitle": "Fehler in ili: ",
+    "bug.prefillBody": "Was ist passiert?\n\n\nWas hättest du erwartet?\n\n\n---\n",
+    "bug.failed": "Der Melde-Link konnte nicht erzeugt werden.",
     "gh.section": "GitHub-Rückkanal",
     "gh.login": "Mit GitHub anmelden",
     "gh.logout": "Abmelden",

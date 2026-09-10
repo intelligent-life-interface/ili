@@ -99,31 +99,12 @@ function renderSubprojects() {
             try {
                 const d = await API.get('/api/project-links?id=' + encodeURIComponent(sub.id));
                 const l = (d && d.links) || {};
-                const target = l.webapp || l.filebrowser || l.claudemd || l.github;
+                const target = l.webapp || l.claudemd || l.github;
                 if (target) window.open(target, '_blank', 'noopener');
                 else alert('Kein Direktlink für „' + sub.name + '" gefunden.');
             } catch(err) {
                 console.warn('[Project] Sub-Link Fehler:', err);
                 alert('Link konnte nicht geladen werden: ' + err.message);
-            }
-        };
-
-        // 🗂 Datenordner des Unterprojekts: lädt dessen Links erst beim Klick (wie der 🔗-Knopf),
-        // öffnet den data/-Ordner im Filebrowser — oder meldet, wenn das Sub keinen data/ hat.
-        const dataBtn = document.createElement('button');
-        dataBtn.className = 'sub-btn';
-        dataBtn.title = 'Datenordner (data/) des Unterprojekts öffnen';
-        dataBtn.textContent = '🗂';
-        dataBtn.onclick = async e => {
-            e.stopPropagation();
-            try {
-                const d = await API.get('/api/project-links?id=' + encodeURIComponent(sub.id));
-                const target = d && d.links && d.links.datadir;
-                if (target) window.open(target, '_blank', 'noopener');
-                else alert('„' + sub.name + '" hat keinen Datenordner (data/).');
-            } catch(err) {
-                console.warn('[Project] Sub-Daten-Link Fehler:', err);
-                alert('Datenordner konnte nicht geladen werden: ' + err.message);
             }
         };
 
@@ -141,7 +122,6 @@ function renderSubprojects() {
 
         actEl.appendChild(openBtn);
         actEl.appendChild(linkBtn);
-        actEl.appendChild(dataBtn);
         actEl.appendChild(moveBtn);
         actEl.appendChild(attachBtn);
         item.appendChild(actEl);

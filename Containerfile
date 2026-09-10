@@ -71,6 +71,7 @@ COPY demo/ demo/
 COPY .env.example dist/
 COPY docker-compose.yml docker-compose.terminal.yml docker-compose.lan.yml \
      docker-compose.sandbox.yml docker-compose.hostdocker.yml \
+     docker-compose.ssh.yml \
      deploy/compose-dist.py /tmp/compose-src/
 RUN python3 /tmp/compose-src/compose-dist.py /tmp/compose-src dist \
     && rm -rf /tmp/compose-src

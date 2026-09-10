@@ -53,6 +53,13 @@ services:
     image: ghcr.io/toa1984/ili-terminal:${ILI_VERSION:-latest}
     container_name: ili-terminal
     restart: unless-stopped
+    # Resource limits (measured 09.09.2026, see RESOURCE_LIMITS.md in the
+    # docker-container-optimieren project): idle ~30 MB, ~100-130 MB per open board
+    # terminal (one `claude` process each), 112 MB -> OOM. 1g covers ~6 boards at once
+    # and still caps a runaway; below 0.5 CPU the Claude UI start gets noticeably slow.
+    # Keys work with docker compose v2 and old podman-compose alike.
+    mem_limit: 1g
+    cpus: 1.0
     # Credentials (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY) and tuning knobs come
     # from .env via env_file — old podman-compose (1.0.3) does not interpolate ${VAR}.
     env_file:

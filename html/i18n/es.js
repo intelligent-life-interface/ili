@@ -12,6 +12,11 @@ window.I18N = {
     "ai.zuruecksetzen": "↺ Restablecer",
 
     // ── Docker / Projekt-Container (ai-settings.html, docker-settings.js) ─────────
+    "bug.button": "Informar de un error",
+    "bug.title": "Informar de un error (abre GitHub en una pestaña nueva)",
+    "bug.prefillTitle": "Error en ili: ",
+    "bug.prefillBody": "¿Qué ha pasado?\n\n\n¿Qué esperabas?\n\n\n---\n",
+    "bug.failed": "No se pudo crear el enlace de informe.",
     "docker.title": "🐳 Docker / contenedores de proyecto",
     "docker.subtitle": "Así llega la IA a un motor de contenedores para construir y ejecutar contenedores de proyecto.",
     "docker.status.loading": "Comprobando la conexión con Docker…",
@@ -68,6 +73,7 @@ window.I18N = {
     "bugs.source.all": "Todos",
     "bugs.source.kanban": "📋 Kanban",
     "bugs.source.log": "📜 Registros",
+    "bugs.source.dblog": "🗄 BD",
     "cost.csv": "⬇ CSV",
     "cost.view.all": "Todos",
     "cost.view.claude": "☁️ Claude",

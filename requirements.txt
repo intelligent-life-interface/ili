@@ -7,3 +7,4 @@ piexif
 markdown
 pydantic
 anthropic
+psycopg[binary]
