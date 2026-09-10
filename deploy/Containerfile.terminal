@@ -40,6 +40,13 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     && chmod +x /usr/local/bin/ttyd \
     && ttyd --version \
     && docker --version \
+    # openssh-server's postinst runs ssh-keygen -A. Those keys must die in
+    # THIS layer: deleting them in a later RUN hides them from the final
+    # filesystem but leaves them readable inside the layer blob, so every
+    # `docker pull` would hand out a private key (Trivy caught exactly this
+    # in the 0.1.17 release run). ili-sshd.sh generates real host keys into
+    # a volume on first start; nothing here is ever used.
+    && rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub \
     && rm -rf /var/lib/apt/lists/*
 
 # Claude Code CLI — the reason the terminal exists. Optional at runtime: without
@@ -87,12 +94,10 @@ COPY automat/ /opt/ili-automat/
 # `passwd --lock`, which writes a leading '!': sshd runs without PAM here and
 # reads that as "account is locked", then refuses the public-key login too
 # (cost one test round on 2026-09-09).
-# Host keys are removed: they belong in a volume, generated on first start.
 RUN useradd --create-home --uid 1001 --shell /bin/bash ili \
     && printf 'ili ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/ili \
     && chmod 0440 /etc/sudoers.d/ili \
-    && usermod --password '*' ili \
-    && rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+    && usermod --password '*' ili
 
 # Runs as root inside the container by design: with rootless Podman that maps to
 # the unprivileged host user, so bind-mounted project files stay writable. Docker
