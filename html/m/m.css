@@ -335,7 +335,7 @@ body.term-active .term-wrap { flex:1; height:auto; min-height:0; margin:.35rem .
 #m-input:focus { border-color:#3b82f6; }
 #m-input-nl { color:#8b949e; font-size:18px; display:flex; align-items:center; gap:3px; user-select:none; }
 #m-input-send { background:#238636; color:#fff; border:0; border-radius:8px;
-                padding:0 14px; height:40px; font-size:14px; font-weight:600; white-space:nowrap; }
+                padding:0 8px; height:36px; font-size:16px; font-weight:600; white-space:nowrap; cursor:pointer; }
 
 /* Shortcut-Leiste (2026-07-18): fertige Prompts → Terminal. Horizontal scrollbar bei vielen. */
 #m-shortcuts { display:flex; gap:6px; padding:6px 8px 0; overflow-x:auto; -webkit-overflow-scrolling:touch; }
