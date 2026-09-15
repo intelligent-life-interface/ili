@@ -105,6 +105,13 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Build metadata for /api/version. Only the api Containerfile consumes
+          # these ARGs; web and terminal ignore them. Without this the API reported
+          # commit and build_date as "unknown" for every release, although the very
+          # same values were already on each image as OCI labels (found 2026-09-13).
+          build-args: |
+            ILI_COMMIT=${{ github.sha }}
+            ILI_BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max
 

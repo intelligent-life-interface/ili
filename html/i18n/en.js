@@ -186,5 +186,7 @@ window.I18N = {
     "update.banner.copy_title": "Copy to clipboard",
     "update.banner.howto": "To update:",
     "update.banner.installed": "installed: {version}",
-    "update.banner.title": "ili {available} available"
+    "update.banner.title": "ili {available} available",
+    "nav.version.title": "Installed version · commit {commit} · built {date}",
+    "nav.version.update": "Update available: {available}"
 };

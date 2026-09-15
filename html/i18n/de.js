@@ -246,6 +246,8 @@ window.I18N = {
 
     // ── Update-Banner (index.html, js/update-banner.js) ─────────────────────
     "update.banner.title": "ili {available} verfügbar",
+    "nav.version.title": "Installierte Version · Commit {commit} · gebaut {date}",
+    "nav.version.update": "Update verfügbar: {available}",
     "update.banner.installed": "installiert: {version}",
     "update.banner.beta": "🧪 Beta",
     "update.banner.changes": "→ Änderungen",

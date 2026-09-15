@@ -185,5 +185,7 @@ window.I18N = {
     "update.banner.copy_title": "Copiar al portapapeles",
     "update.banner.howto": "Para actualizar:",
     "update.banner.installed": "instalado: {version}",
-    "update.banner.title": "ili {available} disponible"
+    "update.banner.title": "ili {available} disponible",
+    "nav.version.title": "Versión instalada · commit {commit} · compilada {date}",
+    "nav.version.update": "Actualización disponible: {available}"
 };

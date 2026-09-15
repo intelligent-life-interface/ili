@@ -219,6 +219,35 @@ only the AI-assisted features stay disabled.
 
 ## Troubleshooting
 
+### Which version is installed?
+
+Three ways, from the easiest to the one that still works when nothing else does:
+
+1. **In ili:** the version sits next to the logo in the navigation, on every page.
+   Hover over it for the commit and the build date. A small `↑` means a newer
+   release is out; clicking it opens the release notes of exactly your version.
+2. **From a shell, with the stack running:**
+   ```bash
+   curl -s http://localhost:8080/api/version
+   ```
+3. **Without the web interface** — for when the page does not load at all. Every
+   ili image carries its version as a label, so this answers even while `web` or
+   `api` is down, as long as the container exists:
+   ```bash
+   docker inspect ili-web --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
+   ```
+   The same works for `ili-api` and `ili-terminal`; `org.opencontainers.image.revision`
+   gives the commit, `org.opencontainers.image.created` the build time.
+
+   `docker compose images` does **not** answer the question: it shows the tag you
+   pulled, and for a normal install that is `latest`, not a version number.
+
+   The api container also names its version on start (0.1.19 and later):
+   `docker compose logs api | grep "starting"`.
+
+   All methods, including self-built images and the update check:
+   [docs/VERSION.md](docs/VERSION.md).
+
 ### Containers Won't Start
 ```bash
 docker compose logs api

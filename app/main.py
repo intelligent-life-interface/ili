@@ -209,5 +209,12 @@ _register_routers()
 @app.on_event("startup")
 async def on_startup():
     """Initialize background tasks at app startup."""
+    # One INFO line naming the running version, so `docker compose logs api` answers
+    # "what is installed?" even when the web frontend is down and /api/version
+    # cannot be reached through it.
+    from app.services.version_service import version_info
+    _v = version_info()
+    log.info("ili %s starting (commit %s, built %s, channel %s)",
+        _v["version"], _v["commit"], _v["build_date"], _v["channel"])
     from app.background_tasks import startup
     await startup()

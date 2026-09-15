@@ -67,6 +67,10 @@
                    display:inline-flex;align-items:center;gap:.3rem}
     .ds-nav__logo{height:1.15rem;width:1.15rem;display:block}
     .ds-nav__brand:hover{background:#1a1d27}
+    .ds-nav__version{flex:0 0 auto;font-size:.72rem;line-height:1;color:#94a3b8;text-decoration:none;
+      padding:.22rem .45rem;border:1px solid #334155;border-radius:999px;margin-right:.35rem;white-space:nowrap}
+    .ds-nav__version:hover{color:#e2e8f0;border-color:#64748b}
+    .ds-nav__version--update{color:#fbbf24;border-color:#b45309}
     .ds-nav__a{color:#8892a4;text-decoration:none;padding:.32rem .5rem;
                border-radius:6px;white-space:nowrap;display:inline-flex;
                align-items:center;gap:.25rem;
@@ -185,6 +189,47 @@
             .catch(e => console.warn('[nav.js] logo load failed', e));
         brand.appendChild(document.createTextNode(t('app.brand', 'ili')));
         nav.appendChild(brand);
+
+        // Installed version next to the logo, on every page — it used to live only in
+        // the start page footer, where nobody found it. The tooltip carries commit and
+        // build date, a newer release is flagged inline, and the link opens the notes
+        // of exactly the installed release. Silent on failure: a missing version must
+        // never break the navigation.
+        const ver = document.createElement('a');
+        ver.id        = 'nav-version';
+        ver.className = 'ds-nav__version';
+        ver.target    = '_blank';
+        ver.rel       = 'noopener';
+        ver.hidden    = true;
+        nav.appendChild(ver);
+        fetch('/api/version')
+            .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+            .then(v => {
+                if (!v || !v.version) return null;
+                const commit = (v.commit && v.commit !== 'unknown') ? v.commit.slice(0, 7) : '?';
+                const built  = (v.build_date && v.build_date !== 'unknown') ? v.build_date.slice(0, 10) : '?';
+                ver.textContent = 'v' + v.version + (v.channel === 'beta' ? ' β' : '');
+                ver.href  = 'https://github.com/Toa1984/ili-public/releases/tag/v' + encodeURIComponent(v.version);
+                ver.title = t('nav.version.title', 'Installierte Version · Commit {commit} · gebaut {date}')
+                    .replace('{commit}', commit).replace('{date}', built);
+                ver.hidden = false;
+                console.debug('[nav.js] version', v);
+                // Cached server-side by the update checker — no GitHub call per page.
+                return fetch('/api/update-status').then(r => r.ok ? r.json() : null);
+            })
+            .then(u => {
+                // Field names as served by update_checker_service: available_version /
+                // available_url (not "available" — checked against a live 0.1.18 instance).
+                if (!u || !u.update_available || !u.available_version) return;
+                const available = u.available_version;
+                ver.classList.add('ds-nav__version--update');
+                ver.textContent += ' ↑';
+                if (u.available_url) ver.href = u.available_url;
+                ver.title += '\n' + t('nav.version.update', 'Update verfügbar: {available}')
+                    .replace('{available}', available);
+                console.debug('[nav.js] update available', available);
+            })
+            .catch(e => console.warn('[nav.js] version lookup failed', e));
 
         // Manueller Umschalter zur mobilen Ansicht — Auto-Erkennung per User-Agent
         // erkennt nicht jedes Geraet zuverlaessig, daher immer sichtbarer Fallback.
