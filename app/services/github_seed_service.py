@@ -9,7 +9,6 @@ Interface
 create_issue_for_card(card_id, title, description) -> dict  # returns {status, issue_url?, error?}
 """
 import logging
-import json
 from typing import Optional
 
 import httpx

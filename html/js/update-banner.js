@@ -114,12 +114,22 @@ async function initUpdateBanner() {
 
     const instructionsCode = document.createElement('div');
     instructionsCode.className = 'update-banner__instructions-code';
+    // Two install paths, two commands: images from the registry have no
+    // ili-update.sh in the folder — that script ships with a git checkout only.
+    const registryCmd = 'docker compose pull && docker compose up -d';
     instructionsCode.innerHTML =
-      '<code>./ili-update.sh</code>' +
+      '<code>' + registryCmd + '</code>' +
       '<button class="update-banner__copy-btn" title="' + copyTitle + '" aria-label="' + copyAria + '">📋</button>';
+
+    const instructionsClone = document.createElement('div');
+    instructionsClone.className = 'update-banner__instructions-alt';
+    instructionsClone.innerHTML = window.t
+      ? window.t('update.banner.howto_clone', 'Per git clone installiert: <code>./ili-update.sh</code>')
+      : 'Per git clone installiert: <code>./ili-update.sh</code>';
 
     instructions.appendChild(instructionsLabel);
     instructions.appendChild(instructionsCode);
+    instructions.appendChild(instructionsClone);
 
     // Close button
     const closeBtn = document.createElement('button');
@@ -142,7 +152,7 @@ async function initUpdateBanner() {
     const copyBtn = instructionsCode.querySelector('.update-banner__copy-btn');
     if (copyBtn) {
       copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText('./ili-update.sh').then(() => {
+        navigator.clipboard.writeText(registryCmd).then(() => {
           const original = copyBtn.innerHTML;
           copyBtn.innerHTML = '✓';
           setTimeout(() => {

@@ -11,7 +11,6 @@ ILI_UPDATE_CHECK=off disables checking (privacy)
 import logging
 import os
 from datetime import datetime, timedelta
-from functools import lru_cache
 from typing import Optional
 
 import httpx

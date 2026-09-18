@@ -163,6 +163,23 @@
   -webkit-user-select: all;
 }
 
+/* Second line: the command for installations made with git clone. */
+.update-banner__instructions-alt {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+.update-banner__instructions-alt code {
+  padding: 0.15rem 0.35rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  color: #68d391;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
 .update-banner__copy-btn {
   flex-shrink: 0;
   width: 2rem;

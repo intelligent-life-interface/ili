@@ -21,7 +21,6 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime, timedelta
 from pathlib import Path
 
 # Importiere automat_lib vor prio_suggester, damit prio_suggester nicht

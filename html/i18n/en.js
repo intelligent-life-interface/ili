@@ -185,6 +185,7 @@ window.I18N = {
     "update.banner.copy_aria": "Copy",
     "update.banner.copy_title": "Copy to clipboard",
     "update.banner.howto": "To update:",
+    "update.banner.howto_clone": "Installed with git clone: <code>./ili-update.sh</code>",
     "update.banner.installed": "installed: {version}",
     "update.banner.title": "ili {available} available",
     "nav.version.title": "Installed version · commit {commit} · built {date}",

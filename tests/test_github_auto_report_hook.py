@@ -13,7 +13,6 @@ The hook is now tested as part of integration tests and error handling.
 import os
 import sys
 import unittest
-from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 

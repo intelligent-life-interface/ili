@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """CLI: status() und main() — Kommandozeilen-Interface für den Orchestrator."""
-import sys
 import fcntl
 import argparse
 from datetime import datetime
-from pathlib import Path
 
 import automat_lib as lib
 import models

@@ -252,6 +252,7 @@ window.I18N = {
     "update.banner.beta": "🧪 Beta",
     "update.banner.changes": "→ Änderungen",
     "update.banner.howto": "Zum Aktualisieren:",
+    "update.banner.howto_clone": "Per git clone installiert: <code>./ili-update.sh</code>",
     "update.banner.close": "Schliessen",
     "update.banner.copy_title": "In Zwischenablage kopieren",
     "update.banner.copy_aria": "Kopieren"

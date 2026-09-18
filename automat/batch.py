@@ -32,7 +32,7 @@ import os
 import sys
 import urllib.request
 import urllib.error
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 # Add ~/bin/lib to path for config_env

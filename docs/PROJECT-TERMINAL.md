@@ -87,6 +87,21 @@ volume means signing in again.
 >   use to write into the pty. No API round-trip, so it keeps working
 >   regardless of how `api` and `terminal` are split across containers.
 
+### Which Claude version runs
+
+The Claude Code version is the one baked into the terminal image; its
+self-updater is switched off (`DISABLE_AUTOUPDATER=1`). That is deliberate: a
+CLI that upgrades itself inside a container leaves no trace in the image, and an
+interrupted upgrade can leave the terminal unable to start Claude at all. A new
+Claude version reaches you with a new ili release — `docker compose pull`.
+
+```bash
+docker compose exec terminal claude --version
+```
+
+If you want a newer Claude before the next ili release, run `claude update`
+inside the terminal. It only lasts until the container is recreated.
+
 ## Where your code lives
 
 Each board gets a working directory: `/projects/<board-id>`, created on first

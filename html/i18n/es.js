@@ -184,6 +184,7 @@ window.I18N = {
     "update.banner.copy_aria": "Copiar",
     "update.banner.copy_title": "Copiar al portapapeles",
     "update.banner.howto": "Para actualizar:",
+    "update.banner.howto_clone": "Instalado con git clone: <code>./ili-update.sh</code>",
     "update.banner.installed": "instalado: {version}",
     "update.banner.title": "ili {available} disponible",
     "nav.version.title": "Versión instalada · commit {commit} · compilada {date}",

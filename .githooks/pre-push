@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Pre-push hook: Tag-Gate
+# Blockiert Tag-Pushes ohne ILI_TAG_PUSH=1
+# Overrides: ILI_TAG_PUSH=1 oder git push --no-verify
+
+set -e
+
+# Skip wenn Env-Var gesetzt
+if [[ "$ILI_TAG_PUSH" == "1" ]]; then
+    exit 0
+fi
+
+# Prüfe ob es Tag-Pushes in den refspecs gibt
+# Format: <local-ref> <local-sha> <remote-ref> <remote-sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+    # Nur Tag-Refs interessieren (refs/tags/*)
+    if [[ "$local_ref" =~ ^refs/tags/ ]]; then
+        echo ""
+        echo "❌ TAG-GATE BLOCKIERT: Versuch, Tag zu pushen: $local_ref"
+        echo ""
+        echo "Tags sollten nur manuell und mit expliziter Absicht gepusht werden."
+        echo ""
+        echo "Optionen:"
+        echo "1. Tag-Push absichtlich: ILI_TAG_PUSH=1 git push"
+        echo "2. Hook ignorieren: git push --no-verify"
+        echo ""
+        exit 1
+    fi
+done
+
+exit 0

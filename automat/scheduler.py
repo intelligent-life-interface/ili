@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Scheduler: plan() und tick() — Orchestrierung der Worker."""
 from datetime import datetime
-from pathlib import Path
 
 import automat_lib as lib
 import backoff
@@ -17,7 +16,7 @@ from automat_lib import logger
 
 from budget import (
     capacity, starts_today, board_in_cooldown,
-    MAX_STARTS_PER_DAY, NOOP_REFUND_S
+    MAX_STARTS_PER_DAY
 )
 from worker import reap, start_worker, start_review_worker, start_fable_worker
 

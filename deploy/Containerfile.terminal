@@ -69,6 +69,7 @@ COPY --chmod=755 deploy/terminal/ili-term.sh   /usr/local/bin/ili-term
 COPY --chmod=755 deploy/terminal/ili-claude.sh /usr/local/bin/ili-claude
 COPY --chmod=755 deploy/terminal/ili-login-url-watch.sh /usr/local/bin/ili-login-url-watch
 COPY --chmod=755 deploy/terminal/ili-docker-guide.sh /usr/local/bin/ili-docker-guide
+COPY --chmod=755 deploy/terminal/ili-claude-doctor.sh /usr/local/bin/ili-claude-doctor
 # SSH access (opt-in, docker-compose.ssh.yml). The daemon only starts when the
 # operator mounts a public key — see deploy/terminal/ili-sshd.sh.
 COPY --chmod=755 deploy/terminal/ili-sshd.sh /usr/local/bin/ili-sshd
@@ -102,8 +103,15 @@ RUN useradd --create-home --uid 1001 --shell /bin/bash ili \
 # Runs as root inside the container by design: with rootless Podman that maps to
 # the unprivileged host user, so bind-mounted project files stay writable. Docker
 # users who bind-mount host code should override this (see docs/PROJECT-TERMINAL.md).
+# DISABLE_AUTOUPDATER: the image decides which Claude Code version runs. Left on,
+# the CLI upgrades itself inside the running container; a 0.1.16 terminal did that
+# and ended up with a JS wrapper whose native binary was never downloaded
+# ("claude native binary not installed", reported 2026-09-18). A container is not
+# the place to self-update — a new Claude version arrives with a new image.
+# `claude update` by hand still works (that would be DISABLE_UPDATES).
 ENV HOME=/root \
     CLAUDE_CONFIG_DIR=/root/.claude \
+    DISABLE_AUTOUPDATER=1 \
     PROJECTS_DIR=/projects \
     BOARDS_DIR=/boards \
     TERMINAL_PORT=7690 \

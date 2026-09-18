@@ -235,13 +235,11 @@ class MCPServer:
 
         # Find and remove card from source column
         card = None
-        source_col = None
         for col in board.get("columns", []):
             cards = col.get("cards", [])
             for i, c in enumerate(cards):
                 if c.get("id") == card_id:
                     card = cards.pop(i)
-                    source_col = col
                     break
             if card:
                 break

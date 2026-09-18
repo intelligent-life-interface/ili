@@ -7,7 +7,7 @@ from pathlib import Path
 
 import automat_lib as lib
 import config as cfg_mod
-from automat_lib import logger, now_iso
+from automat_lib import logger
 
 LIMITS = lib.LIMITS
 AI_CONFIG = Path(os.getenv("ILI_DASHBOARD_DIR", str(Path.home() / "containers/dashboard"))) / "ai_config.json"

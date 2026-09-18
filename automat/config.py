@@ -8,7 +8,7 @@ sodass bei normalem Verbrauch ca. 1 Tag Reserve für Manager-Projekte bleibt.
 import os
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 logger = logging.getLogger("automat.config")

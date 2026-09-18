@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """CLI für Konfigabfragen: tägliches Limit, Wochenbudget, Reserve-Konzept."""
 import json
-import sys
 import logging
 import argparse
 
