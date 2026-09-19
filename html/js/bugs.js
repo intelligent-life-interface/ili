@@ -19,11 +19,33 @@ loadBugModel();
 // Beim Page-Load direkt scannen — kein Klick mehr nötig
 window.addEventListener('DOMContentLoaded', () => { scan(); });
 
-// Lädt offene Bug-Karten vom Kanban-Board (home-stack-bugs) und mappt sie
-// in dasselbe Bug-Format wie Log-Scan-Bugs, damit sie zusammen angezeigt werden.
+// Board that collects bug cards. A fresh install does not have it — the board is
+// filled by a host-side job that is not part of the package — so the id is a
+// constant here and the board is only fetched once it actually exists. Fetching
+// it blindly produced a 404 in every foreign installation, and the browser logs
+// that as a console error no matter how the caller handles it.
+const BUG_BOARD_ID = 'home-stack-bugs';
+
+async function bugBoardExists() {
+  try {
+    const boards = await API.fetchBoards();
+    const list = Array.isArray(boards) ? boards : (boards.boards || []);
+    return list.some(b => (b.id || b.board_id) === BUG_BOARD_ID);
+  } catch (e) {
+    console.warn('[bugs] Board-Liste nicht lesbar:', e.message);
+    return false;
+  }
+}
+
+// Lädt offene Bug-Karten vom Kanban-Board und mappt sie in dasselbe Bug-Format
+// wie Log-Scan-Bugs, damit sie zusammen angezeigt werden.
 async function loadKanbanBugs() {
   try {
-    const data = await API.fetchBoard('home-stack-bugs');
+    if (!await bugBoardExists()) {
+      console.log(`[bugs] Board ${BUG_BOARD_ID} existiert nicht — nur Log-Bugs`);
+      return [];
+    }
+    const data = await API.fetchBoard(BUG_BOARD_ID);
     const openColIds = new Set(['reported', 'triage', 'inprogress']);
     const out = [];
     for (const col of (data.columns || [])) {
@@ -187,7 +209,7 @@ function renderBugs() {
       ? `<span class="level-badge" style="background:#fc8181;color:#fff;">🐞 Kanban · ${escHtml(b.column || '')}</span>`
       : '';
     const boardLink  = isKanban
-      ? `<a href="/project.html?id=home-stack-bugs" target="_blank" class="ollama-btn" style="text-decoration:none;display:inline-block;">📋 Auf Bug-Board öffnen</a>`
+      ? `<a href="/project.html?id=${BUG_BOARD_ID}" target="_blank" class="ollama-btn" style="text-decoration:none;display:inline-block;">📋 Auf Bug-Board öffnen</a>`
       : '';
     return `
     <div class="bug-card level-${b.level}" id="bug-${b.nr}">
@@ -237,7 +259,7 @@ async function createBugCard(nr) {
   // Legt eine Bug-Karte auf home-stack-bugs an; den Fix uebernimmt der Kanban-Automat.
   try {
     const text = `\ud83d\udc1e ${bug.service}: ${bug.headline}\n\nContext:\n${(bug.context || '').slice(0, 1500)}`;
-    const data = await API.post('/bug-report', { text, board_id: 'home-stack-bugs' });
+    const data = await API.post('/bug-report', { text, board_id: BUG_BOARD_ID });
     bug._kanbanCreated = true;
     console.log('[bugs] Kanban-Karte angelegt:', data && data.card_title, data && data.board_url);
     if (btn) {

@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # ili-term.sh — per-board terminal wrapper, launched by ttyd for each connection.
 #
-# Usage: ili-term <board-slug>
-#   The slug comes from the URL query (?arg=<slug>, ttyd -a). The frontend embeds
-#   the terminal as <iframe src="/projterm/?arg=<board>">, so every board gets its
-#   own persistent tmux session and its own working directory.
+# Usage: ili-term <board-slug> [instance]
+#   Both come from the URL query (?arg=<slug>&arg=<n>, ttyd -a; verified: ttyd
+#   appends every arg= as its own argv entry). The frontend embeds the terminal as
+#   <iframe src="/projterm/?arg=<board>&arg=<n>">, so every board gets several
+#   persistent tmux sessions in one working directory.
+#
+#   Instances 1-4 run Claude Code, instance 5 is a plain shell (no Claude) — four
+#   assistants and one place to work by hand, per project. Instance 1 keeps the old
+#   session name `proj-<slug>`, so sessions created before this existed stay
+#   reachable and the heal endpoint and the automat keep finding them.
 #
 # Convention (project = board): the working directory for board <slug> is
 # $PROJECTS_DIR/<slug>. It is created on first open, so a new board immediately
@@ -40,6 +46,23 @@ if [[ -n "$SLUG" && ! -f "${BOARDS_DIR}/${SLUG}.json" ]]; then
     SLUG=""
 fi
 
+# Instance number. This is user input from the URL, so it is an allow-list and not
+# a strip: the value ends up in a tmux session name.
+case "${2:-1}" in
+    1|2|3|4|5) INSTANCE="${2:-1}" ;;
+    *) log "WARN: instance '${2:-}' is not 1-5 — using 1"; INSTANCE=1 ;;
+esac
+
+# Session names. Instance 1 must keep the historic name (see header), the others
+# get a PREFIX rather than a suffix: a suffix would be ambiguous for board ids that
+# themselves end in -<digit> (e.g. "ili-release-0-1-20"), and the slug is parsed
+# back out of the session name elsewhere.
+case "$INSTANCE" in
+    1) SESSION_PREFIX="proj"  ; RUN_CLAUDE=1 ;;
+    5) SESSION_PREFIX="shell" ; RUN_CLAUDE=0 ;;
+    *) SESSION_PREFIX="proj${INSTANCE}" ; RUN_CLAUDE=1 ;;
+esac
+
 DIR="$PROJECTS_DIR"
 if [[ -n "$SLUG" ]]; then
     DIR="${PROJECTS_DIR}/${SLUG}"
@@ -50,7 +73,8 @@ if [[ -n "$SLUG" ]]; then
 fi
 log "working directory: ${DIR}"
 
-SESSION="proj-${SLUG:-home}"
+SESSION="${SESSION_PREFIX}-${SLUG:-home}"
+log "instance ${INSTANCE} -> session '${SESSION}' (claude: ${RUN_CLAUDE})"
 
 # 1) Make sure the session exists. Creating it is independent of starting Claude,
 #    so an existing session is only re-attached.
@@ -67,10 +91,11 @@ tmux set-option -t "$SESSION" set-titles on
 # Pass OSC-52 clipboard writes through to the browser — lets Claude's own "c to copy"
 # reach the client clipboard instead of dying inside tmux.
 tmux set-option -t "$SESSION" set-clipboard on
-tmux set-option -t "$SESSION" set-titles-string "📋 ${SLUG:-home} · ili"
+if [[ "$RUN_CLAUDE" -eq 1 ]]; then LABEL="🤖 ${INSTANCE}"; else LABEL="🐚 Shell"; fi
+tmux set-option -t "$SESSION" set-titles-string "📋 ${SLUG:-home} · ${LABEL} · ili"
 tmux set-option -t "$SESSION" status-position top
 tmux set-option -t "$SESSION" status-left-length 60
-tmux set-option -t "$SESSION" status-left "#[bold] 📋 ${SLUG:-home} #[default]"
+tmux set-option -t "$SESSION" status-left "#[bold] 📋 ${SLUG:-home} · ${LABEL} #[default]"
 tmux set-option -t "$SESSION" status-right "%H:%M"
 
 # 2) Is Claude already running in this session? pane_current_command often shows
@@ -88,7 +113,9 @@ fi
 # 3) Start Claude lazily on first open. KANBAN_BOARD is exported into the pane so
 #    hooks and scripts inside the session know which board they belong to. SLUG is
 #    sanitised above, so it is safe to interpolate.
-if [[ "$claude_runs" -eq 0 ]]; then
+if [[ "$RUN_CLAUDE" -eq 0 ]]; then
+    log "instance ${INSTANCE} is the plain shell — not starting Claude"
+elif [[ "$claude_runs" -eq 0 ]]; then
     log "starting Claude in '${SESSION}' (board='${SLUG}')"
     if [[ -n "$SLUG" ]]; then
         tmux send-keys -t "$SESSION" "cd '${DIR}' 2>/dev/null; export KANBAN_BOARD=${SLUG}; exec ili-claude" Enter

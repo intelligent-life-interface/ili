@@ -3,10 +3,27 @@
 Probes are monkeypatched; no engine is needed.
 """
 import json
+import urllib.error
 
 import pytest
 
 from app.services import docker_service as ds
+
+
+class _FakeResponse:
+    """Minimal stand-in for the context manager urllib.request.urlopen() returns."""
+
+    def __init__(self, body: dict):
+        self._body = json.dumps(body).encode("utf-8")
+
+    def read(self):
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
 
 
 @pytest.fixture(autouse=True)
@@ -129,3 +146,39 @@ def test_guide_without_projects_host_dir_does_not_invent_a_path(monkeypatch):
     md = ds.claude_md(ds.status(candidate={"mode": "remote", "host": "tcp://host.docker.internal:2375"}))
     assert "<PROJECTS_HOST_DIR>" not in md
     assert "PROJECTS_HOST_DIR is not configured" in md
+
+
+# ── MCP server for container control (Settings → Docker → MCP switch) ─────────
+
+def test_mcp_status_ok(monkeypatch):
+    monkeypatch.setattr(ds.urllib.request, "urlopen",
+                        lambda req, timeout=0: _FakeResponse({"script_present": True, "configured": True}))
+    assert ds.mcp_status() == {"script_present": True, "configured": True}
+
+
+def test_mcp_status_old_terminal_image(monkeypatch):
+    def raise_404(req, timeout=0):
+        raise urllib.error.HTTPError(req.full_url, 404, "not found", {}, None)
+    monkeypatch.setattr(ds.urllib.request, "urlopen", raise_404)
+    st = ds.mcp_status()
+    assert st == {"script_present": False, "configured": False, "error": "terminal_outdated"}
+
+
+def test_mcp_status_terminal_unreachable(monkeypatch):
+    def raise_url_error(req, timeout=0):
+        raise urllib.error.URLError("connection refused")
+    monkeypatch.setattr(ds.urllib.request, "urlopen", raise_url_error)
+    st = ds.mcp_status()
+    assert st["error"] == "terminal_unreachable" and not st["configured"]
+
+
+def test_mcp_setup_and_remove_post_to_bridge(monkeypatch):
+    calls = []
+
+    def fake_urlopen(req, timeout=0):
+        calls.append(req.full_url)
+        return _FakeResponse({"ok": True, "already": False})
+    monkeypatch.setattr(ds.urllib.request, "urlopen", fake_urlopen)
+    assert ds.mcp_setup() == {"ok": True, "already": False}
+    assert ds.mcp_remove() == {"ok": True, "already": False}
+    assert calls == [f"{ds.CLAUDE_BRIDGE_URL}/mcp/docker/setup", f"{ds.CLAUDE_BRIDGE_URL}/mcp/docker/remove"]

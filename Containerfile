@@ -103,4 +103,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # Start Application — the entrypoint seeds the starter boards, then execs the CMD.
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8798", "--log-level", "info"]
+# --no-access-log: uvicorn's access logger prints the full request line including
+# the query string, which may carry tokens (GitHub issue #2). The middleware
+# log_requests in app/main.py logs method, path, status and duration instead.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8798", "--log-level", "info", "--no-access-log"]

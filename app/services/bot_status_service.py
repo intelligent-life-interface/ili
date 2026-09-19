@@ -65,10 +65,16 @@ def _run(args: list[str], timeout: int = 5) -> str:
 
 def _link_for(name: str) -> tuple[str, str, str]:
     """(kind, slug, link) für eine Session bestimmen."""
-    if name.startswith("proj-"):
-        slug = name[len("proj-"):]
-        # project.html?id=<slug> öffnet das Board MIT eingebettetem Terminal (gleiche Session)
-        return "Projekt", slug, f"/project.html?id={slug}"
+    # Five sessions per board: proj-<slug> (instance 1, historic name), proj2..proj4
+    # and shell-<slug> (the plain shell). The prefix carries the instance because a
+    # suffix would be ambiguous for board ids ending in -<digit>.
+    for prefix, label in (("proj-", "Projekt"), ("proj2-", "Projekt 2"),
+                          ("proj3-", "Projekt 3"), ("proj4-", "Projekt 4"),
+                          ("shell-", "Projekt-Shell")):
+        if name.startswith(prefix):
+            slug = name[len(prefix):]
+            # project.html?id=<slug> öffnet das Board MIT eingebettetem Terminal
+            return label, slug, f"/project.html?id={slug}"
     m = re.fullmatch(r"term(\d+)", name)
     if m:
         _dom = os.environ.get("DASHBOARD_DOMAIN", "yourdomain.example")
@@ -199,17 +205,26 @@ def send_answer(name: str, text: str = "", key: str = "") -> dict:
     return {"ok": True, "name": name, "sent": text[:120], "mode": "text"}
 
 
-def heal_session(slug: str) -> dict:
-    """Projekt-Terminal `proj-<slug>` heilen: Mosaik lösen + tote claude-Session fortsetzen.
+def session_name(slug: str, instance: int = 1) -> str:
+    """Session name for a board terminal. Instance 1 keeps the historic `proj-`
+    name; 2-4 are further Claude terminals, 5 is the plain shell."""
+    prefix = {1: "proj", 2: "proj2", 3: "proj3", 4: "proj4", 5: "shell"}.get(instance, "proj")
+    return f"{prefix}-{slug}"
+
+
+def heal_session(slug: str, instance: int = 1) -> dict:
+    """Ein Projekt-Terminal heilen: Mosaik lösen + tote claude-Session fortsetzen.
 
     Returns {ok, name, existed, detached, restarted_claude, actions[]}.
     Idempotent & defensiv: existiert die Session nicht, passiert nichts (das iframe
     legt sie beim Attach selbst via Wrapper an).
     """
     slug = (slug or "").strip()
+    if instance not in (1, 2, 3, 4, 5):
+        instance = 1
     if not _SAFE_SLUG_RE.match(slug):
-        return {"ok": False, "reason": "bad-slug", "name": f"proj-{slug}"}
-    name = f"proj-{slug}"
+        return {"ok": False, "reason": "bad-slug", "name": session_name(slug, instance)}
+    name = session_name(slug, instance)
     actions: list[str] = []
     if name not in _session_names():
         log.info("heal_session: %s existiert nicht (iframe legt sie beim Attach an)", name)

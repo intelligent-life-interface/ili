@@ -42,23 +42,57 @@
      * the page itself — the backend sanitizer strips the rest before it ever
      * reaches GitHub.
      */
+    function fetchJson(url) {
+        return fetch(url, { cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .catch(function () { return null; });
+    }
+
+    /**
+     * Everything a maintainer would otherwise have to ask for, collected before the
+     * form opens: exact version, where it happened, what the browser reported, and
+     * what the installation itself says about its state. Every part is optional —
+     * a slow or missing endpoint must not keep the form closed.
+     */
     function context() {
-        var lines = [
-            'Seite: ' + location.pathname + (location.search || ''),
-            'Browser: ' + navigator.userAgent
-        ];
-        try {
-            var v = document.getElementById('footer-version');
-            if (v && v.textContent) lines.push('Version: ' + v.textContent.trim());
-        } catch (e) {}
-        return lines.join('\n');
+        return Promise.all([
+            fetchJson('/api/version'),
+            fetchJson('/api/selftest')
+        ]).then(function (res) {
+            var version = res[0], self = res[1];
+            var lines = ['Seite: ' + location.pathname + (location.search || ''),
+                         'Browser: ' + navigator.userAgent];
+            if (version) {
+                lines.push('Version: ' + version.version + ' (' + version.channel + ')');
+                if (version.commit && version.commit !== 'unknown') {
+                    lines.push('Build: ' + String(version.commit).slice(0, 7) + ' vom ' + String(version.build_date).slice(0, 10));
+                }
+            }
+            var errs = window.__iliRecentErrors || [];
+            if (errs.length) {
+                lines.push('', 'Letzte Fehler im Browser:');
+                errs.slice(-3).forEach(function (e) {
+                    lines.push('- ' + e.page + ': ' + e.message + (e.stack ? ' (' + e.stack + ')' : ''));
+                });
+            }
+            if (self && self.checks) {
+                var bad = self.checks.filter(function (c) { return !c.ok; });
+                lines.push('', 'Selbsttest: ' + (bad.length ? bad.length + ' Befund(e)' : 'alles in Ordnung'));
+                bad.forEach(function (c) { lines.push('- ' + (c.title || c.id) + ': ' + c.detail); });
+            }
+            return lines.join('\n');
+        });
     }
 
     function openIssue(btn) {
         btn.disabled = true;
         var title = t('bug.prefillTitle', 'Fehler in ili: ');
+        context().then(function (ctx) { openWithContext(btn, title, ctx); });
+    }
+
+    function openWithContext(btn, title, ctx) {
         var body = t('bug.prefillBody', 'Was ist passiert?\n\n\nWas hättest du erwartet?\n\n\n---\n')
-            + context();
+            + ctx;
 
         var url = '/api/github/deeplink?title=' + encodeURIComponent(title)
                 + '&body=' + encodeURIComponent(body);

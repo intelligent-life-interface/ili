@@ -6,6 +6,7 @@ terminal image (the worker needs the logged-in Claude Code CLI). Honours the kil
 `state/automat.disabled` (touch it to pause, remove it to resume) and waits for the
 dashboard API before the first tick.
 """
+import json
 import logging
 import os
 import signal
@@ -24,6 +25,22 @@ DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://api:8798").rstrip("/")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [ticker] %(levelname)s %(message)s",
                     stream=sys.stderr)
 log = logging.getLogger("ticker")
+
+
+def write_heartbeat() -> None:
+    """Leave a sign of life in the shared state volume.
+
+    The api container cannot see containers (no engine access by design), so this
+    file is the only way `ili-selftest` can tell a running automat from a dead one.
+    Best effort: a failing write must never stop the ticker.
+    """
+    try:
+        STATE.mkdir(parents=True, exist_ok=True)
+        tmp = STATE / "ticker_heartbeat.tmp"
+        tmp.write_text(json.dumps({"ts": time.time(), "interval": INTERVAL}), encoding="utf-8")
+        tmp.replace(STATE / "ticker_heartbeat.json")
+    except Exception as e:                      # noqa: BLE001
+        log.debug("heartbeat not written: %s", e)
 
 
 def api_ready() -> bool:
@@ -56,6 +73,7 @@ def main() -> None:
         time.sleep(5)
         waited += 5
     while True:
+        write_heartbeat()          # sign of life for `ili-selftest` (see the function)
         # Reap dead children before the tick to avoid zombies (PID 1 is the reaper)
         try:
             while os.waitpid(-1, os.WNOHANG)[0] > 0:

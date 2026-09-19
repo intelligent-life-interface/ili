@@ -42,6 +42,19 @@ def _post(path: str, payload: dict, timeout: int) -> dict:
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        # The bridge puts the real reason in the response body ("claude exit 1:
+        # … unrecognized_model …"). Without reading it, every failure looks like a
+        # bare "HTTP Error 500" and the UI ends up guessing at the cause.
+        detail = ""
+        try:
+            body = json.loads(e.read().decode("utf-8", "replace"))
+            detail = str(body.get("error") or body)[:500]
+        except Exception:
+            pass
+        msg = f"HTTP {e.code}" + (f": {detail}" if detail else "")
+        log.error("Claude-Bridge %s fehlgeschlagen: %s", path, msg)
+        raise ClaudeBridgeError(msg) from e
     except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as e:
         log.error("Claude-Bridge %s fehlgeschlagen: %s", path, e)
         raise ClaudeBridgeError(str(e)) from e

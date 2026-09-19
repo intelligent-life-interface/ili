@@ -132,6 +132,19 @@ body.term-active .term-tools { display:flex; }
 
 /* Terminal-Bereich */
 #board-term { display:flex; flex-direction:column; }
+/* Tab strip above the terminal: four Claude sessions, one plain shell. */
+.term-tabs { display:flex; gap:.3rem; padding:.35rem .5rem 0; overflow-x:auto; }
+.term-tab { flex:0 0 auto; padding:.3rem .6rem; font-size:.8rem; border:1px solid var(--line);
+            border-radius:8px; background:transparent; color:inherit; opacity:.6; }
+.term-tab--active { opacity:1; border-color:#4299e1; box-shadow:inset 0 -2px 0 #4299e1; }
+
+/* Fallback when the browser refuses a clipboard write without a user gesture. */
+.term-copy-overlay { position:fixed; left:8px; right:8px; bottom:8px; z-index:9999; display:flex;
+                     gap:.4rem; align-items:center; padding:.5rem; border:1px solid var(--line);
+                     border-radius:10px; background:#1a202c; }
+.term-copy-text { flex:1; max-height:6em; overflow:auto; font-family:monospace; font-size:.75rem;
+                  white-space:pre-wrap; word-break:break-all; }
+
 .term-wrap { position:relative; height:calc(100dvh - 250px); min-height:240px; background:#000; margin:.4rem .5rem 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
 /* Zoom-Trick (wie project.js): iframe in CSS-Pixeln aufblasen + optisch zurückskalieren →
    ttyds fit-addon misst mehr Spalten, Schrift wirkt kleiner, mehr Inhalt passt aufs iPhone. */

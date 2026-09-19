@@ -55,10 +55,16 @@ services:
     restart: unless-stopped
     # Resource limits (measured 09.09.2026, see RESOURCE_LIMITS.md in the
     # docker-container-optimieren project): idle ~30 MB, ~100-130 MB per open board
-    # terminal (one `claude` process each), 112 MB -> OOM. 1g covers ~6 boards at once
-    # and still caps a runaway; below 0.5 CPU the Claude UI start gets noticeably slow.
-    # Keys work with docker compose v2 and old podman-compose alike.
-    mem_limit: 1g
+    # terminal (one `claude` process each), 112 MB -> OOM. Below 0.5 CPU the Claude UI
+    # start gets noticeably slow. Keys work with docker compose v2 and old
+    # podman-compose alike.
+    #
+    # 2g since 0.1.21: a board now offers four Claude terminals plus a shell, and tmux
+    # keeps every session you opened alive in the background — closing the tab does not
+    # end it. 1g was ~6 sessions, i.e. barely more than one fully used board. Raise this
+    # further if you work in many boards at once; `docker stats ili-terminal` shows the
+    # real figure. Sessions you no longer need: `tmux kill-session -t proj2-<board>`.
+    mem_limit: 2g
     cpus: 1.0
     # Credentials (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY) and tuning knobs come
     # from .env via env_file — old podman-compose (1.0.3) does not interpolate ${VAR}.

@@ -30,10 +30,27 @@ if ! command -v curl >/dev/null 2>&1; then
     exit 0
 fi
 
+STALE_MARK="> ⚠️ Not refreshed since"
+
 body="$(curl -fsS --max-time 6 "${API}/api/docker/claude-md" 2>/dev/null)"
 rc=$?
 if [[ $rc -ne 0 ]]; then
-    log "api ${API} not reachable (curl exit ${rc}) — leaving ${TARGET} as is"
+    # Leaving the file untouched let a guide from 08.09. keep promising a Docker
+    # engine that was long gone — the AI reads this as fact. Mark it instead, so a
+    # stale guide is visibly stale (idempotent: only one marker, only our own file).
+    if [[ -f "$TARGET" ]] && head -n 1 "$TARGET" | grep -qF "$MARKER" \
+       && ! grep -qF "$STALE_MARK" "$TARGET"; then
+        tmp="$(mktemp)"
+        {
+            head -n 1 "$TARGET"
+            echo ""
+            echo "${STALE_MARK} $(date '+%F %H:%M') — the ili api was unreachable, so the"
+            echo "> statements below may no longer be true. Verify with \`docker version\`"
+            echo "> before relying on them."
+            tail -n +2 "$TARGET"
+        } > "$tmp" && mv "$tmp" "$TARGET" && log "marked ${TARGET} as possibly stale"
+    fi
+    log "api ${API} not reachable (curl exit ${rc}) — kept ${TARGET}, marked as stale"
     exit 0
 fi
 

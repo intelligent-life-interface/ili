@@ -224,6 +224,10 @@
   let curBoard = null;     // {id, name}
   let boardMode = 'list';  // 'list' | 'term'
   let termLoaded = false;
+  // Five terminals per project (1-4 Claude, 5 plain shell) — the number becomes a
+  // second ttyd argument and its own tmux session, exactly as on the desktop.
+  let termInstance = 1;
+  const TERM_SHELL_INSTANCE = 5;
 
   // ── Hash-Routing (#b=<boardId>) — Browser-Zurück + Neuladen funktionieren ──
   // Karten-Tap setzt nur den Hash; erst hashchange rendert. Reload mit Hash stellt
@@ -472,8 +476,122 @@
     $('#term-auth-retry').addEventListener('click', () => { removeAuthHint(); termLoaded = false; loadTerminal(); });
   }
 
+  // ── Terminal-Auswahl (Tab-Leiste über dem Terminal) ────────────────────────
+  function termInstanceKey() { return 'm-term-instance:' + (curBoard ? curBoard.id : ''); }
+
+  function paintTermTabs() {
+    document.querySelectorAll('#m-term-tabs .term-tab').forEach(btn => {
+      const n = parseInt(btn.dataset.instance, 10);
+      btn.classList.toggle('term-tab--active', n === termInstance);
+      btn.setAttribute('aria-selected', n === termInstance ? 'true' : 'false');
+    });
+  }
+
+  function restoreTermInstance() {
+    const n = parseInt(localStorage.getItem(termInstanceKey()) || '1', 10);
+    termInstance = (n >= 1 && n <= 5) ? n : 1;
+    paintTermTabs();
+  }
+
+  function switchTerminal(n) {
+    if (!(n >= 1 && n <= 5) || n === termInstance) return;
+    termInstance = n;
+    try { localStorage.setItem(termInstanceKey(), String(n)); } catch (_) {}
+    paintTermTabs();
+    termLoaded = false;                 // forces loadTerminal to point the iframe at the new session
+    const f = $('#m-term');
+    if (f) f.src = 'about:blank';
+    loadTerminal();
+    log('Terminal gewechselt auf', n);
+  }
+
+  // ── Kopieren: OSC-52 aus tmux/Claude an die Zwischenablage des Handys ───────
+  // tmux meldet jede Kopie als OSC-52-Sequenz; ttyd/xterm.js wertet sie nicht aus.
+  // Auf dem Desktop macht project-chat-terminal.js dasselbe — mobil fehlte es.
+  function termCopyOverlay(text) {
+    let ov = document.getElementById('m-copyov');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'm-copyov';
+      ov.className = 'term-copy-overlay';
+      document.body.appendChild(ov);
+    }
+    ov.textContent = '';
+    const pre = document.createElement('div');
+    pre.className = 'term-copy-text';
+    pre.textContent = text.length > 400 ? text.slice(0, 400) + ' …' : text;
+    const btn = document.createElement('button');
+    btn.textContent = '📋 Kopieren';
+    btn.onclick = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      ta.remove(); ov.remove();
+    };
+    const close = document.createElement('button');
+    close.textContent = '✕';
+    close.onclick = () => ov.remove();
+    ov.appendChild(pre); ov.appendChild(btn); ov.appendChild(close);
+  }
+
+  function hookTermClipboard(frame) {
+    const attach = () => {
+      let term;
+      try { term = frame.contentWindow && frame.contentWindow.term; } catch (_) { return false; }
+      if (!term || !term.parser || !term.parser.registerOscHandler) return false;
+      if (term.__iliOsc52) return true;
+      term.parser.registerOscHandler(52, data => {
+        const i = data.indexOf(';');
+        const b64 = i >= 0 ? data.slice(i + 1) : data;
+        if (!b64 || b64 === '?') return true;         // clipboard *query*, not a copy
+        let text;
+        try {
+          const bin = atob(b64);
+          text = new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+        } catch (e) { log('OSC52 base64-Fehler:', e.message); return true; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(
+            () => log('OSC52:', text.length, 'Zeichen kopiert'),
+            () => termCopyOverlay(text));            // no user gesture (Safari) -> overlay
+        } else {
+          termCopyOverlay(text);
+        }
+        return true;
+      });
+      term.__iliOsc52 = true;
+      log('OSC52-Kopierbrücke aktiv');
+      return true;
+    };
+    [200, 800, 2000].forEach(t => setTimeout(() => { attach(); }, t));
+  }
+
+  // Einfügen: die Zwischenablage lesen darf nur ein sicherer Kontext (https), und
+  // iOS fragt dabei nach. Geht es nicht, verschwindet der Knopf, statt scheinbar
+  // kaputt dazustehen — die Eingabezeile bleibt der Weg (dort klappt Einfügen nativ).
+  function wirePasteButton() {
+    const btn = $('#m-input-paste'), input = $('#m-input');
+    if (!btn || !input) return;
+    if (!(navigator.clipboard && navigator.clipboard.readText)) {
+      btn.style.display = 'none';
+      log('Einfügen-Knopf versteckt — Zwischenablage nur über https lesbar');
+      return;
+    }
+    btn.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text) return;
+        const pos = input.selectionStart ?? input.value.length;
+        input.value = input.value.slice(0, pos) + text + input.value.slice(input.selectionEnd ?? pos);
+        input.focus();
+      } catch (e) {
+        log('Einfügen abgelehnt:', e.message);
+      }
+    });
+  }
+
   async function loadTerminal() {
     const frame = $('#m-term');
+    restoreTermInstance();
     // ttyd-WS-Cookie ist Secure → über http kommt keine Shell. Klartext-Hinweis statt totem Terminal.
     if (location.protocol !== 'https:') {
       if (!$('#term-https-hint')) {
@@ -500,8 +618,9 @@
         termTextarea();
       }, t));
     };
-    frame.src = '/projterm/?arg=' + encodeURIComponent(curBoard.id);
+    frame.src = '/projterm/?arg=' + encodeURIComponent(curBoard.id) + '&arg=' + termInstance;
     termLoaded = true;
+    hookTermClipboard(frame);
     // Auto-Reconnect: erkennt totes ttyd ("Connection Closed") und lädt nur das
     // iframe neu — tmux reattacht. Logik zentral in /terminal-watchdog.js.
     // (about:blank nach Board-Wechsel ist harmlos: Watchdog ignoriert Frames ohne .xterm)
@@ -852,6 +971,12 @@
     };
     if ($('#m-input')) $('#m-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendInput(); } });
     if ($('#m-input-send')) $('#m-input-send').addEventListener('click', e => { e.preventDefault(); sendInput(); });
+    // Terminal-Tabs (vier Claude, eine Shell) und der Einfügen-Knopf.
+    if ($('#m-term-tabs')) $('#m-term-tabs').addEventListener('click', e => {
+      const b = e.target.closest('.term-tab');
+      if (b) switchTerminal(parseInt(b.dataset.instance, 10));
+    });
+    wirePasteButton();
 
     // ── Shortcut-Leiste: fertige Prompts aus window.TERM_SHORTCUTS (/terminal-shortcuts.js) ──
     renderShortcuts();

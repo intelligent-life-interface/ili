@@ -245,8 +245,47 @@ document.addEventListener('keydown', e => {
 // iframe ein: /projterm/?arg=<board-id>. Der Wrapper ~/bin/tmux-project.sh startet
 // daraus eine eigene tmux-Session im Projektordner und ruft Claude Code auf.
 // ══════════════════════════════════════════════════════════════
-function terminalUrl() {
-    return '/projterm/?arg=' + encodeURIComponent(BOARD_ID);
+// Five terminals per project: 1-4 run Claude Code, 5 is a plain shell. The number
+// travels as a second ttyd argument (?arg=<board>&arg=<n>) and becomes its own tmux
+// session inside the container, so each tab keeps its own history and its own
+// Claude conversation. Only the tab you actually open is ever started — four idle
+// Claude processes per board would eat the terminal container's memory limit.
+const PT_INSTANCES = 5;
+const PT_SHELL_INSTANCE = 5;               // the one without Claude
+let PT_INSTANCE = 1;
+
+function ptInstanceKey() { return 'pt-instance:' + BOARD_ID; }
+
+function ptRestoreInstance() {
+    const n = parseInt(localStorage.getItem(ptInstanceKey()) || '1', 10);
+    PT_INSTANCE = (n >= 1 && n <= PT_INSTANCES) ? n : 1;
+}
+
+function terminalUrl(instance) {
+    const n = instance || PT_INSTANCE;
+    return '/projterm/?arg=' + encodeURIComponent(BOARD_ID) + '&arg=' + n;
+}
+
+// Switching swaps the iframe source; tmux keeps the session running in the
+// background, so coming back re-attaches instead of starting over.
+function ptSwitchTerminal(n) {
+    if (!(n >= 1 && n <= PT_INSTANCES) || n === PT_INSTANCE) { ptPaintTabs(); return; }
+    PT_INSTANCE = n;
+    try { localStorage.setItem(ptInstanceKey(), String(n)); } catch (e) { /* private mode */ }
+    ptPaintTabs();
+    const frame = document.getElementById('proj-terminal');
+    if (frame) {
+        console.log('[Terminal] wechsle auf Terminal', n);
+        frame.src = terminalUrl(n);
+    }
+}
+
+function ptPaintTabs() {
+    document.querySelectorAll('.pt-tab').forEach(btn => {
+        const n = parseInt(btn.dataset.instance, 10);
+        btn.classList.toggle('pt-tab--active', n === PT_INSTANCE);
+        btn.setAttribute('aria-selected', n === PT_INSTANCE ? 'true' : 'false');
+    });
 }
 
 // Solange das Terminal-Passwort automatisch erzeugt wird, wechselt es bei jedem
@@ -283,6 +322,8 @@ async function showGeneratedPasswordHint(frame) {
 function initTerminal() {
     const frame = document.getElementById('proj-terminal');
     if (!frame) { console.warn('[Terminal] iframe #proj-terminal fehlt'); return; }
+    ptRestoreInstance();
+    ptPaintTabs();
     showGeneratedPasswordHint(frame);
     applyTerminalWidth();          // gemerkten Breit-Zustand wiederherstellen
     applyTerminalZoom();           // gemerkten Schrift-Zoom wiederherstellen
@@ -470,7 +511,8 @@ async function reloadTerminal() {
     const btn = document.getElementById('term-reload-btn');
     if (btn) { btn.disabled = true; btn.dataset.t = btn.textContent; btn.textContent = '… heile'; }
     try {
-        const r = await fetch('/projterm-heal?board=' + encodeURIComponent(BOARD_ID), { method: 'POST' });
+        const r = await fetch('/projterm-heal?board=' + encodeURIComponent(BOARD_ID)
+            + '&instance=' + PT_INSTANCE, { method: 'POST' });
         const j = await r.json().catch(() => ({}));
         console.log('[Terminal] heal-Ergebnis:', j);
     } catch (e) {

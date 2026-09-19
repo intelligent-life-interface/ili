@@ -87,6 +87,33 @@ volume means signing in again.
 >   use to write into the pty. No API round-trip, so it keeps working
 >   regardless of how `api` and `terminal` are split across containers.
 
+### Five terminals per project
+
+Every board has **four Claude terminals and one plain shell**, switched with the tab
+strip above the terminal (desktop and phone alike). Each tab is its own tmux session
+in the same project folder:
+
+| Tab | tmux session | What runs |
+|---|---|---|
+| 🤖 1 | `proj-<board>` | Claude Code — the session that existed before this feature |
+| 🤖 2-4 | `proj2-<board>` … `proj4-<board>` | Claude Code, separate conversation each |
+| 🐚 Shell | `shell-<board>` | a plain shell, no Claude |
+
+Four assistants let you keep one long task running while asking something else in
+parallel; the shell is for the handwork in between (git, builds, a quick look at a
+file) without interrupting a conversation.
+
+A tab is started the first time you open it — an untouched tab costs nothing. Once
+started, tmux keeps the session alive in the background: closing the browser tab does
+not end it, and coming back re-attaches where you left off. That is what you want for
+a running task, but it is also why the terminal container is limited to 2 GB: roughly
+100-130 MB per open Claude session. `docker stats ili-terminal` shows the real number,
+and a session you no longer need goes away with:
+
+```bash
+docker compose exec terminal tmux kill-session -t proj2-<board>
+```
+
 ### Which Claude version runs
 
 The Claude Code version is the one baked into the terminal image; its

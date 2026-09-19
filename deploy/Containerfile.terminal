@@ -70,6 +70,10 @@ COPY --chmod=755 deploy/terminal/ili-claude.sh /usr/local/bin/ili-claude
 COPY --chmod=755 deploy/terminal/ili-login-url-watch.sh /usr/local/bin/ili-login-url-watch
 COPY --chmod=755 deploy/terminal/ili-docker-guide.sh /usr/local/bin/ili-docker-guide
 COPY --chmod=755 deploy/terminal/ili-claude-doctor.sh /usr/local/bin/ili-claude-doctor
+# MCP server for container control (Settings → Docker → MCP switch), registered
+# on demand via `claude mcp add --scope user` — see claude_cli_bridge.py /mcp/docker/*.
+COPY --chmod=755 deploy/terminal/ili-mcp-docker.py /usr/local/bin/ili-mcp-docker
+COPY --chmod=755 deploy/terminal/ili-selftest.sh /usr/local/bin/ili-selftest
 # SSH access (opt-in, docker-compose.ssh.yml). The daemon only starts when the
 # operator mounts a public key — see deploy/terminal/ili-sshd.sh.
 COPY --chmod=755 deploy/terminal/ili-sshd.sh /usr/local/bin/ili-sshd
@@ -83,6 +87,11 @@ COPY deploy/terminal/claude_cli_bridge.py /usr/local/bin/claude_cli_bridge.py
 # Kanban automat (headless Claude workers + ticker), run as the `automat` compose
 # service on this same image — see automat/README.md
 COPY automat/ /opt/ili-automat/
+
+# Claude skills shipped with ili (architecture/convention skills, sanitized export — see
+# docs/SKILLS.md). Baked here, mirrored into the persistent $CLAUDE_CONFIG_DIR/skills by the
+# entrypoint on every start, because the terminal-home volume shadows anything baked into /root.
+COPY deploy/terminal/skills/ /opt/ili/skills/
 
 # Login user for the optional SSH access. NOT root: PermitRootLogin stays `no`,
 # so a flaw or a slip in the sshd config cannot hand out root directly. It does

@@ -346,6 +346,11 @@ let rollupData   = null;
 let rollupFilter = 'all';
 let rollupOpen   = false;
 
+// Karteileichen-Filter: Karten, die lange niemand angefasst hat (Wunsch 18.09.2026).
+// Schwelle in localStorage persistiert, Default 60 Tage (Auswahl 30/60/90).
+let zombieFilterActive = localStorage.getItem('rollup_zombie_active') === '1';
+let zombieThresholdDays = parseInt(localStorage.getItem('rollup_zombie_days'), 10) || 60;
+
 async function loadRollup() {
     try {
         rollupData = await API.get('/board-rollup?id=' + encodeURIComponent(BOARD_ID) + '&t=' + Date.now());
@@ -400,10 +405,47 @@ function renderRollup() {
         filtersEl.appendChild(btn);
     });
 
+    // Karteileichen-Filter — bezieht sich auf ALLE Karten (nicht nur die aktuelle
+    // Spaltenauswahl), damit die Zahl im Knopf unabhängig vom Spalten-Filter stimmt.
+    const now = Date.now();
+    const zombieCount = cards.filter(c => isZombieCard(c, zombieThresholdDays, now)).length;
+    const t = (typeof window.t === 'function') ? window.t : (key, fallback) => fallback;
+    const zombieBtn = document.createElement('button');
+    zombieBtn.className = 'rollup-filter-btn' + (zombieFilterActive ? ' active' : '');
+    zombieBtn.textContent = t('proj.rollup.zombie.button', '🧟 Karteileichen ({n})').replace('{n}', String(zombieCount));
+    zombieBtn.title = t('proj.rollup.zombie.title', 'Karten, die seit mind. {days} Tagen niemand angefasst hat')
+        .replace('{days}', String(zombieThresholdDays));
+    zombieBtn.addEventListener('click', () => {
+        zombieFilterActive = !zombieFilterActive;
+        localStorage.setItem('rollup_zombie_active', zombieFilterActive ? '1' : '0');
+        renderRollup();
+    });
+    filtersEl.appendChild(zombieBtn);
+
+    const zombieSelect = document.createElement('select');
+    zombieSelect.className = 'rollup-filter-select';
+    zombieSelect.title = t('proj.rollup.zombie.select.title', 'Schwelle für Karteileichen');
+    [30, 60, 90].forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = String(d);
+        opt.textContent = t('proj.rollup.zombie.option', '{days} Tage').replace('{days}', String(d));
+        opt.selected = d === zombieThresholdDays;
+        zombieSelect.appendChild(opt);
+    });
+    zombieSelect.addEventListener('change', () => {
+        zombieThresholdDays = parseInt(zombieSelect.value, 10) || 60;
+        localStorage.setItem('rollup_zombie_days', String(zombieThresholdDays));
+        renderRollup();
+    });
+    filtersEl.appendChild(zombieSelect);
+
     // Karten rendern
     const bodyEl = document.getElementById('rollup-body');
     bodyEl.innerHTML = '';
-    const filtered = rollupFilter === 'all' ? cards : cards.filter(c => c._col_id === rollupFilter);
+    let filtered = rollupFilter === 'all' ? cards : cards.filter(c => c._col_id === rollupFilter);
+    if (zombieFilterActive) {
+        filtered = filtered.filter(c => isZombieCard(c, zombieThresholdDays, now));
+    }
 
     if (!filtered.length) {
         const empty = document.createElement('div');

@@ -45,7 +45,7 @@
         { id: 'nav-link-datenbanken', href: '/datenbanken.html', icon: '🗄️', key: 'nav.datenbanken', label: 'Datenbanken' },
         { id: 'nav-link-neuesprojekt', href: '/projekt.html',  icon: '➕', key: 'nav.neuesprojekt', label: 'Neues Projekt' },
         { id: 'nav-link-kiadvisor', href: '/ki-advisor.html',  icon: '🤖', key: 'nav.kiadvisor', label: 'KI-Advisor' },
-        { id: 'nav-link-kisettings', href: '/ai-settings.html', icon: '⚙️', key: 'nav.kisettings', label: 'KI-Settings' },
+        { id: 'nav-link-kisettings', href: '/ai-settings.html', icon: '⚙️', key: 'nav.kisettings', label: 'Settings' },
         { id: 'nav-link-whitelist', href: '/whitelist.html',   icon: '🔐', key: 'nav.whitelist', label: 'Whitelist' },
         { id: 'nav-link-swipe',    href: '/swipe.html',        icon: '👆', key: 'nav.swipe',    label: 'Swipe' },
         { id: 'nav-link-flow',     href: '/masterchat-flow.html',   icon: '🔀', key: 'nav.flow',      label: 'Flow' },

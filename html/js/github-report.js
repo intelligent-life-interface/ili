@@ -55,9 +55,26 @@
         }).catch(function (e) { log("send failed: " + e.message); });
     }
 
+    /* Ring buffer for the bug button: the last few errors, newest last. Kept here
+       because this file already sees every error; the button must not install a
+       second set of handlers. */
+    window.__iliRecentErrors = window.__iliRecentErrors || [];
+    function remember(message, stack) {
+        try {
+            window.__iliRecentErrors.push({
+                at: new Date().toISOString(),
+                page: location.pathname,
+                message: String(message).slice(0, 300),
+                stack: (stack ? String(stack).split("\n")[0] : "").slice(0, 200)
+            });
+            while (window.__iliRecentErrors.length > 5) window.__iliRecentErrors.shift();
+        } catch (e) { /* never throw from an error handler */ }
+    }
+
     function handle(message, stack) {
         try {
             if (!message) return;
+            remember(message, stack);
             checkEnabled(function (on) { if (on) send(message, stack); });
         } catch (e) { /* never throw from an error handler */ }
     }

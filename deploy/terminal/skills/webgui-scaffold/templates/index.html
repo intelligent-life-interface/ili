@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de" data-ui-app="__NAME__">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>__TITLE__</title>
+
+    <!-- Zentrales UI-Kit (Styleguide: https://ui.intranet.<DOMAIN>/ oder /ui-kit/v1/).
+         Relative Pfade im LAN (Caddy-Handle /ui-kit/* per Snippet ui-kit-proxy).
+         GUIs hinter home.<DOMAIN> brauchen lokale Kopie nach app/static/. -->
+    <link rel="stylesheet" href="/ui-kit/v1/ui-kit.css">
+    <script src="/ui-kit/v1/ui-kit.js" defer></script>
+
+    <!-- Projekteigene Ergänzungen, muss NACH dem Kit kommen -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="row between">
+                <div>
+                    <h1>__TITLE__</h1>
+                    <p>__DESC__</p>
+                </div>
+                <button class="ghost" data-ui-theme-toggle title="Hell/Dunkel umschalten">🌓</button>
+            </div>
+        </header>
+
+        <nav class="tabs">
+__TABS_NAV__
+        </nav>
+
+__TABS_PANELS__
+
+        <footer>
+            <span id="status-dot" class="dot"></span>
+            <span id="status-text">verbinde …</span>
+        </footer>
+    </div>
+    <script src="/static/app.js" defer></script>
+</body>
+</html>

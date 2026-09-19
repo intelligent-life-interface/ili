@@ -587,6 +587,24 @@
            100%/zoom aufblasen (ttyd misst mehr Pixel -> mehr Spalten/Zeilen),
            dann per scale(zoom) wieder optisch passend -> Schrift wirkt kleiner.
            --term-zoom wird per JS auf .chat-panel gesetzt (Default 1). */
+        /* Tab strip above the terminal: four Claude sessions and one plain shell. */
+        .pt-tabs {
+            display: flex;
+            gap: .3rem;
+            padding: .3rem .4rem 0;
+            flex-wrap: wrap;
+        }
+        .pt-tab {
+            padding: .25rem .6rem;
+            font-size: .8rem;
+            opacity: .65;
+        }
+        .pt-tab--active {
+            opacity: 1;
+            border-color: #4299e1;
+            box-shadow: inset 0 -2px 0 #4299e1;
+        }
+
         .terminal-frame-wrap {
             flex: 1;
             min-height: 0;
@@ -1072,6 +1090,14 @@
             background: #1a3050;
             border-color: var(--accent, #4a90d9);
             color: var(--accent-soft, #90cdf4);
+        }
+        .rollup-filter-select {
+            font-size: 0.7rem;
+            padding: 0.1rem 0.3rem;
+            border-radius: 10px;
+            border: 1px solid var(--t-raised, #2d3748);
+            background: var(--t-surface, #1a202c);
+            color: var(--t-muted, #718096);
         }
         .rollup-body {
             flex: 1;

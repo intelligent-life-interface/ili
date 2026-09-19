@@ -17,6 +17,17 @@ Endpoint:
       KEIN Dateizugriff). Tool-Sperre bleibt identisch zu /chat.
   GET  /health
     response: {"ok": true, "claude_version": "..."}
+  POST /docker/probe
+    body: {"env"?: {"DOCKER_HOST"|"DOCKER_TLS_VERIFY"|"DOCKER_CERT_PATH": str}}
+    response: {"ok", "docker_host", "engine", "projects_host_dir", "error"}
+    → `docker version` from THIS container (settings page → api → here).
+  GET  /mcp/docker/status
+    response: {"script_present": bool, "configured": bool}
+  POST /mcp/docker/setup / /mcp/docker/remove
+    body: ignored — server name/scope/command are hardcoded, see _mcp_docker_setup()
+    response: {"ok": bool, "already"?: bool, "error"?: str}
+    → `claude mcp add|remove --scope user` for the fixed `ili-docker` server
+      (Settings → Docker → MCP switch; deploy/terminal/ili-mcp-docker.py).
 
 Authentifizierung: keine (nur an localhost binden!). Wird per systemd-user als User
 als derselbe Benutzer gestartet, damit `claude` die OAuth-Session aus ~/.claude/ findet.
@@ -401,6 +412,66 @@ def _docker_probe(overrides: dict) -> dict:
     return out
 
 
+# ── MCP server for container control (Settings → Docker → MCP switch) ──────────
+# Wraps `claude mcp add/remove --scope user` for exactly ONE fixed server: name,
+# scope and command are hardcoded here, never taken from the request body — a
+# mutating endpoint that accepted arbitrary MCP server definitions would let
+# anyone who can reach this bridge register a command that runs the next time
+# `claude` starts in this terminal (RCE). See deploy/terminal/ili-mcp-docker.py.
+MCP_DOCKER_SCRIPT = "/usr/local/bin/ili-mcp-docker"
+MCP_DOCKER_NAME = "ili-docker"
+
+
+def _mcp_docker_configured() -> bool:
+    try:
+        rv = subprocess.run([CLAUDE_BIN, "mcp", "get", MCP_DOCKER_NAME],
+                            capture_output=True, text=True, timeout=10)
+        return rv.returncode == 0
+    except Exception as e:
+        log.warning("[mcp-docker] status check failed: %s", e)
+        return False
+
+
+def _mcp_docker_status() -> dict:
+    script_present = os.path.exists(MCP_DOCKER_SCRIPT)
+    return {"script_present": script_present,
+            "configured": _mcp_docker_configured() if script_present else False}
+
+
+def _mcp_docker_setup() -> dict:
+    """Idempotent: already registered → {"ok": True, "already": True}."""
+    if not os.path.exists(MCP_DOCKER_SCRIPT):
+        return {"ok": False, "error": "ili-mcp-docker script missing — terminal image is "
+                "outdated, rebuild it"}
+    if _mcp_docker_configured():
+        return {"ok": True, "already": True}
+    try:
+        rv = subprocess.run(
+            [CLAUDE_BIN, "mcp", "add", "--scope", "user", MCP_DOCKER_NAME,
+             "--", "python3", MCP_DOCKER_SCRIPT],
+            capture_output=True, text=True, timeout=15)
+    except Exception as e:
+        log.error("[mcp-docker] setup failed: %s", e)
+        return {"ok": False, "error": str(e)}
+    if rv.returncode != 0:
+        err = (rv.stderr or rv.stdout or "").strip().splitlines()
+        return {"ok": False, "error": err[-1] if err else f"claude mcp add exit {rv.returncode}"}
+    log.info("[mcp-docker] registered %s (scope=user)", MCP_DOCKER_NAME)
+    return {"ok": True, "already": False}
+
+
+def _mcp_docker_remove() -> dict:
+    """Must always succeed from the caller's point of view — this is the only way
+    to switch container control back off, so it cannot be gated on reachability."""
+    try:
+        rv = subprocess.run([CLAUDE_BIN, "mcp", "remove", "--scope", "user", MCP_DOCKER_NAME],
+                            capture_output=True, text=True, timeout=15)
+        log.info("[mcp-docker] removed %s (rc=%s)", MCP_DOCKER_NAME, rv.returncode)
+    except Exception as e:
+        log.warning("[mcp-docker] remove: %s (treated as already gone)", e)
+    return {"ok": True}
+
+
 # POST /docker/probe  {"env": {DOCKER_HOST…}} → `docker version` from this container
 # (settings page → api → here; see _docker_probe).
 
@@ -448,10 +519,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except Exception:
                 pass
             return self._json(200, {"ok": True, "claude_version": v, "bin": CLAUDE_BIN})
+        if self.path == "/mcp/docker/status":
+            return self._json(200, _mcp_docker_status())
         return self._json(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path not in ("/chat", "/vision", "/stream", "/docker/probe"):
+        if self.path not in ("/chat", "/vision", "/stream", "/docker/probe",
+                              "/mcp/docker/setup", "/mcp/docker/remove"):
             return self._json(404, {"error": "not found"})
         if not self._check_auth():
             return
@@ -468,7 +542,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path == "/docker/probe":
             return self._json(200, _docker_probe(payload.get("env") or {}))
 
-        model = payload.get("model", "claude-sonnet-4-6")
+        # ── /mcp/docker/setup, /mcp/docker/remove: fixed server, no body params ──
+        if self.path == "/mcp/docker/setup":
+            return self._json(200, _mcp_docker_setup())
+        if self.path == "/mcp/docker/remove":
+            return self._json(200, _mcp_docker_remove())
+
+        # `.get(key, default)` returns the stored value even when it is "" — the
+        # default only applies to a MISSING key. An empty model reaches the CLI as
+        # `--model ""` and dies with unrecognized_model, so treat blank as absent.
+        model = (payload.get("model") or "").strip() or "claude-sonnet-4-6"
         system = payload.get("system", "") or ""
         # Optional: caller runs inside a systemd loop (loop-run.sh exports LOOP_RUN_ID)
         # and wants this call's tokens attached to that run. Absent for browser/bot clients.

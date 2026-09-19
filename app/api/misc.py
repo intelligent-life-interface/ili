@@ -44,12 +44,26 @@ def bot_answer(body: dict | None = None):
     return res
 
 
-@router.post("/projterm-heal")
-def projterm_heal(board: str = Query(default="")):
-    """Projekt-Terminal heilen (vom „↻ Neu laden"-Knopf): Mosaik-Clients lösen +
-    tote claude-Session via `claude --continue` fortsetzen. board = Board-Slug."""
+@router.get("/api/selftest")
+def selftest():
+    """Läuft diese Installation? Prüft, ob jeder Teil antwortet (api, web, Terminal,
+    Claude, Automat, PostgreSQL, Docker, Ports, Boards). Container-Zustände sieht die
+    api bewusst nicht — sie hat keinen Zugriff auf die Container-Engine."""
     try:
-        return bot_status_service.heal_session(board)
+        from app.services import selftest_service
+        return selftest_service.run()
+    except Exception as e:
+        log.error("selftest fehlgeschlagen: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Interner Serverfehler")
+
+
+@router.post("/projterm-heal")
+def projterm_heal(board: str = Query(default=""), instance: int = Query(default=1)):
+    """Projekt-Terminal heilen (vom „↻ Neu laden"-Knopf): Mosaik-Clients lösen +
+    tote claude-Session via `claude --continue` fortsetzen. board = Board-Slug,
+    instance = 1-4 (Claude) oder 5 (reine Shell)."""
+    try:
+        return bot_status_service.heal_session(board, instance)
     except Exception as e:
         log.error("projterm-heal fehlgeschlagen (board=%s): %s", board, e, exc_info=True)
         raise HTTPException(status_code=500, detail="Interner Serverfehler")

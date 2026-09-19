@@ -22,6 +22,7 @@ from project_creator import (_create_project_folder, _correct_project_name,
                              _vision_tags, _vision_title, generate_idea_cards)
 
 from app.services import claude_client
+from app.services import project_ports_service
 from app.storage.board_repository import BoardRepository, default_board_data
 from app.storage.manifest_repository import ManifestRepository
 
@@ -193,7 +194,20 @@ def create_board(data: dict) -> dict:
 
     _manifest.update(lambda m: m["boards"].append(entry) or None)
     log.info("Board '%s' angelegt, tags=%s", board_id, tags)
-    return {"status": "ok", "id": board_id, "name": name, "tags": tags}
+
+    # Assign a reserved port for this board (idempotent, stable across restarts).
+    port_result = project_ports_service.assign(board_id)
+    port_info = {}
+    if port_result["ok"]:
+        port_info = {"port": port_result["port"], "port_created": port_result["created"]}
+        log.info("Board '%s' assigned port %d", board_id, port_result["port"])
+    else:
+        log.warning("Board '%s' port assignment failed: %s", board_id, port_result.get("reason"))
+        port_info = {"port": None, "port_error": port_result.get("reason")}
+
+    result = {"status": "ok", "id": board_id, "name": name, "tags": tags}
+    result.update(port_info)
+    return result
 
 
 def create_board_immediate(data: dict) -> tuple[dict, dict | None]:
@@ -335,9 +349,20 @@ def create_board_immediate(data: dict) -> tuple[dict, dict | None]:
         log.warning("create_board_immediate: Vorab-Ordner/Session fehlgeschlagen (ignoriert)",
                     exc_info=True)
 
+    # Assign a reserved port for this board (idempotent, stable across restarts).
+    port_result = project_ports_service.assign(board_id)
+    if port_result["ok"]:
+        log.info("Board '%s' assigned port %d", board_id, port_result["port"])
+    else:
+        log.warning("Board '%s' port assignment failed: %s", board_id, port_result.get("reason"))
+
     log.info("Board %r sofort angelegt (analyzing, %d foto(s)) — KI läuft im Hintergrund",
              board_id, len(photo_urls))
     response = {"status": "ok", "id": board_id, "name": temp_title, "analyzing": True}
+    if port_result["ok"]:
+        response["port"] = port_result["port"]
+    else:
+        response["port_error"] = port_result.get("reason")
     # Für Vision/Ordner reicht das erste Foto (repräsentativ); die weiteren sind bereits
     # gespeichert und als Karten sichtbar. Hält die KI-Kosten pro Erstellung beschränkt.
     bg_args = {
@@ -348,21 +373,40 @@ def create_board_immediate(data: dict) -> tuple[dict, dict | None]:
     return response, bg_args
 
 
-def _ki_failure_card(bridge_ok: bool) -> dict:
-    """Red marker card for the backlog when the KI preparation produced nothing."""
+def _ki_failure_card(bridge_ok: bool, errors: list | None = None) -> dict:
+    """Red marker card for the backlog when the KI preparation produced nothing.
+
+    `errors` carries the real messages of the failed steps. They come first: the
+    guessed cause ("is Claude logged in?") was wrong in the one case this card was
+    actually needed, and the true reason was already in the log.
+    """
     if bridge_ok:
         reason = (f"Die Claude-Bridge ({CLAUDE_BRIDGE_URL}) war erreichbar, hat aber weder Tags "
-                  "noch Ideen-Karten geliefert. Ist Claude im Terminal-Container eingeloggt "
-                  "(CLAUDE_CODE_OAUTH_TOKEN oder ANTHROPIC_API_KEY)? Log: `docker logs ili-terminal`.")
+                  "noch Ideen-Karten geliefert.")
+        hint = ("Mögliche Ursachen: eine leere oder unbekannte Modell-ID in den KI-Einstellungen, "
+                "oder Claude ist im Terminal-Container nicht eingeloggt "
+                "(CLAUDE_CODE_OAUTH_TOKEN oder ANTHROPIC_API_KEY).")
     else:
         reason = (f"Die Claude-Bridge ({CLAUDE_BRIDGE_URL}) ist nicht erreichbar. Läuft der "
-                  "Terminal-Container (docker-compose.terminal.yml)? Log: `docker logs ili-terminal`.")
+                  "Terminal-Container (docker-compose.terminal.yml)?")
+        hint = ""
+    detail = ""
+    if errors:
+        detail = "\n\nFehlermeldungen:\n" + "\n".join(f"- {e}" for e in errors[:4])
+    text = (reason + (f" {hint}" if hint else "") + detail
+            + "\n\nLog: `docker logs ili-terminal`. Danach das Projekt neu anlegen "
+              "oder diese Karte löschen.")
     return {
         "id":       f"kifail_{uuid.uuid4().hex[:10]}",
         "title":    "⚠️ KI-Vorbereitung fehlgeschlagen",
-        "desc":     reason + " Danach das Projekt neu anlegen oder diese Karte löschen.",
+        "desc":     text,
+        "description": text,
         "label":    "#e5534b",
         "priority": "hoch",
+        # Not a task: on an auto board the automation pulls backlog cards, and this
+        # one describes a defect of the installation, not work to be carried out.
+        "owner":    "mensch",
+        "no_auto":  True,
     }
 
 
@@ -400,11 +444,16 @@ def finalize_board_background(board_id: str, raw_name: str, description: str, no
             name = raw_name or f"Projekt {datetime.now().strftime('%d.%m.%Y %H:%M')}"
 
         # 2. Tags (Text + ggf. Foto-Vision), Duplikate raus.
+        # ki_errors keeps the real reason of every failed step. Without it the
+        # failure card can only guess, and it guessed wrong once already (it blamed
+        # the login while the actual cause was an empty model id, 19.09.2026).
+        ki_errors: list = []
         tags: list = []
         try:
             tags = list(_text_tags(name, description or note, parent_context=parent_context) or [])
         except Exception as e:
             log.warning("[BG] Text-Tags übersprungen (%r): %s", board_id, e)
+            ki_errors.append(f"Tags: {e}")
         if photo_bytes:
             try:
                 for t in (_vision_tags(photo_bytes, note) or []):
@@ -430,14 +479,15 @@ def finalize_board_background(board_id: str, raw_name: str, description: str, no
                                         parent_context=parent_context) or []
         except Exception as e:
             log.warning("[BG] Ideen-Brainstorm übersprungen (%r): %s", board_id, e)
+            ki_errors.append(f"Ideen: {e}")
 
         # 5. Board aktualisieren: Titel, Ideen → Backlog, Inspiration/Notiz auf "analysiert".
         #    Bei mehreren Foto-Karten kommt die Notiz nur auf die ERSTE.
         note_placed = [False]
         ki_failed = (not bridge_ok) or (not tags and not ideas)
         if ki_failed:
-            log.error("[BG] KI preparation failed for %r (bridge_ok=%s, tags=%d, ideas=%d)",
-                      board_id, bridge_ok, len(tags), len(ideas))
+            log.error("[BG] KI preparation failed for %r (bridge_ok=%s, tags=%d, ideas=%d): %s",
+                      board_id, bridge_ok, len(tags), len(ideas), "; ".join(ki_errors) or "kein Fehlertext")
         def update_board(bd):
             bd["title"] = name
             cols = bd.get("columns", [])
@@ -446,7 +496,7 @@ def finalize_board_background(board_id: str, raw_name: str, description: str, no
                 if ideas:
                     backlog["cards"].extend(ideas)
                 if ki_failed:
-                    backlog["cards"].insert(0, _ki_failure_card(bridge_ok))
+                    backlog["cards"].insert(0, _ki_failure_card(bridge_ok, ki_errors))
             tag_line = f"🏷️ Tags: {', '.join(tags)}" if tags else "✓ Analysiert"
             for col in cols:
                 for card in col.get("cards", []):

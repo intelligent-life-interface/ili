@@ -35,7 +35,12 @@ def _load_ai_config() -> dict:
     """
     try:
         data = json.loads(AI_CONFIG_FILE.read_text())
-        return {**_AI_CONFIG_DEFAULTS, **data}
+        # An empty value must NOT beat the default: dict-merge only falls back on a
+        # MISSING key, so a stored "" would travel all the way into
+        # `claude -p --model ""`, which the CLI rejects with unrecognized_model and
+        # which then looks like "Claude is not logged in". Seen in the wild 19.09.2026.
+        return {**_AI_CONFIG_DEFAULTS, **{k: v for k, v in data.items()
+                                          if v not in ("", None, [], {})}}
     except Exception:
         return dict(_AI_CONFIG_DEFAULTS)
 
@@ -60,7 +65,16 @@ def _save_ai_config(data: dict) -> None:
             current = {**_AI_CONFIG_DEFAULTS, **json.loads(AI_CONFIG_FILE.read_text())}
         except Exception:
             current = dict(_AI_CONFIG_DEFAULTS)
-        current.update({k: v for k, v in data.items() if k in _AI_CONFIG_DEFAULTS})
+        # Never persist an empty model id. The settings page posts `sel.value` for
+        # every field; if the model lists did not load, that is "" for all of them,
+        # and one click on Save would wipe every model id at once.
+        clean = {k: v for k, v in data.items() if k in _AI_CONFIG_DEFAULTS}
+        dropped = [k for k, v in clean.items() if k.endswith("_model") and not str(v).strip()]
+        for k in dropped:
+            del clean[k]
+        if dropped:
+            log.warning("AI-Config: leere Modell-ID(s) verworfen, Bestand bleibt: %s", dropped)
+        current.update(clean)
         write_json_atomic(AI_CONFIG_FILE, current)
     log.info(f"AI-Config gespeichert: {current}")
 

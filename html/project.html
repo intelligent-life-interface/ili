@@ -155,6 +155,22 @@
             </div>
         </div>
 
+        <!-- Five terminals per project: 1-4 each run their own Claude Code session,
+             5 is a plain shell for handwork. A tab is only started when it is first
+             opened; tmux keeps it alive in the background afterwards. -->
+        <div class="pt-tabs" role="tablist" aria-label="Terminals dieses Projekts">
+            <button class="btn pt-tab pt-tab--active" data-instance="1" role="tab" aria-selected="true"
+                    onclick="ptSwitchTerminal(1)" title="Claude-Terminal 1 (die bisherige Sitzung dieses Projekts)">🤖 1</button>
+            <button class="btn pt-tab" data-instance="2" role="tab" aria-selected="false"
+                    onclick="ptSwitchTerminal(2)" title="Claude-Terminal 2 — eigene Sitzung, eigener Verlauf">🤖 2</button>
+            <button class="btn pt-tab" data-instance="3" role="tab" aria-selected="false"
+                    onclick="ptSwitchTerminal(3)" title="Claude-Terminal 3 — eigene Sitzung, eigener Verlauf">🤖 3</button>
+            <button class="btn pt-tab" data-instance="4" role="tab" aria-selected="false"
+                    onclick="ptSwitchTerminal(4)" title="Claude-Terminal 4 — eigene Sitzung, eigener Verlauf">🤖 4</button>
+            <button class="btn pt-tab" data-instance="5" role="tab" aria-selected="false"
+                    onclick="ptSwitchTerminal(5)" title="Normales Terminal ohne Claude — Shell im Projektordner">🐚 Shell</button>
+        </div>
+
         <div class="terminal-frame-wrap">
             <div id="pt-header-handle" title="Header ein-/ausklappen (tippen oder wischen)"></div>
             <iframe id="proj-terminal" class="terminal-frame" title="Projekt-Terminal"
@@ -467,7 +483,8 @@
 <script src="/js/project-detail.js?v=20260809-escxss"></script>
 <script src="/js/project-github-export.js?v=20260822"></script>
 <script src="/js/project-chat-terminal.js?v=20260809-headercollapse"></script>
-<script src="/js/project-subprojects.js?v=20260809-escxss"></script>
+<script src="/js/card-freshness.js?v=20260918-karteileichen"></script>
+<script src="/js/project-subprojects.js?v=20260918-karteileichen"></script>
 <script src="/js/project-head.js?v=20260728-subprojheight"></script>
 <script src="/js/project-terminal-fit.js?v=20260822-ptterm-export"></script>
 <!-- Schwebendes Prioritäten-Widget: Karten dieses Projekts, selbständig nach Priorität geordnet -->

@@ -17,6 +17,7 @@ CLAUDE.md-Sync:
 - Injektion: ~/Projekte/<id>/CLAUDE.md → Karte id="claudemd-description" (erste Backlog-Karte)
 - Rücksync: Beschreibungskarte → CLAUDE.md (nur wenn Projektordner existiert)
 """
+import copy
 import json
 import logging
 import os
@@ -81,6 +82,55 @@ def _stamp_created_at(data: dict, previous_ids: set, board_id: str) -> None:
                 stamped += 1
     if stamped:
         log.info("Board '%s': %d neue Karte(n) mit created_at gestempelt", board_id, stamped)
+
+
+def _card_snapshot(data: dict) -> dict:
+    """Momentaufnahme aller Karten (Inhalt ohne 'updated_at' + Spalte) für den Diff beim
+    nächsten Save — Basis für _stamp_updated_at.
+
+    deepcopy statt eines flachen dict(card): update()'s mutator bekommt dasselbe
+    `data`-Objekt, von dem hier vorher der Snapshot gezogen wird. Ein flacher Copy
+    teilt sich verschachtelte Werte (z.B. eine Kommentar-Liste) mit dem Original —
+    ein `card["comments"].append(...)` im Mutator hätte dann auch den Snapshot
+    verändert, und der Diff hätte die Änderung nie gesehen (keine Stempelung).
+    """
+    snapshot = {}
+    for col in data.get("columns", []):
+        col_id = col.get("id")
+        for card in col.get("cards", []):
+            cid = card.get("id")
+            if not cid:
+                continue
+            without_ts = copy.deepcopy({k: v for k, v in card.items() if k != "updated_at"})
+            snapshot[cid] = (without_ts, col_id)
+    return snapshot
+
+
+def _stamp_updated_at(data: dict, previous_snapshot: dict, board_id: str) -> None:
+    """Karten, deren Inhalt sich geändert hat oder die die Spalte gewechselt haben,
+    bekommen `updated_at` (jetzt) — Basis für den Karteileichen-Filter im Frontend.
+
+    Bewusst NICHT pauschal alle Karten stempeln (gleicher Grund wie _stamp_created_at):
+    ein Save, das nur eine einzelne Karte ändert, darf nicht die Zeitstempel aller
+    anderen, unveränderten Karten überschreiben — sonst zeigt der Filter nie Leichen.
+    Karten ohne previous-Eintrag (neu oder Board erstmals gespeichert) gelten als
+    berührt und bekommen ebenfalls updated_at.
+    """
+    now = datetime.now().isoformat(timespec="seconds")
+    stamped = 0
+    for col in data.get("columns", []):
+        col_id = col.get("id")
+        for card in col.get("cards", []):
+            cid = card.get("id")
+            if not cid:
+                continue
+            prev = previous_snapshot.get(cid)
+            current = {k: v for k, v in card.items() if k != "updated_at"}
+            if prev is None or current != prev[0] or col_id != prev[1]:
+                card["updated_at"] = now
+                stamped += 1
+    if stamped:
+        log.info("Board '%s': %d Karte(n) mit updated_at gestempelt", board_id, stamped)
 
 
 class StaleRevisionError(Exception):
@@ -187,9 +237,11 @@ class BoardRepository:
         with file_lock(self.lock_file, self.lock_timeout):
             stored = self._load_unlocked(board_id)
             previous_ids = _card_ids(stored) if stored else set()
+            previous_snapshot = _card_snapshot(stored) if stored else {}
             data["rev"] = (stored or {}).get("rev", 0) + 1
             _ensure_card_ids(data, board_id)
             _stamp_created_at(data, previous_ids, board_id)
+            _stamp_updated_at(data, previous_snapshot, board_id)
             self._save_unlocked(board_id, data)
         if sync_claude_md:
             self.sync_claude_md_from_board(data, board_id)
@@ -207,6 +259,7 @@ class BoardRepository:
         with file_lock(self.lock_file, self.lock_timeout):
             stored = self._load_unlocked(board_id)
             previous_ids = _card_ids(stored) if stored else set()
+            previous_snapshot = _card_snapshot(stored) if stored else {}
             server_rev = (stored or {}).get("rev", 0)
             client_rev = data.get("rev")
             if stored is not None and client_rev is not None and int(client_rev) != server_rev:
@@ -218,6 +271,7 @@ class BoardRepository:
             data["rev"] = server_rev + 1
             _ensure_card_ids(data, board_id)
             _stamp_created_at(data, previous_ids, board_id)
+            _stamp_updated_at(data, previous_snapshot, board_id)
             self._save_unlocked(board_id, data)
         if sync_claude_md:
             self.sync_claude_md_from_board(data, board_id)
@@ -238,6 +292,7 @@ class BoardRepository:
             data.setdefault("rev", 1)
             _ensure_card_ids(data, board_id)
             _stamp_created_at(data, set(), board_id)
+            _stamp_updated_at(data, {}, board_id)
             self._save_unlocked(board_id, data)
             log.info("Board '%s' neu angelegt (%s)", board_id, self.board_path(board_id))
         if sync_claude_md:
@@ -262,12 +317,14 @@ class BoardRepository:
                     raise FileNotFoundError(f"Board '{board_id}' nicht gefunden")
                 data = default_board_data()
             previous_ids = _card_ids(data)
+            previous_snapshot = _card_snapshot(data)
             result = mutator(data)
             if result is not None:
                 data = result
             data["rev"] = data.get("rev", 0) + 1  # F4: jede Änderung zählt hoch
             _ensure_card_ids(data, board_id)
             _stamp_created_at(data, previous_ids, board_id)
+            _stamp_updated_at(data, previous_snapshot, board_id)
             self._save_unlocked(board_id, data)
         if sync_claude_md:
             self.sync_claude_md_from_board(data, board_id)
@@ -312,6 +369,9 @@ class BoardRepository:
             not_found = list(wanted - set(moved))
 
             if collected:
+                now = datetime.now().isoformat(timespec="seconds")
+                for card in collected:
+                    card["updated_at"] = now
                 tgt_cols = tgt.get("columns", [])
                 target_col = next((c for c in tgt_cols if c.get("id") == target_column_id),
                                    tgt_cols[0] if tgt_cols else None)

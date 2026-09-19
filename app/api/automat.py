@@ -28,6 +28,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 
 from app.services import automat_limits_service
 from app.services.ttl_cache import TTLCache
@@ -219,7 +220,62 @@ def _compute_decisions() -> dict:
                     "options_generic": parsed["options_generic"],
                 })
     out.sort(key=lambda d: d["board_name"].lower())
+
+    # Second source: questions that were never a card. Until 19.09.2026 this view
+    # showed decision cards only, so a question an AI session asked while working
+    # was invisible — the user looked for it here and it was not there.
+    try:
+        from app.services import open_questions_service
+        for q in open_questions_service.open_questions():
+            out.append({
+                "board": q.get("project") or "",
+                "board_name": q.get("project") or "Ohne Projekt",
+                "category": "",
+                "card_id": q["id"],
+                "title": q["question"],
+                "description": q["question"],
+                "column": "Frage",
+                "question": q["question"],
+                "options": q.get("options") or [],
+                "options_generic": not q.get("options"),
+                "source": q.get("origin") or "frage",
+            })
+    except Exception as e:  # a broken second source must not empty the first one
+        log.warning("Offene Fragen ausserhalb der Boards nicht lesbar: %s", e)
+
     return {"count": len(out), "decisions": out}
+
+
+@router.post("/api/questions")
+def post_question(body: dict):
+    """Ask a question that has no card. It shows up under "Offene Fragen".
+
+    This is the way in for everything that is not a board: a terminal session, a
+    script, the automation. Body: {question, project?, origin?, options?}.
+    """
+    from app.services import open_questions_service
+    text = str((body or {}).get("question") or "").strip()
+    if not text:
+        return JSONResponse(status_code=400, content={"error": "question fehlt"})
+    entry = open_questions_service.ask(
+        text,
+        project=str((body or {}).get("project") or ""),
+        origin=str((body or {}).get("origin") or "api"),
+        options=(body or {}).get("options") or [],
+    )
+    invalidate_decisions_cache()
+    return entry
+
+
+@router.post("/api/questions/{question_id}/answer")
+def answer_question(question_id: str, body: dict):
+    """Answer a question that came from /api/questions."""
+    from app.services import open_questions_service
+    text = str((body or {}).get("answer") or "").strip()
+    if not open_questions_service.answer(question_id, text):
+        return JSONResponse(status_code=404, content={"error": "unbekannte Frage"})
+    invalidate_decisions_cache()
+    return {"ok": True, "id": question_id}
 
 
 @router.get("/api/automat/decisions")

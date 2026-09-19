@@ -21,6 +21,7 @@ from pydantic import ValidationError
 from constants import AUTOMAT_MODELS, AUTOMAT_PRIORITIES, CATEGORIES
 
 from app.schemas.board import Board
+from app.services import project_ports_service
 from app.storage.board_repository import BoardRepository, default_board_data
 from app.storage.manifest_repository import ManifestRepository
 
@@ -267,7 +268,7 @@ def _purge_project_folder(board_id: str):
 
 
 def delete_board(board_id: str, purge: bool = False) -> dict:
-    """Board-Datei löschen + Manifest-Eintrag entfernen.
+    """Board-Datei löschen + Manifest-Eintrag entfernen + reservierten Port freigeben.
 
     Args:
         purge: True → zusätzlich den Projektordner ~/Projekte/<id> löschen (Dateien/Fotos).
@@ -275,6 +276,11 @@ def delete_board(board_id: str, purge: bool = False) -> dict:
     Raises:
         ValueError: ungültige ID.
     """
+    # Release the reserved port (idempotent: does nothing if board has no port).
+    port_release = project_ports_service.release(board_id)
+    if port_release["released"]:
+        log.info("Board '%s' port %d freigegeben", board_id, port_release["port"])
+
     if not _boards.delete(board_id):
         log.warning("Board-Datei nicht gefunden, nur Manifest-Eintrag entfernen: %s",
                     _boards.board_path(board_id))
@@ -292,7 +298,7 @@ def delete_board(board_id: str, purge: bool = False) -> dict:
              board_id, counts["before"], counts["after"])
 
     purged = _purge_project_folder(board_id) if purge else None
-    return {"status": "ok", "deleted": board_id, "purged": purged}
+    return {"status": "ok", "deleted": board_id, "purged": purged, "port_released": port_release["released"]}
 
 
 def board_rollup(root_id: str) -> dict:

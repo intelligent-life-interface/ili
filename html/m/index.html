@@ -86,7 +86,17 @@
 
     <!-- Modus: Projekt-Terminal (Claude Code) -->
     <div id="board-term" class="hidden">
-      <div class="term-wrap"><iframe id="m-term" class="term-frame" title="Projekt-Terminal"></iframe></div>
+      <!-- Same five terminals as on the desktop: 1-4 with Claude, 5 a plain shell.
+           allow= is what lets the copy bridge below reach the phone's clipboard. -->
+      <div id="m-term-tabs" class="term-tabs" role="tablist" aria-label="Terminals">
+        <button class="term-tab term-tab--active" data-instance="1" role="tab" aria-selected="true">🤖 1</button>
+        <button class="term-tab" data-instance="2" role="tab" aria-selected="false">🤖 2</button>
+        <button class="term-tab" data-instance="3" role="tab" aria-selected="false">🤖 3</button>
+        <button class="term-tab" data-instance="4" role="tab" aria-selected="false">🤖 4</button>
+        <button class="term-tab" data-instance="5" role="tab" aria-selected="false">🐚 Shell</button>
+      </div>
+      <div class="term-wrap"><iframe id="m-term" class="term-frame" title="Projekt-Terminal"
+                                     allow="clipboard-read; clipboard-write"></iframe></div>
 
       <!-- Eingabe-Zeile (2026-07-18): normales Textfeld mit NATIVER iPhone-Tastatur
            (Autokorrektur/Diktat/Einfügen). Enter oder „Senden" schickt den Text über
@@ -101,6 +111,7 @@
         <label id="m-input-nl" title="Enter hängt einen Zeilenumbruch an (Befehl ausführen / Nachricht senden)">
           <input type="checkbox" id="m-input-cr" checked>⤶
         </label>
+        <button id="m-input-paste" title="Aus der Zwischenablage ins Eingabefeld einfügen">📋</button>
         <button id="m-input-send" title="Text ins Terminal senden">→</button>
       </div>
 

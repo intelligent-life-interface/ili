@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>⚙️ KI-Einstellungen</title>
+<title>⚙️ Settings</title>
 <script src="/js/esc.js?v=20260809-xss"></script>
 <script src="/i18n/de.js" defer></script>
 <script src="/ui-kit/v1/i18n.js" defer></script>
@@ -153,12 +153,16 @@
   .docker-howto { white-space: pre-wrap; }
   .docker-howto-head { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
   .docker-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .docker-sub-head { font-size: 0.95rem; margin: 14px 0 2px; }
+  .ports-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .ports-table th, .ports-table td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line, #2d3748); }
+  .ports-table td:nth-child(2) { font-family: monospace; }
   .docker-wrap label small { display: block; color: var(--muted); font-weight: normal; }
   .docker-wrap [hidden] { display: none !important; }  /* label{display:flex} would beat the UA hidden rule */
 </style>
 <script src="/theme.js?v=20260716b" defer></script>
 <script src="/js/darstellung.js?v=20260716c" defer></script>
-<script src="/js/docker-settings.js?v=20260907" defer></script>
+<script src="/js/docker-settings.js?v=20260918" defer></script>
 </head>
 <body data-ui-autoinit="off">
 
@@ -173,7 +177,22 @@
 </nav>
 
 <div class="content">
-  <h1>KI-Einstellungen</h1>
+  <h1 data-i18n="settings.title">Settings</h1>
+
+<!-- Does this installation work? One button, the same checks the AI runs with
+     `ili-selftest` in the terminal (GET /api/selftest). -->
+<div class="card selftest-card">
+  <h2 data-i18n="selftest.title">🩺 Selbsttest</h2>
+  <p class="docker-sub" data-i18n="selftest.sub">Prüft, ob jeder Teil dieser Installation antwortet — API, Oberfläche, Projekte, Terminal, Claude, Automat, Datenbank, Docker und die Projekt-Ports.</p>
+  <div class="docker-actions">
+    <button class="btn" id="selftest-run" data-i18n="selftest.btn.run">▶ Selbsttest starten</button>
+    <span id="selftest-summary" class="docker-meta"></span>
+  </div>
+  <table class="ports-table" id="selftest-table" hidden>
+    <tbody id="selftest-tbody"></tbody>
+  </table>
+  <p class="docker-note" id="selftest-note"></p>
+</div>
   <p class="subtitle">Modell und Effort pro Funktion — Änderungen wirken sofort ohne Neustart</p>
 
   <div id="status-bar" class="status-bar">Lade…</div>
@@ -200,22 +219,14 @@
     </table>
   </div>
 
-  <!-- Claude-Limit-Watcher: 5h-/7d-Plan-Auslastung (InfluxDB claude_limits, alle 15min) —
-       einziges Budget-Panel (2026-08-14 zusammengeführt): zeigt die ECHTEN Anthropic-Werte
-       statt der früheren lokalen Token-Schätzung; Bedienelemente (Wochenbudget etc.) stammen
-       aus der alten "💰 Claude-Budget"-Sektion und steuern weiterhin budget_service/check_allowance. -->
-  <div class="section-title">🚦 Claude-Limit (5h / 7 Tage)</div>
-  <div class="limits-wrap">
+  <!-- Budget: weekly token allowance and the gate that throttles the automation
+       (budget_service/check_allowance). The 5h/7d plan usage bars that used to sit
+       here were dropped in 0.1.21 — they read an InfluxDB measurement that only
+       exists on the author's stack, so /api/claude-limits answered 404 in every
+       installation and the section stayed empty. -->
+  <div class="section-title" id="lim-section-title">💰 Claude-Budget</div>
+  <div class="limits-wrap" id="lim-section">
     <div class="limits-bars">
-      <div class="budget-bar-row">
-        <span class="budget-bar-label">5h-Fenster <span id="lim-5h-pct">–</span></span>
-        <div class="budget-bar"><div class="budget-bar-fill" id="lim-5h-fill"></div></div>
-      </div>
-      <div class="budget-bar-row">
-        <span class="budget-bar-label">7-Tage <span id="lim-7d-pct">–</span></span>
-        <div class="budget-bar"><div class="budget-bar-fill" id="lim-7d-fill"></div><div class="budget-bar-target" id="lim-7d-target" title="Soll (linear über die Kalenderwoche, Näherung — Anthropics rollierendes 7-Tage-Fenster ist nicht exakt Mo–So)"></div></div>
-      </div>
-      <div class="limits-meta" id="lim-meta">Lade Claude-Limit-Status…</div>
       <div class="limits-meta" id="bud-gate-meta">Lade Budget-Status…</div>
     </div>
     <div class="budget-fields">
@@ -239,10 +250,6 @@
       <label class="budget-check">
         <input type="checkbox" id="bud-enforce"> Budget durchsetzen (sonst nur Anzeige)
       </label>
-    </div>
-    <div class="limits-term-wrap">
-      <button class="limits-copy-btn" onclick="copyClaudeLimits()">📋 Kopieren</button>
-      <div class="limits-term" id="lim-term">–</div>
     </div>
   </div>
 
@@ -279,6 +286,39 @@
       <button class="btn btn-save" id="docker-btn-save" data-i18n="docker.btn.save">💾 Docker-Einstellungen speichern</button>
     </div>
     <p class="docker-note" data-i18n="docker.guide.note">Die KI bekommt die passende Anleitung automatisch (/projects/CLAUDE.md), sobald Docker erreichbar ist.</p>
+
+    <!-- MCP server for container control: registers deploy/terminal/ili-mcp-docker.py
+         in the terminal via `claude mcp add --scope user` (claude_cli_bridge.py
+         /mcp/docker/*). Separate from docker-cli, which the AI already has — this
+         gives it structured tools instead of shelling out. -->
+    <h3 class="docker-sub-head" data-i18n="docker.mcp.title">🔌 MCP-Server für Container-Steuerung</h3>
+    <p class="docker-sub" data-i18n="docker.mcp.subtitle">Registriert einen MCP-Server im Terminal, mit dem die KI Container zusätzlich zur docker-CLI über strukturierte Werkzeuge auflisten, inspizieren, starten, stoppen und löschen kann.</p>
+    <div class="docker-warn" data-i18n="docker.mcp.warn">⚠️ Die KI kann damit Container starten, stoppen und löschen. Im Socket-Weg ist das faktisch Root auf dem Host.</div>
+    <div class="docker-status"><span class="docker-dot" id="docker-mcp-dot"></span><span id="docker-mcp-status-text" data-i18n="docker.mcp.status.loading">Prüfe MCP-Status…</span></div>
+    <div class="docker-actions">
+      <button class="btn" id="docker-mcp-btn-setup" data-i18n="docker.mcp.btn.setup">🔌 MCP-Server einrichten</button>
+      <button class="btn btn-reset" id="docker-mcp-btn-remove" data-i18n="docker.mcp.btn.remove">🗑️ MCP-Server entfernen</button>
+      <button class="btn" id="docker-mcp-btn-refresh" data-i18n="docker.mcp.btn.refresh">🔄 Status prüfen</button>
+    </div>
+
+    <!-- Reserved ports: one fixed host port per board. A container can only take a
+         port, not reserve one — so ili keeps the books and the AI is told the number
+         instead of inventing one. -->
+    <h3 class="docker-sub-head" data-i18n="ports.title">🔌 Reservierte Ports für Projekte</h3>
+    <p class="docker-sub" id="ports-range" data-i18n="ports.loading">Lade Portvergabe…</p>
+    <table class="ports-table" id="ports-table" hidden>
+      <thead><tr>
+        <th data-i18n="ports.col.board">Projekt</th>
+        <th data-i18n="ports.col.port">Port</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="ports-tbody"></tbody>
+    </table>
+    <div class="docker-actions">
+      <select id="ports-board"></select>
+      <button class="btn" id="ports-assign" data-i18n="ports.btn.assign">➕ Port vergeben</button>
+    </div>
+    <p class="docker-note" data-i18n="ports.note">Der Bereich ist derselbe, den der Sandbox-Weg auf dem Host reserviert (SANDBOX_PORT_FROM/TO in der .env). Die KI bekommt die Zuordnung in ihrer Anleitung und veröffentlicht genau diesen Port.</p>
   </div>
 
   <div class="actions">
@@ -483,7 +523,6 @@ async function load() {
     renderTable();
     renderBudgetFields();
     refreshBudgetStatus();
-    refreshClaudeLimits();
 
     const claudeStamp = claudeDoc.generated_at ? claudeDoc.generated_at.slice(0,10) : '—';
     document.getElementById('status-bar').innerHTML =
@@ -502,7 +541,12 @@ async function save() {
       payload[fn.key] = [...chips].map(c => c.dataset.id);
     } else {
       const sel = document.getElementById('sel-' + fn.key);
-      if (sel) payload[fn.key] = sel.value;
+      // An empty <select> means the model list never loaded. Posting that would
+      // store "" and blank out every model id at once — the backend then runs
+      // `claude --model ""` and every AI step fails (19.09.2026). Skip the field
+      // instead; the stored value stays untouched.
+      if (sel && sel.value) payload[fn.key] = sel.value;
+      else if (sel) console.warn('[ai-settings] ' + fn.key + ' übersprungen — keine Auswahl geladen');
     }
     if (fn.effortKey) {
       const grp = document.getElementById('eff-' + fn.effortKey);
@@ -526,7 +570,6 @@ async function save() {
     renderTable();
     renderBudgetFields();
     refreshBudgetStatus();
-    refreshClaudeLimits();
     toast('Gespeichert ✓');
   } catch(e) {
     toast('Fehler: ' + e.message, true);
@@ -584,16 +627,8 @@ function weekSollPct(now = new Date()) {
   return Math.min(100, msSinceMonday / (7 * 86400000) * 100);
 }
 
-function setSevenDayTarget() {
-  const soll = weekSollPct();
-  const el = document.getElementById('lim-7d-target');
-  el.style.left = `calc(${soll.toFixed(1)}% - 1px)`;
-  el.title = `Soll (linear, Kalenderwoche-Näherung): ${soll.toFixed(0)}% der Woche vergangen`;
-  return soll;
-}
 
-// Nur noch Gate-Status (erlaubt/gedrosselt + Tages-Tranche) — die Ist/Soll-Balken
-// selbst zeigen jetzt die echten Anthropic-Werte aus refreshClaudeLimits().
+// Gate-Status (erlaubt/gedrosselt + Tages-Tranche) aus budget_service.
 async function refreshBudgetStatus() {
   try {
     const r = await fetch('/api/budget');
@@ -612,56 +647,6 @@ async function refreshBudgetStatus() {
 }
 setInterval(refreshBudgetStatus, 60000);
 
-// ── Claude-Limit-Watcher (5h/7d) — echte Anthropic-Werte, einzige Ist-Anzeige ──────
-let lastClaudeLimits = null;
-
-async function refreshClaudeLimits() {
-  try {
-    const r = await fetch('/api/claude-limits');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    lastClaudeLimits = d;
-    const fh = d.five_hour, sd = d.seven_day;
-
-    if (fh) {
-      document.getElementById('lim-5h-pct').textContent = fh.used_pct + '%';
-      setBar('lim-5h-fill', fh.used_pct);
-    }
-    if (sd) {
-      const soll = setSevenDayTarget();
-      const diff = sd.used_pct - soll;
-      const diffLabel = diff > 0.5 ? `⚠️ ${diff.toFixed(0)} Pkt. über Soll`
-                       : diff < -0.5 ? `${Math.abs(diff).toFixed(0)} Pkt. unter Soll`
-                       : 'im Soll';
-      document.getElementById('lim-7d-pct').textContent = `${sd.used_pct}% (Soll ${soll.toFixed(0)}%, ${diffLabel})`;
-      setBar('lim-7d-fill', sd.used_pct);
-    }
-    const stamp = (fh && fh.ts) ? new Date(fh.ts).toLocaleTimeString('de-CH') : '–';
-    document.getElementById('lim-meta').textContent =
-      `Stand ${stamp} · aktualisiert alle 15min via claude-limit-watcher.timer`;
-    document.getElementById('lim-term').textContent = formatClaudeLimitsText(d);
-  } catch (e) {
-    console.error('[claude-limits] Refresh fehlgeschlagen', e);
-    document.getElementById('lim-meta').textContent = 'Claude-Limit-Status nicht verfügbar: ' + e.message;
-  }
-}
-
-function formatClaudeLimitsText(d) {
-  const fh = d.five_hour, sd = d.seven_day;
-  const line = (label, b) => b
-    ? `${label}: ${b.used_pct}% used · Resets ${b.resets_at}`
-    : `${label}: keine Daten`;
-  return [line('5h-Fenster', fh), line('7-Tage', sd)].join('\n');
-}
-
-function copyClaudeLimits() {
-  if (!lastClaudeLimits) return;
-  navigator.clipboard.writeText(formatClaudeLimitsText(lastClaudeLimits))
-    .then(() => toast('Claude-Limit-Daten kopiert ✓'))
-    .catch(e => toast('Kopieren fehlgeschlagen: ' + e.message, true));
-}
-
-setInterval(refreshClaudeLimits, 60000);
 
 function toast(msg, isErr=false) {
   const t = document.getElementById('toast');
@@ -672,5 +657,6 @@ function toast(msg, isErr=false) {
 
 load();
 </script>
+<script src="/js/selftest.js" defer></script>
 </body>
 </html>

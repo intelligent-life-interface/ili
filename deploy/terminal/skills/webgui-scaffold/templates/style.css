@@ -1,0 +1,25 @@
+/* __NAME__ – projekteigene Ergänzungen.
+ *
+ * Basis-Layout, Farben, Karten, Tabs, Buttons, Tabellen und Formulare kommen
+ * aus dem zentralen UI-Kit:  https://ui.intranet.<DOMAIN>/v1/ui-kit.css
+ * Übersicht aller Klassen und Tokens:  https://ui.intranet.<DOMAIN>/
+ *
+ * Hier gehört NUR rein, was dieses Projekt zusätzlich braucht. Wenn etwas
+ * davon in einer zweiten GUI auch gebraucht wird, gehört es ins Kit statt
+ * kopiert zu werden.
+ */
+
+/* Eigene Akzentfarbe? Token überschreiben statt Farben hart zu codieren:
+:root {
+    --accent: #0a7d55;
+    --head-grad: linear-gradient(135deg, #0a7d55 0%, #064c34 100%);
+}
+*/
+
+/* Beispiel für projektspezifische Klassen:
+.messwert {
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    color: var(--accent);
+}
+*/

@@ -31,6 +31,31 @@ log "starting: port=${PORT} base=${BASE_PATH} projects=${PROJECTS_DIR} boards=${
 mkdir -p "$PROJECTS_DIR" 2>/dev/null || log "WARN: cannot create ${PROJECTS_DIR}"
 mkdir -p "$CLAUDE_CONFIG_DIR" 2>/dev/null || log "WARN: cannot create ${CLAUDE_CONFIG_DIR} — Claude login will not persist"
 
+# Shipped skills: mirror /opt/ili/skills/<name> into the persistent Claude config so image
+# updates reach an existing terminal-home volume. Only folders carrying our marker are ever
+# replaced — a skill the operator created or edited under the same name is left alone.
+SHIPPED_SKILLS="${ILI_SHIPPED_SKILLS:-/opt/ili/skills}"
+if [[ "${ILI_SKILLS:-on}" != "off" && -d "$SHIPPED_SKILLS" ]]; then
+    skills_new=0; skills_kept=0
+    mkdir -p "$CLAUDE_CONFIG_DIR/skills" 2>/dev/null || log "WARN: cannot create ${CLAUDE_CONFIG_DIR}/skills"
+    for src in "$SHIPPED_SKILLS"/*/; do
+        [[ -f "${src}SKILL.md" ]] || continue
+        name="$(basename "$src")"
+        dst="$CLAUDE_CONFIG_DIR/skills/$name"
+        if [[ -e "$dst" && ! -f "$dst/.ili-shipped" ]]; then
+            skills_kept=$((skills_kept + 1))
+            log "skills: ${name} exists without .ili-shipped marker — operator's copy kept"
+            continue
+        fi
+        if rm -rf "$dst" 2>/dev/null && cp -a "$src" "$dst" 2>/dev/null && touch "$dst/.ili-shipped" 2>/dev/null; then
+            skills_new=$((skills_new + 1))
+        else
+            log "WARN: skills: could not install ${name} into ${dst}"
+        fi
+    done
+    log "skills: ${skills_new} shipped skill(s) installed/updated, ${skills_kept} operator copy/copies kept (ILI_SKILLS=off disables)"
+fi
+
 if [[ -d "$BOARDS_DIR" ]]; then
     log "boards visible: $(find "$BOARDS_DIR" -maxdepth 1 -name '*.json' 2>/dev/null | wc -l) file(s)"
 else
