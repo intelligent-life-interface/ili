@@ -200,7 +200,9 @@ def _register_routers() -> None:
     app.include_router(db_logs_api.router)
     from app.api import docker_config as docker_config_api
     app.include_router(docker_config_api.router)
-    log.info("Router registriert: config (W1), boards+kanban (W2/3), ki (W4), chat+photos (W5), misc (W6), logs/streaming (W7), dashboard (Phase 6), priority_widget (F1), attachments, web-adressen, brainstorm, recent, github-status, user-settings, manager, token-guard, seed")
+    from app.api import ssh_config as ssh_config_api
+    app.include_router(ssh_config_api.router)
+    log.info("Router registriert: config (W1), boards+kanban (W2/3), ki (W4), chat+photos (W5), misc (W6), logs/streaming (W7), dashboard (Phase 6), priority_widget (F1), attachments, web-adressen, brainstorm, recent, github-status, user-settings, manager, token-guard, seed, ssh")
 
 
 _register_routers()

@@ -1,7 +1,12 @@
 # docker-compose.ssh.yml — schaltet einen SSH-Zugang zum Projekt-Terminal zu.
 #
 # Default AUS. Dieses Overlay muss ausdruecklich mitgegeben werden, UND es
-# braucht einen oeffentlichen Schluessel — ohne den startet kein sshd:
+# braucht einen oeffentlichen Schluessel — ohne den startet kein sshd.
+#
+# Kurzweg (erledigt 1 und den COMPOSE_FILE-Teil von 2, idempotent):
+#   docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup "$(cat ~/.ssh/id_ed25519.pub)"
+#
+# Von Hand:
 #
 #   1) mkdir -p ssh && cat ~/.ssh/id_ed25519.pub >> ssh/authorized_keys
 #   2) docker compose -f docker-compose.yml \

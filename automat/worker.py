@@ -262,7 +262,7 @@ def build_prompt(slug: str, workdir: Path, items: list[tuple[dict, dict]]) -> st
 
 GRUPPEN-REGELN:
 - Arbeite die Karten in sinnvoller Reihenfolge ab (Abhängigkeiten zuerst).
-- Melde JEDE fertige Karte einzeln über kanban-editor `done` (eigene kurze Zusammenfassung).
+- Melde JEDE fertige Karte einzeln mit `done` (eigene kurze Zusammenfassung).
 - Braucht EINE Karte eine Entscheidung vom Manager: parkiere sie (Notiz an die Karte, weiter mit
   den restlichen Karten der Gruppe). Die Entscheidungskarte legst du erst GANZ AM ENDE an
   (max EINE) und beendest dann die Session — so geht die Arbeit konstant weiter.""")
@@ -281,18 +281,13 @@ Dieses Projekt verlangt, dass neue Versionen ZUERST als Testversion laufen. Daru
 - Deploye NIEMALS direkt in den Produktiv-Container: kein `systemctl --user restart` der
   Prod-Unit, kein `podman restart`/`build` am Prod-Container, auch wenn die Projekt-CLAUDE.md
   das als normalen Ausroll-Weg nennt.
-- Stattdessen nach deinen Code-Änderungen den Container-Manager nutzen (kopiert den aktuellen
-  Container-Ordner nach <name>-test, installiert dort die neue Version und startet sie als
-  eigenen Service mit Host-Ports +10000; Prod bleibt unangetastet. Daten-Mounts wie data/
-  oder *.db nutzen DIREKT die Prod-Daten, aber READ-ONLY — Schreibversuche der Testversion
-  in ihre DB schlagen bewusst fehl):
-    KEY=$(grep '^CONTAINER_MANAGER_API_KEY=' ~/config.env | cut -d= -f2)
-    curl -s -X POST -H "X-API-Key: $KEY" http://localhost:8810/api/containers/<container-name>/test-deploy
-  (<container-name> = Ordnername unter ~/containers/; Aufräumen später via .../test-remove)
-- Verifiziere die Testversion (Port = Prod-Port + 10000) und schreibe in die done-Zusammenfassung:
-  Test-URL/Port, dass Prod noch auf der alten Version läuft, und dass der Manager die Übernahme nach
-  Prüfung selbst auslöst (.../test-promote: Beta wird die aktuelle Version, die bisherige
-  wird deaktiviert als <name>-prev aufbewahrt).
+- Stattdessen erst eine Testversion neben der laufenden starten: eigener Container-/Servicename
+  mit dem Zusatz `-test` und ein eigener Host-Port (Konvention: Prod-Port + 10000), damit die
+  laufende Version unangetastet bleibt. Daten-Verzeichnisse der Produktivversion nur READ-ONLY
+  einbinden — ein Schreibversuch der Testversion soll fehlschlagen, nicht die echten Daten treffen.
+- Verifiziere die Testversion über ihren eigenen Port und schreibe in die done-Zusammenfassung:
+  Test-URL/Port, dass die Produktivversion noch auf dem alten Stand läuft, und was zum Übernehmen
+  nötig ist. Die Übernahme löst der Mensch aus, nicht du.
 - Betrifft die Karte keinen laufenden Container/Service (reine Doku/Analyse/Code ohne Deploy),
   gilt die Regel nicht. Hat das Projekt einen Host-Service statt Podman-Container (test-deploy
   meldet "keine systemd-Unit"), dann NICHT deployen — Notiz an die Karte, Manager rollt manuell aus."""
@@ -303,51 +298,54 @@ Dieses Projekt verlangt, dass neue Versionen ZUERST als Testversion laufen. Daru
 
 {auftrag}
 
-Kanban-Status NICHT selbst mit python3 abfragen/ändern — delegiere JEDE Status-Interaktion an
-den Subagent **kanban-editor** (eigenes Kontextfenster; gibt dir nur eine kurze Bestätigung
-zurück statt die volle Board-Rohausgabe von {CLI_PATH} in DEINEN Kontext zu dumpen). Er kennt die
-Kommandos (show/note/decision/done) selbst — sag ihm nur WAS du willst, z.B.:
-  - "kanban-editor: Stand von Board {slug} — bin ich blockiert? gibt es eine beantwortete
-    Entscheidung zu Karte {card_id}, die ich umsetzen soll?"
-  - "kanban-editor: notiere an Karte {card_id} auf Board {slug}: <Fortschritt>"
-  - "kanban-editor: lege Entscheidungskarte auf Board {slug} an (Bezug Karte {card_id}) —
-    Frage: ... Optionen: A||B||C"
-  - "kanban-editor: melde Karte {card_id} auf Board {slug} fertig, Zusammenfassung: ..."
+Kanban-Status NIE von Hand ins Board schreiben und keine rohen HTTP-Calls basteln — jede
+Status-Interaktion läuft über {CLI_PATH}. Es hält das Automat-Protokoll (Labels, Spalten,
+Dedup) ein und gibt kurze Antworten statt der vollen Board-Rohausgabe:
+  - python3 {CLI_PATH} show --board {slug}
+      Stand des Boards: bin ich blockiert? liegt eine beantwortete Entscheidung zu
+      Karte {card_id} vor, die ich umsetzen soll?
+  - python3 {CLI_PATH} note --board {slug} --card {card_id} --text "<Fortschritt>"
+  - python3 {CLI_PATH} decision --board {slug} --card {card_id} --question "<Frage>" --options "A||B||C"
+  - python3 {CLI_PATH} done --board {slug} --card {card_id} --summary "<Zusammenfassung>"
+  - python3 {CLI_PATH} park --board {slug} --card {card_id} --reason "<woran es hängt>"
+  - python3 {CLI_PATH} discard --board {slug} --card {card_id} --reason "<Grund>"
+Lies vom show-Ergebnis nur, was du brauchst — nicht das ganze JSON in deine Antwort kopieren.
 
 REGELN:
-- Frag den kanban-editor zuerst nach dem aktuellen Stand. Liegt eine beantwortete
+- Frag zuerst mit `show` den aktuellen Stand ab. Liegt eine beantwortete
   '🟡 ENTSCHEIDUNG'-Karte vor (Feld `answered_decision` im show-Output, Manager-Antwort
   am Ende der description), setze diese Antwort JETZT um — sie schlägt deinen Auftrag oben.
 - Sagt die Manager-Antwort sinngemäss "gehört nicht zu diesem Projekt", "verwerfen" oder
   "nicht machen": lass die Bezugskarte aussortieren
-  ("kanban-editor: discard Karte <id> auf Board {slug} — Grund: <Manager-Antwort>")
+  (`python3 {CLI_PATH} discard --board {slug} --card <id> --reason "<Manager-Antwort>"`)
   und BEENDE die Session sofort. KEINE neue Entscheidungskarte zum selben Thema,
   keine Nachfragen zur Umsetzung, kein Umzug in andere Projekte (macht der Manager selbst).
-- Triff KEINE grossen Richtungs-/Designentscheidungen allein: lass dann über kanban-editor eine
-  Entscheidungskarte mit klaren Optionen anlegen und BEENDE die Session danach (kein done).
+- Triff KEINE grossen Richtungs-/Designentscheidungen allein: lege dann mit `decision` eine
+  Entscheidungskarte mit klaren Optionen an und BEENDE die Session danach (kein done).
   Der Manager entscheidet beim nächsten Lauf.
 - Pro Board höchstens EINE offene Entscheidungskarte: zeigt `show` bereits eine decision_card,
   lege NIEMALS eine weitere an — ergänze höchstens eine Notiz an der bestehenden Karte und
   beende die Session sofort. Entscheidungskarten NUR über das decision-Kommando von {CLI_PATH}
   anlegen (setzt das Label 'Entscheidung', ohne das die Karte für Blockier-Erkennung und
-  automat.html unsichtbar ist) — nie von Hand ins Board schreiben, auch nicht den
-  kanban-editor eine 'ENTSCHEIDUNG'-Karte frei formulieren lassen (Vorfall dec_27630d0f
-  16.08.: solche Karten umgehen den Dedup-Guard und die projekt-fremd-Erkennung).
-- Wenn die Aufgabe vollständig erledigt und verifiziert ist: über kanban-editor `done` mit
-  kurzer Zusammenfassung melden.
+  automat.html unsichtbar ist) — nie von Hand ins Board schreiben und nie eine
+  'ENTSCHEIDUNG'-Karte frei formulieren (Vorfall dec_27630d0f 16.08.: solche Karten
+  umgehen den Dedup-Guard und die projekt-fremd-Erkennung).
+- Wenn die Aufgabe vollständig erledigt und verifiziert ist: mit `done` und kurzer
+  Zusammenfassung melden.
 - Hängt die Karte an etwas, das DU nicht erledigen kannst (fehlende Hardware, nicht
   installierter Fremd-Dienst, ausstehender Termin, Antwort eines Dritten): NIE stillschweigend
   ohne Meldung beenden — sonst bekommt die Karte beim nächsten Tick in 5 Minuten wieder einen
   Worker, der genau dieselbe Blockade nochmal feststellt (so entstanden 202 Leerläufe auf
   einem Board). Stattdessen parken:
-    "kanban-editor: parke Karte {card_id} auf Board {slug} — Grund: <woran es hängt>,
-     Reaktivierung: <was passieren muss>"
+    python3 {CLI_PATH} park --board {slug} --card {card_id} \
+      --reason "<woran es hängt> · Reaktivierung: <was passieren muss>"
   Die Karte wandert in die Warte-Spalte und ruht, bis der Manager sie zurückschiebt. `done` wäre
   hier falsch (nichts ist fertig), eine Entscheidungskarte auch (es ist keine Frage an ihn).
 - Token sparen: einfache Code-/Textgenerierung direkt selbst erledigen (die Ollama-Skills
   sind seit dem Ollama-Ausstieg 16.08.2026 deaktiviert — nicht aufrufen),
   grosse Dateien nie ganz lesen. Es muss nicht schnell gehen — lieber sauber als viel.
-- NIEMALS im Home-Repo (~/) committen. GitHub-Push nur mit GH_PUSH_TOKEN aus ~/config.env.
+- NIEMALS ausserhalb des Projektordners committen. Zugangsdaten stehen in der Umgebung
+  (z.B. GITHUB_TOKEN) — nie in eine Remote-URL schreiben und nie in eine Datei committen.
 - Schweizer Recht (OR/revDSG) bei rechtlichen Themen. Gute Debug-Logs im Code.
 
 Arbeite jetzt los.

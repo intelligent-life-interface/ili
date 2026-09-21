@@ -17,6 +17,10 @@
 #        compose-hostdocker print docker-compose.hostdocker.yml to stdout
 #        compose-ssh       print docker-compose.ssh.yml to stdout
 #        env               print .env.example to stdout
+#        ssh-setup [opts] [public key]
+#                          one-step SSH access to the project terminal: writes
+#                          ssh/authorized_keys, extends COMPOSE_FILE / SSH_BIND in
+#                          .env (deploy/ssh-setup.sh, idempotent)
 #        help              this list
 #      Works the same with Docker and Podman:
 #        docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
@@ -64,6 +68,9 @@ ili image — usage:
   compose-ssh       print docker-compose.ssh.yml (SSH access to the project terminal, opt-in)
                     (project containers: status + commands in the GUI, KI-Settings -> Docker)
   env               print .env.example
+  ssh-setup         one-step SSH access to the project terminal (opt-in): public key as
+                    argument or on stdin, writes ssh/authorized_keys and .env into /out.
+                    Details: ssh-setup --help
   help              this text
 Docs, source & issues: https://github.com/Toa1984/ili-public  (QUICKSTART.md)
 USAGE
@@ -127,6 +134,7 @@ case "${1:-}" in
     compose-hostdocker) emit docker-compose.hostdocker.yml; exit 0 ;;
     compose-ssh)      emit docker-compose.ssh.yml; exit 0 ;;
     env)              emit .env.example; exit 0 ;;
+    ssh-setup)        shift; log "ssh-setup: starting"; exec bash "$DIST_DIR/ssh-setup.sh" "$@" ;;
     help|-h|--help)   usage; exit 0 ;;
 esac
 

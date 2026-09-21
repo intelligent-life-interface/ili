@@ -117,7 +117,13 @@ def test_status_falls_back_to_api(monkeypatch):
     assert seen["host"] == "tcp://h:2375"
     assert st["probe_source"] == "api" and not st["reachable"] and "refused" in st["error"]
     assert st["overlay"] == "remote"
-    assert ds.claude_md(st) == ""  # unreachable → no guide
+    # unreachable is not the same as off: the guide now says so instead of
+    # disappearing, otherwise the AI finds nothing and assumes docker works
+    # (F-02 of the 0.1.22 test report).
+    guide = ds.claude_md(st)
+    assert "No container engine is available" in guide
+    assert "refused" in guide          # names the actual reason
+    assert "no setup needed" not in guide
 
 
 def test_candidate_is_not_persisted(monkeypatch):

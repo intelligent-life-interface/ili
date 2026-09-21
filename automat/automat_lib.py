@@ -586,6 +586,11 @@ def actionable_cards(board: dict) -> list[tuple[dict, dict]]:
                     continue
                 if is_decision_card(card):
                     continue
+                if card.get("no_auto"):
+                    # Marker cards (e.g. kifail_ "KI-Vorbereitung fehlgeschlagen") describe a
+                    # defect of the installation, not work — the automation must not take them.
+                    logger.debug("actionable_cards: Karte %s per no_auto übersprungen", card.get("id"))
+                    continue
                 out.append((col, card))
     return out
 

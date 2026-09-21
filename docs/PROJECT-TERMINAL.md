@@ -242,7 +242,33 @@ for you.
 The browser terminal is the everyday way in. For scripted access — `ssh host
 'command'`, `scp`/`rsync`, an editor that works over SSH — there is a real SSH
 login. It is off unless you switch it on, and it needs two things, so it cannot
-happen by accident:
+happen by accident.
+
+**Short way** — one command does steps 1 and 2 below (folder, `authorized_keys`,
+`COMPOSE_FILE`, `SSH_BIND`/`SSH_PORT` in `.env`); it is idempotent, existing values
+stay unless you pass `--bind`/`--port`, only public keys are accepted, and nothing
+is started for you:
+
+```bash
+docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup "$(cat ~/.ssh/id_ed25519.pub)"
+docker compose up -d
+```
+
+Options: `--bind localhost` (default) · `--bind lan` (= `0.0.0.0`) · `--bind <ipv4>` ·
+`--port N` (never 22). Reading the key from stdin works too (`cat key.pub | docker
+run --rm -i …`). Windows: the script strips the BOM/UTF-16 that PowerShell adds to
+the key and to `.env`, and keeps `.env` line endings as they are.
+
+**From the settings page:** ⚙️ KI-Settings → 🔐 SSH-Zugang builds exactly this command for
+you (paste the public key, pick local/LAN) and shows whether sshd answers in the terminal
+container. It is read-only on purpose: the key stays in your browser, the api container
+gets no writable mount of `./ssh` (a writable mount would let anything that compromises
+the api plant a login key for a root-equivalent shell). You still run the command
+yourself, on the machine where ili runs, in the folder with `docker-compose.yml`. The
+status can only probe `terminal:22` inside the compose network — the published host
+port (`SSH_PORT`) is shown as configuration, not tested.
+
+**By hand:**
 
 ```bash
 # 1) your PUBLIC key (never the private one) next to the compose files

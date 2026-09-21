@@ -83,7 +83,17 @@ fi
 # api the terminal is still a shell.
 ILI_API_URL="${ILI_API_URL:-http://api:8798}"
 if command -v curl >/dev/null 2>&1; then
-    docker_env="$(curl -fsS --max-time 4 "${ILI_API_URL}/api/docker/env" 2>/dev/null || true)"
+    docker_env="$(curl -fsS --max-time 4 "${ILI_API_URL}/api/docker/env" 2>/dev/null)"
+    curl_rc=$?
+    if [[ $curl_rc -ne 0 ]]; then
+        # Nicht dasselbe wie "keine Engine": die api antwortet gar nicht (startet
+        # noch, DNS, Netz). Wer hier auf die Einstellungen verwiesen wird, sucht
+        # an der falschen Stelle — genau der Fehler, den F-16 abstellen sollte.
+        echo "[ili-claude] ili-api nicht erreichbar (${ILI_API_URL}, curl ${curl_rc}) — Docker-Status unbekannt"
+    elif [[ -z "$docker_env" ]]; then
+        # 200 mit leerem Body heisst "keine Engine konfiguriert".
+        echo "[ili-claude] keine Container-Engine konfiguriert (Einstellungen → Docker)"
+    fi
     if [[ -n "$docker_env" ]]; then
         eval "$docker_env"
         echo "[ili-claude] DOCKER_HOST=${DOCKER_HOST:-} (from KI-Settings → Docker)"

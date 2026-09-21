@@ -12,6 +12,24 @@
 <link rel="stylesheet" href="/ui-kit/v1/ui-kit.css?v=20260821">
 <script src="/ui-kit/v1/ui-kit.js" defer></script>
 <style>
+  /* SSH settings shared styles with Docker */
+  .ssh-wrap { display: grid; gap: 10px; }
+  .ssh-sub, .ssh-note { color: var(--muted); font-size: 0.85rem; margin: 0; }
+  .ssh-status { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .ssh-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+  .ssh-dot.ok { background: #2ea043; }
+  .ssh-dot.fail { background: #d1242f; }
+  .ssh-meta { color: var(--muted); font-size: 0.8rem; word-break: break-all; }
+  .ssh-pubkey-label { display: flex; flex-direction: column; gap: 4px; }
+  .ssh-pubkey-input { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.8rem; resize: vertical; min-height: 60px; }
+  .ssh-pubkey-input:focus { outline: none; border-color: var(--accent); }
+  .ssh-bind-group { display: flex; flex-direction: column; gap: 4px; }
+  .ssh-bind-select { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 0.82rem; cursor: pointer; min-width: 200px; }
+  .ssh-bind-select:focus { outline: none; border-color: var(--accent); }
+  .ssh-command-term { background: #05070c; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.78rem; color: #8ee08e; white-space: pre-wrap; min-height: 50px; word-break: break-all; }
+  .ssh-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ssh-help-text { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
   :root {
     --bg: var(--t-bg, #0f1117); --surface: var(--t-surface, #1a1d27); --surface2: #12151f; --border: #2a2d3a;
     --text: var(--t-text, #e2e8f0); --muted: var(--t-muted, #718096); --accent: #4a90d9;
@@ -163,6 +181,7 @@
 <script src="/theme.js?v=20260716b" defer></script>
 <script src="/js/darstellung.js?v=20260716c" defer></script>
 <script src="/js/docker-settings.js?v=20260918" defer></script>
+<script src="/js/ssh-settings.js?v=20260920" defer></script>
 </head>
 <body data-ui-autoinit="off">
 
@@ -319,6 +338,55 @@
       <button class="btn" id="ports-assign" data-i18n="ports.btn.assign">➕ Port vergeben</button>
     </div>
     <p class="docker-note" data-i18n="ports.note">Der Bereich ist derselbe, den der Sandbox-Weg auf dem Host reserviert (SANDBOX_PORT_FROM/TO in der .env). Die KI bekommt die Zuordnung in ihrer Anleitung und veröffentlicht genau diesen Port.</p>
+  </div>
+
+  <!-- SSH access setup: variante A (Manager decision 2026-09-20) — read-only GUI
+       with status checks and client-side command generation. No writable mount;
+       public key stays in browser. Talks to /api/ssh/status for status only. -->
+  <div class="section-title" data-i18n="ssh.title">🔐 SSH-Zugang</div>
+  <div class="ssh-wrap">
+    <p class="ssh-sub" data-i18n="ssh.subtitle">Per SSH direkt ins Projekt-Terminal (Nutzer ili, nur Schlüssel-Anmeldung, kein root). Die Einrichtung ist ein einziger Befehl, den Sie auf dem Rechner ausführen, auf dem ili läuft.</p>
+    <div class="docker-status">
+      <span class="docker-dot" id="ssh-dot"></span>
+      <span id="ssh-status-text" data-i18n="ssh.status.loading">Prüfe SSH-Status…</span>
+    </div>
+    <div class="ssh-meta" id="ssh-meta"></div>
+
+    <!-- Public key input -->
+    <label class="ssh-pubkey-label">
+      <span data-i18n="ssh.pubkey.label">🔑 Öffentlicher SSH-Schlüssel</span>
+      <small data-i18n="ssh.pubkey.hint">Den öffentlichen Schlüssel (Endung .pub) von Ihrem Rechner einfügen, z.B. cat ~/.ssh/id_ed25519.pub — nie den privaten.</small>
+      <textarea id="ssh-pubkey-input" class="ssh-pubkey-input" spellcheck="false" placeholder="ssh-rsa AAAA... oder ssh-ed25519 AAAA..."></textarea>
+    </label>
+
+    <!-- Bind mode selection -->
+    <label class="ssh-bind-group">
+      <span data-i18n="ssh.bind.label">🌐 SSH-Bindung</span>
+      <small data-i18n="ssh.bind.hint">Nur lokal: nur vom ili-Rechner selbst · LAN: auch von anderen Geräten im Netzwerk (bewusste Wahl, nie ins offene Internet)</small>
+      <select id="ssh-bind-select" class="ssh-bind-select">
+        <option value="localhost" data-i18n="ssh.bind.localhost">127.0.0.1 (nur lokal)</option>
+        <option value="lan" data-i18n="ssh.bind.lan">LAN (0.0.0.0, aus dem Netzwerk)</option>
+      </select>
+    </label>
+
+    <!-- Client-side generated command -->
+    <div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span data-i18n="ssh.command.title">📋 Befehl — auf dem ili-Rechner im Installationsordner ausführen</span>
+        <button class="limits-copy-btn" id="ssh-copy-btn" data-i18n="ssh.btn.copy">📋 Kopieren</button>
+      </div>
+      <pre class="ssh-command-term" id="ssh-command-term">(Öffentlichen Schlüssel oben einfügen)</pre>
+    </div>
+
+    <!-- Help text -->
+    <p class="ssh-help-text" data-i18n="ssh.help">
+      Der Befehl wird im Browser zusammengestellt — der öffentliche Schlüssel wird NICHT an den Server übertragen. Führen Sie ihn auf dem Rechner aus, auf dem ili läuft, im Ordner mit der docker-compose.yml (nicht im Projekt-Terminal). Danach die Installation neu starten (docker compose up -d) und verbinden: ssh -p 2222 ili@127.0.0.1.
+    </p>
+
+    <div class="docker-actions">
+      <button class="btn" id="ssh-btn-refresh" data-i18n="ssh.btn.refresh">🔄 Status prüfen</button>
+    </div>
+    <p class="ssh-note" data-i18n="ssh.note">Der Zugang ist standardmässig nur lokal (127.0.0.1) auf Port 2222 erreichbar. Port und Bindung stehen als SSH_PORT und SSH_BIND in der .env. Die Statusanzeige prüft nur, ob sshd im Terminal-Container antwortet — den Host-Port kann sie von innen nicht testen.</p>
   </div>
 
   <div class="actions">

@@ -160,9 +160,43 @@ def _probe_boards() -> tuple[bool, str, str]:
     return True, f"{n} Projekte lesbar", ""
 
 
+def _probe_source_tree() -> tuple[bool, str, str]:
+    """Does a checked-out source tree match the version that is running?
+
+    A test report of 20.09.2026 listed sixteen failures, five of which were long
+    fixed: its code checks read a checkout of 0.1.20 while the instance served
+    0.1.22. A report that reads different code than it tests costs more time to
+    read than the test saved, so the mismatch is a check of its own now.
+
+    Skipped (and passing) when no source tree is mounted — the normal case for a
+    registry installation.
+    """
+    import os
+    from pathlib import Path
+
+    from app.services.version_service import read_version
+
+    running = read_version()
+    src = os.environ.get("ILI_SOURCE_DIR", "/projects/ili-eigen")
+    vfile = Path(src) / "VERSION"
+    if not vfile.exists():
+        return True, f"läuft {running}, kein Quelltext-Baum gemountet", ""
+    try:
+        checked_out = vfile.read_text().strip()
+    except Exception as e:                      # noqa: BLE001
+        return True, f"läuft {running}, {src} nicht lesbar ({e})", ""
+    if checked_out == running:
+        return True, f"{running} — Quelltext und laufende Version stimmen überein", ""
+    return (False,
+            f"laufende Version {running}, Quelltext in {src} ist {checked_out}",
+            "Prüfergebnisse aus diesem Baum gelten NICHT für die laufende Version — "
+            "Quelltext aktualisieren (git pull) oder den Pfad über ILI_SOURCE_DIR korrigieren")
+
+
 CHECKS = (
     ("api", "API", _probe_api),
     ("web", "Weboberfläche", _probe_web),
+    ("source", "Quelltext-Stand", _probe_source_tree),
     ("boards", "Projekte", _probe_boards),
     ("projterm", "Projekt-Terminal", _probe_projterm),
     ("claude", "Claude im Terminal", _probe_bridge),

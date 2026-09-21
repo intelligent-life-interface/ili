@@ -30,6 +30,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
       jq \
       python3 \
       docker-cli \
+      gh \
       openssh-server \
       sudo \
       rsync \
@@ -39,6 +40,21 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
         "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${arch}" \
     && chmod +x /usr/local/bin/ttyd \
     && ttyd --version \
+    # docker compose als CLI-Plugin. `docker-compose-plugin` ist KEIN Debian-Paket
+    # (es kommt aus Dockers eigenem Repo) — ein apt-Eintrag dafuer laesst den Build
+    # scheitern. Vier Skripte im Image rufen `docker compose`: ili-test-deploy,
+    # -promote, -remove und ili-selftest.
+    && COMPOSE_VERSION=v5.5.1 \
+    && case "$(uname -m)" in \
+         x86_64)  carch=x86_64 ;; \
+         aarch64) carch=aarch64 ;; \
+         *) echo "unsupported arch $(uname -m)" >&2; exit 1 ;; \
+       esac \
+    && mkdir -p /usr/local/lib/docker/cli-plugins \
+    && curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose \
+         "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${carch}" \
+    && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose \
+    && docker compose version \
     && docker --version \
     # openssh-server's postinst runs ssh-keygen -A. Those keys must die in
     # THIS layer: deleting them in a later RUN hides them from the final
@@ -67,12 +83,15 @@ RUN npm install -g npm@latest \
 COPY --chmod=755 deploy/terminal/entrypoint.sh /usr/local/bin/ili-terminal
 COPY --chmod=755 deploy/terminal/ili-term.sh   /usr/local/bin/ili-term
 COPY --chmod=755 deploy/terminal/ili-claude.sh /usr/local/bin/ili-claude
+# MCP-Server fuer die Container-Steuerung (Einstellungen → Docker → MCP-Schalter),
+# bei Bedarf per `claude mcp add --scope user` registriert (claude_cli_bridge.py
+# /mcp/docker/*). Wiederhergestellt 20.09.2026: ein Aufraeum-Commit hatte die Datei
+# entfernt, waehrend vier Stellen im Code sie weiter referenzieren — der Schalter
+# meldete danach "ili-mcp-docker script missing".
+COPY --chmod=755 deploy/terminal/ili-mcp-docker.py /usr/local/bin/ili-mcp-docker
 COPY --chmod=755 deploy/terminal/ili-login-url-watch.sh /usr/local/bin/ili-login-url-watch
 COPY --chmod=755 deploy/terminal/ili-docker-guide.sh /usr/local/bin/ili-docker-guide
 COPY --chmod=755 deploy/terminal/ili-claude-doctor.sh /usr/local/bin/ili-claude-doctor
-# MCP server for container control (Settings → Docker → MCP switch), registered
-# on demand via `claude mcp add --scope user` — see claude_cli_bridge.py /mcp/docker/*.
-COPY --chmod=755 deploy/terminal/ili-mcp-docker.py /usr/local/bin/ili-mcp-docker
 COPY --chmod=755 deploy/terminal/ili-selftest.sh /usr/local/bin/ili-selftest
 # SSH access (opt-in, docker-compose.ssh.yml). The daemon only starts when the
 # operator mounts a public key — see deploy/terminal/ili-sshd.sh.
@@ -118,7 +137,11 @@ RUN useradd --create-home --uid 1001 --shell /bin/bash ili \
 # ("claude native binary not installed", reported 2026-09-18). A container is not
 # the place to self-update — a new Claude version arrives with a new image.
 # `claude update` by hand still works (that would be DISABLE_UPDATES).
-ENV HOME=/root \
+# UTF-8 ist im Terminal Pflicht: ohne Locale laufen tmux und ttyd non-UTF-8, und
+# deutsche Texte wie die Emoji der Kartentitel kommen zerschossen an (F-14, 20.09.2026).
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    HOME=/root \
     CLAUDE_CONFIG_DIR=/root/.claude \
     DISABLE_AUTOUPDATER=1 \
     PROJECTS_DIR=/projects \

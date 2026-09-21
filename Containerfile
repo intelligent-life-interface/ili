@@ -80,6 +80,8 @@ RUN python3 /tmp/compose-src/compose-dist.py /tmp/compose-src dist \
 # and `docker compose -f docker-compose.sandbox.yml up` fails on a registry
 # install (no checkout to bind-mount from).
 COPY deploy/gateway/nginx.conf deploy/gateway/10-generate-streams.sh dist/gateway/
+# `ssh-setup` subcommand of the entrypoint (one-step SSH access, see deploy/ssh-setup.sh).
+COPY deploy/ssh-setup.sh dist/ssh-setup.sh
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

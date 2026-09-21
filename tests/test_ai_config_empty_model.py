@@ -10,7 +10,6 @@ Four independent places are nailed down here, because any one of them alone
 would have prevented the outage.
 """
 import json
-import re
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -109,6 +108,21 @@ class DockerGuideStaysHonest(unittest.TestCase):
         src = (REPO / "deploy" / "terminal" / "ili-docker-guide.sh").read_text()
         self.assertIn("STALE_MARK", src)
         self.assertNotIn('leaving ${TARGET} as is"\n    exit 0', src)
+
+
+class FailureCardIsNoTaskForTheAutomat(unittest.TestCase):
+    """The kifail_ card sets no_auto; the automation must actually honour it."""
+
+    def test_no_auto_card_is_not_actionable(self):
+        import sys
+        sys.path.insert(0, str(REPO / "automat"))
+        import automat_lib
+        board = {"columns": [{"id": "backlog", "title": "Backlog", "cards": [
+            {"id": "kifail_x", "title": "KI-Vorbereitung fehlgeschlagen", "no_auto": True},
+            {"id": "real_1", "title": "Echte Aufgabe"},
+        ]}]}
+        ids = [c["id"] for _, c in automat_lib.actionable_cards(board)]
+        self.assertEqual(ids, ["real_1"])
 
 
 if __name__ == "__main__":

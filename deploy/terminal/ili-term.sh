@@ -80,7 +80,9 @@ log "instance ${INSTANCE} -> session '${SESSION}' (claude: ${RUN_CLAUDE})"
 #    so an existing session is only re-attached.
 if ! tmux has-session -t "$SESSION" 2>/dev/null; then
     log "creating tmux session '${SESSION}' in '${DIR}'"
-    tmux new-session -d -s "$SESSION" -c "$DIR"
+    # -u: force UTF-8. tmux guesses from the locale, and a client that guesses
+    # wrong renders umlauts and the emoji of card titles as garbage (F-14).
+    tmux -u new-session -d -s "$SESSION" -c "$DIR"
 else
     log "tmux session '${SESSION}' already exists — attaching"
 fi
@@ -129,4 +131,4 @@ fi
 # 4) Attach. -d detaches other clients: two clients of different sizes on one
 #    session produce garbled output.
 log "attaching to '${SESSION}'"
-exec tmux attach -d -t "$SESSION"
+exec tmux -u attach -d -t "$SESSION"

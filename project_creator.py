@@ -710,7 +710,7 @@ def _create_project_folder(
 
     Erstellt:
         CLAUDE.md       — via Ollama generiert (Übersicht, Ziel, Nächste Schritte)
-        TAGS.md         — Schlagwörter (Quelle: ollama-vision oder ollama-text)
+        TAGS.md         — Schlagwörter samt Quellenangabe (KI-Text-/Bildanalyse)
         .idea           — Marker-Datei, nur wenn is_idea=True
         fotos/<name>    — Foto-Kopie, nur wenn photo_bytes übergeben
 
@@ -746,8 +746,15 @@ def _create_project_folder(
     (project_path / "CLAUDE.md").write_text(claude_md)
     log.debug(f"CLAUDE.md geschrieben (fast={fast})")
 
-    # TAGS.md
-    source = "ollama-vision" if photo_bytes else "ollama-text"
+    # TAGS.md — die Quellenangabe nennt, WER die Tags erzeugt hat. "ollama-*" stand
+    # dort auch, nachdem die Tag-Erzeugung längst über die Claude-Bridge lief, und
+    # tauchte so in jedem neuen Projektordner auf (F-10, 20.09.2026). Ohne Tags ist
+    # die Quelle nicht die KI, sondern der fehlgeschlagene Versuch — das gehört
+    # sichtbar in die Datei, sonst liest man einen Platzhalter als Ergebnis (F-11).
+    if tags:
+        source = "KI-Bildanalyse" if photo_bytes else "KI-Textanalyse"
+    else:
+        source = "keine — die KI-Vorbereitung lieferte nichts (siehe Karte im Backlog)"
     _save_tags_md(project_path, name, tags, source)
 
     # .idea Marker

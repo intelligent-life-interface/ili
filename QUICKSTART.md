@@ -272,7 +272,30 @@ docker compose up -d     # start fresh
 ## Optional: SSH access to the project terminal
 
 Off by default. For scripted access, `scp`/`rsync` or an SSH-capable editor —
-instead of the browser terminal, whose password is regenerated on every start:
+instead of the browser terminal, whose password is regenerated on every start.
+
+**Short way — one command** (run it in the folder with your `docker-compose.yml`; it
+creates `ssh/authorized_keys`, extends `COMPOSE_FILE` in `.env` and sets
+`SSH_BIND`/`SSH_PORT`, and can safely be run twice):
+
+```bash
+docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup "$(cat ~/.ssh/id_ed25519.pub)"
+docker compose up -d
+ssh -p 2222 ili@127.0.0.1
+```
+
+```powershell
+# Windows PowerShell — the script cleans the BOM/UTF-16 that PowerShell adds
+Get-Content $HOME\.ssh\id_ed25519.pub | docker run --rm -i -v "${PWD}:/out" ghcr.io/toa1984/ili ssh-setup
+docker compose up -d
+```
+
+Only the **public** key (`.pub`) is accepted — a private key is refused. Add
+`--bind lan` for LAN access (see the warning below), `--port N` for another port,
+`ssh-setup --help` for the rest. Podman: `-v "$PWD":/out:Z`, and start with the three
+`-f` files (podman-compose ignores `COMPOSE_FILE`).
+
+**By hand** (what the command above does):
 
 ```bash
 mkdir -p ssh

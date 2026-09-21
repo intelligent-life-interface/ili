@@ -5,7 +5,6 @@ AI session asked while working was never displayed — "ich sehe die frage aber
 nicht in den offenen fragen". Both sources are covered here, and so is the rule
 that a broken second source must not empty the first one.
 """
-import json
 import sqlite3
 import sys
 import tempfile

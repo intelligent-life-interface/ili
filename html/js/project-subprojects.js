@@ -415,6 +415,7 @@ function renderRollup() {
     zombieBtn.textContent = t('proj.rollup.zombie.button', '🧟 Karteileichen ({n})').replace('{n}', String(zombieCount));
     zombieBtn.title = t('proj.rollup.zombie.title', 'Karten, die seit mind. {days} Tagen niemand angefasst hat')
         .replace('{days}', String(zombieThresholdDays));
+    console.debug('[rollup] zombie filter: active=%s threshold=%dd count=%d/%d', zombieFilterActive, zombieThresholdDays, zombieCount, cards.length);
     zombieBtn.addEventListener('click', () => {
         zombieFilterActive = !zombieFilterActive;
         localStorage.setItem('rollup_zombie_active', zombieFilterActive ? '1' : '0');
