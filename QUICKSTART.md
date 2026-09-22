@@ -136,7 +136,9 @@ your machine is used silently (its entrypoint then fails with `exec: init: not f
 file instead: `... compose`, `... compose-terminal`, `... compose-lan`,
 `... compose-sandbox`, `... compose-hostdocker`, `... env`, `... help`.
 
-Pin a version with `ILI_VERSION=0.1.11` in `.env` (default `latest`). Updates:
+Pin a version with `ILI_VERSION=0.2.0` in `.env` (default `latest`).
+Only published versions can be pinned — the 0.1 line was removed from both
+registries on 21.09.2026, so a `.env` still pinning a `0.1.x` fails on pull. Updates:
 `docker compose pull && docker compose up -d` — rerun `init` after a release to pick
 up compose changes (your `.env` stays).
 

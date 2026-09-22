@@ -100,6 +100,23 @@ Lessons from 0.1.8–0.1.10 — every item here once cost a release or a user.
    this version, create one from the template described in the parent
    project's `CLAUDE.md` (`ili-release`, section "Ein Board pro Release").
 
+## Retention
+
+Default: nothing is ever deleted as part of a normal release. Every tagged
+`X.Y.Z` (ghcr, Docker Hub, GitHub release entry, git tag) stays reachable
+indefinitely, so a pinned install (`ILI_VERSION=X.Y.Z` in `.env`) keeps
+working. Only the moving tags `X.Y` and `latest` are repointed on each
+release; the immutable `X.Y.Z` tags are never overwritten or removed.
+
+Deleting an entire version line (as done once for the whole 0.1 line, see
+`CLAUDE.md` "Die 0.1-Reihe ist gelöscht") is an explicit, one-off exception,
+never a routine step and never automated as part of `release.yml`. Before
+doing it again: name the consequence out loud first (which pinned installs
+lose their fallback — the 0.1 deletion left `ILI_VERSION=0.1.x` with no
+image to pull) and get that consequence confirmed, the same way it was for
+0.1. `delete-0-1-line.sh` is the reference tool for carrying it out across
+all four channels once confirmed — it is not meant to run unattended.
+
 ## Visibility
 
 The packages inherit the repository visibility. While the repository is private,
