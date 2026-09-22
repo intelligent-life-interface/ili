@@ -50,5 +50,6 @@ OK/WARN/FAIL-Befunde in die Gesamtzählung — sonst wird der Abschnitt überspr
 ## Ergebnis-Format
 
 Kurzer Review-Block: 3–6 Befunde nach Priorität (FAILs zuerst), je mit
-konkretem Fix-Befehl/Datei. Bei bestehendem Projekt: Befunde als Karten ins
-Projekt-Board (kanban-editor), nicht nur in den Chat.
+konkretem Fix-Befehl/Datei. Bei bestehendem Projekt: Befunde als Notiz an die
+Bezugskarte im Projekt-Board (`automat_cli.py note`), nicht nur in den Chat —
+`automat_cli.py` legt selbst keine neuen Karten an.

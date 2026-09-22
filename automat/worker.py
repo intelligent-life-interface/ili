@@ -46,8 +46,9 @@ DOCKER_CONFIG = Path(os.getenv("ILI_DASHBOARD_DIR", str(Path.home() / "container
 
 
 def _docker_env_overrides() -> dict:
-    """DOCKER_* for `claude -p` from docker_config.json — mode `remote` only. `auto`
-    inherits the compose overlay (sandbox/socket), `off` adds nothing. Mirrors
+    """DOCKER_* for `claude -p` from docker_config.json — mode `remote`, or `auto` with a
+    Docker Desktop endpoint the api detected (`detected_host`). `auto` otherwise inherits
+    the compose overlay (sandbox/socket), `off` adds nothing. Mirrors
     docker_service.env_overrides(); kept in sync by hand (different image, no import)."""
     try:
         cfg = json.loads(DOCKER_CONFIG.read_text())
@@ -56,6 +57,8 @@ def _docker_env_overrides() -> dict:
     except Exception as e:
         logger.warning("docker_config.json nicht lesbar (%s) — ignoriert", e)
         return {}
+    if cfg.get("mode") == "auto" and cfg.get("detected_host"):
+        return {"DOCKER_HOST": str(cfg["detected_host"]), "DOCKER_TLS_VERIFY": "", "DOCKER_CERT_PATH": ""}
     if cfg.get("mode") != "remote" or not cfg.get("host"):
         return {}
     # all three keys — empty means "unset" (sandbox overlay leaves TLS vars behind)
@@ -295,6 +298,15 @@ Dieses Projekt verlangt, dass neue Versionen ZUERST als Testversion laufen. Daru
 
     return f"""Du bist ein autonomer Entwickler und arbeitest EIGENSTÄNDIG am Projekt \
 '{slug}' (Arbeitsordner: {workdir}). Lies zuerst die CLAUDE.md in diesem Ordner.
+
+Umgebung: Du läufst im Compose-Netz von ili selbst (nicht im Netz deines Projekts). Brauchst du
+direkten Zugriff auf ilis eigene Dienste, erreichst du sie über die Compose-Servicenamen, nie
+über `localhost`: `api` (Dashboard-API, http://api:8798), `db` (Postgres, db:5432 — Zugang aus
+deiner Umgebung: POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB) und `terminal` (Claude-Bridge,
+terminal:8950). Für Kanban-Status nutze trotzdem IMMER {CLI_PATH} (siehe unten), nie rohe Calls
+gegen `api`. Startest du für DEIN Projekt einen eigenen Container über den Sandbox-Weg (Docker-
+in-Docker): der hängt in einem eigenen Netz und sieht `db` NICHT — nur der Socket-Weg
+(`docker-compose.hostdocker.yml`) teilt sich das Compose-Netz mit `db`.
 
 {auftrag}
 

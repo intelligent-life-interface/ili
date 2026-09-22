@@ -79,18 +79,19 @@ def get_env():
 
 @router.get("/api/docker/claude-md", response_class=PlainTextResponse)
 def get_claude_md():
-    """200 + text = write it; 200 + empty = remove it (mode off); 503 = unknown right now
-    (engine/bridge not answering) — the caller keeps whatever file it has."""
+    """200 + text = write it; 200 + empty = remove it (mode off); 503 = the status itself
+    could not be determined — the caller keeps whatever file it has.
+
+    An engine that does not answer is a known state, not an unknown one: the guide then
+    says "no container engine" (docker_service.claude_md). Answering 503 here kept the
+    old "no setup needed" guide alive in the terminal (F-21, test report 0.2.0)."""
     try:
         st = docker_service.status()
     except Exception as e:
         log.error("GET /api/docker/claude-md failed: %s", e)
         return PlainTextResponse("", status_code=503)
-    if st["mode"] == "off":
-        return ""
     if not st["reachable"]:
-        log.debug("claude-md: engine not reachable (%s) → 503, caller keeps its file", st["error"])
-        return PlainTextResponse("", status_code=503)
+        log.debug("claude-md: engine not reachable (%s) → 'no engine' guide", st["error"])
     return docker_service.claude_md(st)
 
 

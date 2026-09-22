@@ -409,7 +409,32 @@ def _docker_probe(overrides: dict) -> dict:
         "arch": server.get("Arch", "?"),
     }
     log.info("[docker-probe] ok: %s %s", out["engine"]["name"], out["engine"]["version"])
+    if not out["projects_host_dir"]:
+        out["projects_host_dir"] = _projects_host_dir(docker_bin, env)
     return out
+
+
+def _projects_host_dir(docker_bin: str, env: dict) -> str:
+    """Host folder that holds `projects/`, read from this container's own mount when
+    PROJECTS_HOST_DIR is not set (F-25). A host engine resolves bind mounts on the host,
+    and it knows where it mounted /projects from — no need to ask the user.
+    Empty when the engine is not the one running this container (sandbox, other host)."""
+    target = os.getenv("PROJECTS_DIR", "/projects")
+    try:
+        rv = subprocess.run([docker_bin, "inspect", "--format", "{{json .Mounts}}",
+                             os.uname().nodename], capture_output=True, text=True, timeout=8, env=env)
+        mounts = json.loads(rv.stdout or "[]") if rv.returncode == 0 else []
+    except Exception as e:
+        log.debug("[docker-probe] inspect self failed: %s", e)
+        return ""
+    for m in mounts or []:
+        src = str(m.get("Source") or "").rstrip("/")
+        # the guide renders "<dir>/projects/<board>" — only a folder named projects fits
+        if m.get("Destination") == target and src.endswith("/projects"):
+            host_dir = src[: -len("/projects")]
+            log.info("[docker-probe] projects_host_dir from own mount: %s", host_dir)
+            return host_dir
+    return ""
 
 
 # ── MCP server for container control (Settings → Docker → MCP switch) ──────────

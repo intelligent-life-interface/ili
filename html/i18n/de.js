@@ -172,6 +172,7 @@ window.I18N = {
     "docker.overlay.sandbox": "Sandbox (Docker-in-Docker)",
     "docker.overlay.socket": "Host-Socket",
     "docker.overlay.remote": "Entfernter Host (TCP)",
+    "docker.overlay.desktop": "Docker Desktop (automatisch erkannt)",
     "docker.ports": "Projekt-Ports {from}–{to}",
     "docker.mode.label": "Modus",
     "docker.mode.auto": "Wie gestartet (Compose-Overlay: Sandbox oder Host-Socket)",

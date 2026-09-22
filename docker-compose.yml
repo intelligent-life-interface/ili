@@ -53,6 +53,10 @@ services:
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
       # Lokales Ollama (optional)
       OLLAMA_URL: "${OLLAMA_URL:-}"
+      # Modus `auto` probt nach dem Compose-Overlay diesen Docker-Desktop-Endpunkt.
+      # Bewusst `-` statt `:-`: ein leer gesetzter Wert schaltet die Probe ab, ein
+      # fehlender bekommt den Default. Mit `:-` waere "leer = aus" nicht erreichbar.
+      DOCKER_DESKTOP_HOSTS: "${DOCKER_DESKTOP_HOSTS-tcp://host.docker.internal:2375}"
       # GitHub feedback channel: public client id of the GitHub App "ili" (device-flow
       # login, no secret). Empty → "Mit GitHub anmelden" stays disabled, deep links still work.
       ILI_GITHUB_APP_CLIENT_ID: "${ILI_GITHUB_APP_CLIENT_ID:-}"

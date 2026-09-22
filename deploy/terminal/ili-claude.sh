@@ -83,6 +83,12 @@ fi
 # api the terminal is still a shell.
 ILI_API_URL="${ILI_API_URL:-http://api:8798}"
 if command -v curl >/dev/null 2>&1; then
+    # Guide first: its request runs the engine probe, and in mode auto that probe is
+    # what finds Docker Desktop and stores it — /api/docker/env only reads the result.
+    # The other way round, the first session after an install started without DOCKER_HOST.
+    if command -v ili-docker-guide >/dev/null 2>&1; then
+        ili-docker-guide "$ILI_API_URL"
+    fi
     docker_env="$(curl -fsS --max-time 4 "${ILI_API_URL}/api/docker/env" 2>/dev/null)"
     curl_rc=$?
     if [[ $curl_rc -ne 0 ]]; then
@@ -97,9 +103,6 @@ if command -v curl >/dev/null 2>&1; then
     if [[ -n "$docker_env" ]]; then
         eval "$docker_env"
         echo "[ili-claude] DOCKER_HOST=${DOCKER_HOST:-} (from KI-Settings → Docker)"
-    fi
-    if command -v ili-docker-guide >/dev/null 2>&1; then
-        ili-docker-guide "$ILI_API_URL"
     fi
 fi
 

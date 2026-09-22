@@ -10,8 +10,10 @@ Modes
 -----
 auto    use whatever the compose overlay provides (docker-compose.sandbox.yml sets
         DOCKER_HOST=tcp://sandbox:2376 + TLS, docker-compose.hostdocker.yml mounts
-        the host socket). Nothing can be switched at runtime here — the GUI only
-        shows the status and the exact commands.
+        the host socket). Without an overlay, fall back to Docker Desktop's local
+        TCP endpoint (DESKTOP_HOSTS, "Expose daemon on tcp://localhost:2375"): the
+        host that answers is stored as `detected_host` and exported like `remote`.
+        Order: overlay first, Desktop second — an overlay is an explicit choice.
 remote  DOCKER_HOST=tcp://<host>:<port> set at runtime (no restart, no re-mount).
         Typical: Docker Desktop with "Expose daemon on tcp://localhost:2375" →
         tcp://host.docker.internal:2375. Anything beyond localhost must use TLS
@@ -50,7 +52,13 @@ DEFAULTS = {
     "tls_verify": False,   # remote only: DOCKER_TLS_VERIFY=1
     "cert_path": "",       # remote only: DOCKER_CERT_PATH (folder mounted in terminal+automat)
     "updated_at": "",
+    "detected_host": "",   # auto only: Desktop endpoint found by status(), never user input
 }
+# Docker Desktop publishes its daemon here when "Expose daemon on tcp://localhost:2375
+# without TLS" is on. host.docker.internal only resolves under Docker Desktop, so on a
+# plain Linux engine this probe fails fast (DNS) and changes nothing. Empty = disabled.
+DESKTOP_HOSTS = tuple(h.strip() for h in os.environ.get(
+    "DOCKER_DESKTOP_HOSTS", "tcp://host.docker.internal:2375").split(",") if h.strip())
 # Port range the sandbox gateway forwards by default (docker-compose.sandbox.yml) and
 # the convention for host-published project ports in the socket overlay.
 def _int_env(name: str, default: int) -> int:
@@ -91,7 +99,8 @@ def load_config() -> dict:
 
 def validate(data: dict) -> dict:
     """Normalise + validate a (partial) config. Raises ValueError with a user-facing key."""
-    cfg = {**load_config(), **{k: v for k, v in (data or {}).items() if k in DEFAULTS}}
+    cfg = {**load_config(), **{k: v for k, v in (data or {}).items()
+                               if k in DEFAULTS and k != "detected_host"}}
     mode = str(cfg.get("mode") or "auto").strip().lower()
     if mode not in MODES:
         raise ValueError("docker.err.mode")
@@ -110,7 +119,21 @@ def validate(data: dict) -> dict:
         "tls_verify": bool(cfg.get("tls_verify")),
         "cert_path": cert_path,
         "updated_at": cfg.get("updated_at") or "",
+        # kept across saves in auto (status() re-checks it), meaningless elsewhere
+        "detected_host": (cfg.get("detected_host") or "") if mode == "auto" else "",
     }
+
+
+def _remember_detected(host: str) -> None:
+    """Store/clear the Desktop endpoint status() found. Changes the file's mtime on
+    purpose: the automat re-syncs /projects/CLAUDE.md when it sees that."""
+    with file_lock(_LOCK):
+        cfg = load_config()
+        if cfg["mode"] != "auto" or cfg.get("detected_host", "") == host:
+            return
+        cfg["detected_host"] = host
+        write_json_atomic(DOCKER_CONFIG_FILE, cfg)
+    log.info("docker auto: detected_host=%s", host or "(cleared)")
 
 
 def save_config(data: dict) -> dict:
@@ -133,14 +156,17 @@ DOCKER_ENV_KEYS = ("DOCKER_HOST", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH")
 
 
 def env_overrides(cfg: dict | None = None) -> dict:
-    """DOCKER_* variables for the given config. Empty dict for auto/off — `auto`
-    inherits the compose overlay, `off` must not add anything.
+    """DOCKER_* variables for the given config. Empty dict for off and for auto with
+    an overlay — `auto` inherits the compose overlay, `off` must not add anything.
+    `auto` with a Docker Desktop endpoint found by status() exports that like remote.
 
     In `remote` mode ALL three keys are returned; an empty value means "unset it":
     the sandbox overlay leaves DOCKER_TLS_VERIFY=1 + DOCKER_CERT_PATH in the
     environment, and a plain tcp://…:2375 host would otherwise fail the TLS handshake.
     """
     cfg = cfg or load_config()
+    if cfg["mode"] == "auto" and cfg.get("detected_host"):
+        return {"DOCKER_HOST": cfg["detected_host"], "DOCKER_TLS_VERIFY": "", "DOCKER_CERT_PATH": ""}
     if cfg["mode"] != "remote" or not cfg["host"]:
         return {}
     return {
@@ -174,7 +200,7 @@ def shell_exports(cfg: dict | None = None) -> str:
 
 
 def overlay_of(docker_host: str) -> str:
-    """Classify the effective DOCKER_HOST: sandbox | socket | remote | none."""
+    """Classify the effective DOCKER_HOST: sandbox | socket | desktop | remote | none."""
     h = (docker_host or "").strip()
     if not h:
         return "none"
@@ -182,6 +208,8 @@ def overlay_of(docker_host: str) -> str:
         return "sandbox"
     if h.startswith("unix://"):
         return "socket"
+    if h in DESKTOP_HOSTS:
+        return "desktop"
     return "remote"
 
 
@@ -330,7 +358,9 @@ def status(cfg: dict | None = None, candidate: dict | None = None) -> dict:
     stored config, nothing is written.
     """
     cfg = validate(candidate) if candidate is not None else (cfg or load_config())
-    overrides = env_overrides(cfg)
+    # auto probes the overlay first, WITHOUT a remembered Desktop host — otherwise a
+    # socket/sandbox added later would never win over an old detection.
+    overrides = {} if cfg["mode"] == "auto" else env_overrides(cfg)
     out = {
         "mode": cfg["mode"],
         "host": cfg["host"],
@@ -351,39 +381,58 @@ def status(cfg: dict | None = None, candidate: dict | None = None) -> dict:
         log.debug("docker status: mode off, no probe")
         return out
 
+    out.update(_probe(overrides))
+    if cfg["mode"] == "auto":
+        desktop = ""
+        if not out["reachable"]:
+            first_error = out["error"]
+            for host in DESKTOP_HOSTS:
+                res = _probe({"DOCKER_HOST": host, "DOCKER_TLS_VERIFY": "", "DOCKER_CERT_PATH": ""})
+                if res["reachable"]:
+                    out.update(res)
+                    desktop = host
+                    break
+                log.debug("docker auto: %s not answering: %s", host, res["error"])
+            if not desktop:
+                out["error"] = first_error  # the overlay's reason, not the Desktop miss
+        if candidate is None:
+            _remember_detected(desktop)
+    out["overlay"] = overlay_of(out["docker_host"])
+    log.info("docker status: mode=%s overlay=%s reachable=%s via=%s", out["mode"], out["overlay"],
+             out["reachable"], out["probe_source"])
+    return out
+
+
+def _probe(overrides: dict) -> dict:
+    """One probe: through the terminal (bridge) if it answers, else from the api."""
     bridge = probe_via_bridge(overrides)
     if bridge is not None:
-        out.update({
+        return {
             "probe_source": "terminal",
             "reachable": bool(bridge.get("ok")),
             "engine": bridge.get("engine"),
             "docker_host": bridge.get("docker_host") or "",
             "projects_host_dir": bridge.get("projects_host_dir") or "",
             "error": bridge.get("error") or "",
-        })
-    else:
-        # terminal not running / old image → best effort from the api container.
-        # remote: exactly what the config says (empty = unset, never the api's own
-        # sandbox TLS leftovers); auto: whatever the overlay gave the api.
-        src = overrides if overrides else os.environ
-        effective_host = src.get("DOCKER_HOST", "")
-        api = probe_via_api(
-            effective_host,
-            tls_verify=bool(src.get("DOCKER_TLS_VERIFY")),
-            cert_path=src.get("DOCKER_CERT_PATH", ""),
-        )
-        out.update({
-            "probe_source": "api",
-            "reachable": api["ok"],
-            "engine": api["engine"],
-            "docker_host": effective_host,
-            "projects_host_dir": os.environ.get("PROJECTS_HOST_DIR", ""),
-            "error": api["error"] if not api["ok"] else "",
-        })
-    out["overlay"] = overlay_of(out["docker_host"])
-    log.info("docker status: mode=%s overlay=%s reachable=%s via=%s", out["mode"], out["overlay"],
-             out["reachable"], out["probe_source"])
-    return out
+        }
+    # terminal not running / old image → best effort from the api container.
+    # remote/desktop: exactly what the overrides say (empty = unset, never the api's
+    # own sandbox TLS leftovers); auto overlay: whatever the overlay gave the api.
+    src = overrides if overrides else os.environ
+    effective_host = src.get("DOCKER_HOST", "")
+    api = probe_via_api(
+        effective_host,
+        tls_verify=bool(src.get("DOCKER_TLS_VERIFY")),
+        cert_path=src.get("DOCKER_CERT_PATH", ""),
+    )
+    return {
+        "probe_source": "api",
+        "reachable": api["ok"],
+        "engine": api["engine"],
+        "docker_host": effective_host,
+        "projects_host_dir": os.environ.get("PROJECTS_HOST_DIR", ""),
+        "error": api["error"] if not api["ok"] else "",
+    }
 
 
 # ── guide for the AI (/projects/CLAUDE.md) ──────────────────────────────────
@@ -435,7 +484,7 @@ def claude_md(st: dict | None = None) -> str:
         "so they survive an engine restart, and build from the project folder "
         "(`docker build -t <board> /projects/<board>`).",
     ]
-    if overlay == "socket" or overlay == "remote":
+    if overlay in ("socket", "remote", "desktop"):
         host_dir = st.get("projects_host_dir") or ""
         if host_dir:
             lines += [
@@ -450,9 +499,16 @@ def claude_md(st: dict | None = None) -> str:
                 "for the host folder that contains `projects/`, or build the project into the "
                 "image (`COPY`) instead of mounting it.",
             ]
-        if overlay == "socket":
+        if overlay in ("socket", "desktop"):
             lines += ["- You are on the host engine: never stop, remove or prune containers "
                       "you did not create for this board (`ili-*` are ili itself)."]
+        if overlay == "desktop":
+            # Ports land on the Docker Desktop host, not in this container: localhost
+            # here is the terminal itself (the 19.09.2026 "not reachable" mistake).
+            host = st["docker_host"].removeprefix("tcp://").split(":")[0]
+            lines += [f"- Published ports are on the Docker Desktop host: test them from here with "
+                      f"`curl http://{host}:<port>/` — `localhost` in this terminal is the terminal "
+                      "itself. In the user's browser the same port is `http://localhost:<port>/`."]
     if overlay == "sandbox":
         lines += [
             "- This is an isolated Docker-in-Docker sandbox: bind mounts use `/projects/<board>` "

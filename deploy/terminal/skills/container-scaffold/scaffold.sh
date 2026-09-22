@@ -266,7 +266,7 @@ PYEOF
     then
         log "Kanban-Board erstellt/gesynct: $NAME"
     else
-        log "WARNUNG: Board-Sync fehlgeschlagen — manuell nachholen (kanban-editor oder create_project)."
+        log "WARNUNG: Board-Sync fehlgeschlagen — manuell im Dashboard nachholen."
     fi
 fi
 

@@ -299,6 +299,18 @@ def _append_body(card: dict, note: str) -> None:
         card[k] = (card.get(k) or "") + note
 
 
+def _summarize_choice(choice: str, limit: int) -> str:
+    """Collapse whitespace and cut on a word boundary so free-text answers (the
+    'eigene Antwort'-input allows arbitrary length, e.g. pasted voice
+    transcripts) don't leave the card title chopped mid-word with stray
+    newlines — raw '<text>[:limit]' produced exactly that."""
+    flat = " ".join(str(choice).split())
+    if len(flat) <= limit:
+        return flat
+    cut = flat[:limit].rsplit(" ", 1)[0] or flat[:limit]
+    return cut + "…"
+
+
 def _mark_answered(card: dict, choice: str, is_delete: bool) -> None:
     """Stamp choice onto title + body and (for delete) set the purge marker.
 
@@ -314,10 +326,10 @@ def _mark_answered(card: dict, choice: str, is_delete: bool) -> None:
         return
     if is_delete:
         _append_body(card, f"\n\n— 🗑️ Antwort: {choice} · als Rauschen gelöscht (wird später endgültig entfernt)")
-        card["title"] = f"🗑️ {choice[:60]} — {card.get('title', '')}"[:160]
+        card["title"] = f"🗑️ {_summarize_choice(choice, 60)} — {card.get('title', '')}"[:160]
     else:
         _append_body(card, f"\n\n— ✅ Antwort: {choice}")
-        card["title"] = f"✅ {choice[:70]} — {card.get('title', '')}"[:160]
+        card["title"] = f"✅ {_summarize_choice(choice, 70)} — {card.get('title', '')}"[:160]
 
 
 def _answer_source_card(src_board: str, src_card: str, choice: str, is_delete: bool) -> bool:

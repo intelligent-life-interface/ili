@@ -20,7 +20,7 @@ Wenn du unsicher bist, ob ein Wert vom Menschen oder von einer KI stammt: nicht 
 |---|---|
 | Prio-Vorschlag für ein Board | `~/containers/dashboard/prio_suggester.py` (read-only, bündelt einen Abo-Call, Fallback Heuristik) |
 | „Was ist auf Board X offen/blockiert?" | Subagent **kanban-analyst** (eigenes Kontextfenster, gibt nur die verdichtete Antwort zurück) |
-| Karten schreiben/verschieben/parken | Subagent **kanban-editor** — nie Board-JSON selbst editieren |
+| Kanban-Status ändern (note/park/discard/done/decision) | `automat_cli.py` — nie Board-JSON selbst editieren |
 | Duplikate & tote Boards | `kanban_dedup.py` (So 04:30, löscht nichts, meldet nur) |
 | „Wo ging der Aufwand hin?" | `~/bin/aufwand-wochenfrage.py` (Mo 08:00, eine Karte in `home-stack`) |
 
@@ -63,5 +63,6 @@ des Tagesbudgets, nachts bis 70 %. Teure Arbeit nach hinten, wenn sie warten kan
 ## Wenn eine Entscheidung an den Menschen geht
 
 Nicht raten, nicht als offene Aufgabe parken: **Entscheidungskarte** mit klarer Frage
-und Optionen (`A||B||C`) über den kanban-editor anlegen. Pro Board höchstens **eine**
-offene Entscheidungskarte — gibt es schon eine, nur eine Notiz ergänzen.
+und Optionen anlegen — `automat_cli.py decision --board <board> --card <id> --question "<Frage>"
+--options "A||B||C"`. Pro Board höchstens **eine** offene Entscheidungskarte — gibt es schon
+eine, nur eine Notiz ergänzen (`automat_cli.py note ...`).

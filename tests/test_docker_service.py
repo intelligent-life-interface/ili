@@ -85,7 +85,8 @@ def test_overlay_classification():
     assert ds.overlay_of("") == "none"
     assert ds.overlay_of("tcp://sandbox:2376") == "sandbox"
     assert ds.overlay_of("unix:///var/run/docker.sock") == "socket"
-    assert ds.overlay_of("tcp://host.docker.internal:2375") == "remote"
+    assert ds.overlay_of("tcp://host.docker.internal:2375") == "desktop"
+    assert ds.overlay_of("tcp://10.0.0.5:2376") == "remote"
 
 
 def test_status_prefers_bridge(monkeypatch):
@@ -152,6 +153,94 @@ def test_guide_without_projects_host_dir_does_not_invent_a_path(monkeypatch):
     md = ds.claude_md(ds.status(candidate={"mode": "remote", "host": "tcp://host.docker.internal:2375"}))
     assert "<PROJECTS_HOST_DIR>" not in md
     assert "PROJECTS_HOST_DIR is not configured" in md
+
+
+# ── auto: Docker Desktop fallback (F-24) and honest guide (F-21), test report 0.2.0 ──
+
+_DESKTOP = "tcp://host.docker.internal:2375"
+_ENGINE = {"name": "Docker Desktop 4.91.0 (239619)", "version": "29.8.0", "api_version": "1.56",
+           "os": "linux", "arch": "amd64"}
+
+
+def _bridge(answers: dict, calls: list | None = None):
+    """Fake probe_via_bridge: answer by DOCKER_HOST override ('' = the overlay)."""
+    def probe(overrides, **k):
+        host = (overrides or {}).get("DOCKER_HOST", "")
+        if calls is not None:
+            calls.append(host)
+        ok = answers.get(host, False)
+        return {"ok": ok, "docker_host": host, "engine": _ENGINE if ok else None,
+                "projects_host_dir": "/run/desktop/mnt/host/c/Users/u/ili" if ok else "",
+                "error": "" if ok else f"no engine at {host or 'socket'}"}
+    return probe
+
+
+def test_auto_finds_docker_desktop_and_exports_it(monkeypatch):
+    calls = []
+    monkeypatch.setattr(ds, "probe_via_bridge", _bridge({_DESKTOP: True}, calls))
+    st = ds.status()
+    assert calls == ["", _DESKTOP]                       # overlay first, Desktop second
+    assert st["reachable"] and st["overlay"] == "desktop" and st["docker_host"] == _DESKTOP
+    assert ds.load_config()["detected_host"] == _DESKTOP
+    assert ds.env_overrides() == {"DOCKER_HOST": _DESKTOP, "DOCKER_TLS_VERIFY": "",
+                                  "DOCKER_CERT_PATH": ""}
+    assert ds.shell_exports().startswith(f"export DOCKER_HOST='{_DESKTOP}'")
+    md = ds.claude_md(st)
+    assert "No container engine" not in md
+    assert "/run/desktop/mnt/host/c/Users/u/ili/projects/<board>:/app" in md
+    assert "`ili-*` are ili itself" in md                # same engine that runs ili
+    assert "curl http://host.docker.internal:<port>/" in md
+
+
+def test_auto_prefers_overlay_and_forgets_old_detection(monkeypatch):
+    ds.DOCKER_CONFIG_FILE.write_text(json.dumps({"mode": "auto", "detected_host": _DESKTOP}))
+    calls = []
+    monkeypatch.setattr(ds, "probe_via_bridge", _bridge({"": True}, calls))
+    st = ds.status()
+    assert calls == [""]                                 # Desktop not even tried
+    assert st["reachable"] and ds.load_config()["detected_host"] == ""
+    assert ds.env_overrides() == {}                      # overlay env stays untouched
+
+
+def test_auto_nothing_answers(monkeypatch):
+    ds.DOCKER_CONFIG_FILE.write_text(json.dumps({"mode": "auto", "detected_host": _DESKTOP}))
+    monkeypatch.setattr(ds, "probe_via_bridge", _bridge({}))
+    st = ds.status()
+    assert not st["reachable"] and st["overlay"] == "none"
+    assert st["error"] == "no engine at socket"          # the overlay's reason, not the Desktop miss
+    assert ds.load_config()["detected_host"] == ""
+    assert "No container engine is available" in ds.claude_md(st)
+
+
+def test_auto_desktop_probe_can_be_disabled(monkeypatch):
+    monkeypatch.setattr(ds, "DESKTOP_HOSTS", ())
+    calls = []
+    monkeypatch.setattr(ds, "probe_via_bridge", _bridge({_DESKTOP: True}, calls))
+    assert not ds.status()["reachable"] and calls == [""]
+
+
+def test_detected_host_is_not_user_input(monkeypatch):
+    cfg = ds.save_config({"mode": "auto", "detected_host": "tcp://evil:2375"})
+    assert cfg["detected_host"] == ""
+    ds.DOCKER_CONFIG_FILE.write_text(json.dumps({"mode": "auto", "detected_host": _DESKTOP}))
+    assert ds.save_config({"mode": "remote", "host": "tcp://h:2375"})["detected_host"] == ""
+
+
+def test_test_button_does_not_store_detection(monkeypatch):
+    monkeypatch.setattr(ds, "probe_via_bridge", _bridge({_DESKTOP: True}))
+    assert ds.status(candidate={"mode": "auto"})["reachable"]
+    assert ds.load_config()["detected_host"] == ""
+
+
+def test_claude_md_route_says_no_engine_with_200(monkeypatch):
+    """F-21: 503 made ili-docker-guide keep an old 'no setup needed' guide."""
+    from app.api import docker_config
+    monkeypatch.setattr(ds, "probe_via_bridge", _bridge({}))
+    monkeypatch.setattr(ds, "DESKTOP_HOSTS", ())
+    res = docker_config.get_claude_md()
+    body = res if isinstance(res, str) else res.body.decode()
+    assert getattr(res, "status_code", 200) == 200
+    assert "No container engine is available" in body
 
 
 # ── MCP server for container control (Settings → Docker → MCP switch) ─────────

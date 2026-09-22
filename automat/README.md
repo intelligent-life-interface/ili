@@ -20,5 +20,13 @@ Shims statt Home-Stack-Module: `loop_logger.py` (No-op), `config_env.py` (nur En
 `ticker.py` ersetzt `kanban-automat.timer` (Compose kennt keine Timer). Kill-Switch:
 `touch state/automat.disabled` im Volume `automat-state`.
 
+**Dritte Abweichung, kein Env-Patch:** `worker.py` `build_prompt()` nennt statt des
+Subagenten `kanban-editor` (existiert nur im Home-Stack) direkt `automat_cli.py`
+(90d57ad4) und erklärt zusätzlich die Compose-Servicenamen `api`/`db`/`terminal`
+für den Fall, dass die KI-Session ilis eigene Dienste direkt ansprechen muss
+(F-17). `tests/test_no_kanban_editor_references.py` hält Ersteres fest; Letzteres
+nach einem rsync von Hand gegenprüfen.
+
 Aktualisieren: `rsync -a --include='*.py' --exclude='*' ~/containers/kanban-automat/ automat/`
-und danach die Env-Patches erneut anwenden (siehe git log dieses Ordners).
+und danach die Env-Patches **und den `build_prompt()`-Patch oben** erneut anwenden
+(siehe git log dieses Ordners).

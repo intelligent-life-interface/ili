@@ -108,14 +108,15 @@ indefinitely, so a pinned install (`ILI_VERSION=X.Y.Z` in `.env`) keeps
 working. Only the moving tags `X.Y` and `latest` are repointed on each
 release; the immutable `X.Y.Z` tags are never overwritten or removed.
 
-Deleting an entire version line (as done once for the whole 0.1 line, see
-`CLAUDE.md` "Die 0.1-Reihe ist gelöscht") is an explicit, one-off exception,
-never a routine step and never automated as part of `release.yml`. Before
-doing it again: name the consequence out loud first (which pinned installs
-lose their fallback — the 0.1 deletion left `ILI_VERSION=0.1.x` with no
-image to pull) and get that consequence confirmed, the same way it was for
-0.1. `delete-0-1-line.sh` is the reference tool for carrying it out across
-all four channels once confirmed — it is not meant to run unattended.
+Deleting an entire version line (as done once for the whole 0.1 line, see the
+0.2.0 release notes) is an explicit, one-off exception, never a routine step
+and never automated as part of `release.yml`. Before doing it again: name the
+consequence out loud first (which pinned installs lose their fallback — the
+0.1 deletion left `ILI_VERSION=0.1.x` with no image to pull) and get that
+consequence confirmed, the same way it was for 0.1. Carrying it out means
+touching all four channels (GitHub releases, git tags, ghcr, Docker Hub) —
+this is not scripted for reuse; write a one-off script per occurrence and
+confirm each step before running it, never unattended.
 
 ## Visibility
 

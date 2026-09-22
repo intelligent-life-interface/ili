@@ -80,6 +80,11 @@ services:
       PROJECTS_DIR: /projects
       BRIDGE_KEEP_API_KEY: "1"
       BOARDS_DIR: /boards
+      # automat_cli.py (auch hier gemountet, siehe automat-Service unten) braucht das,
+      # um Board-Karten zu lesen/schreiben — ohne diese Zeile bricht jeder Aufruf in
+      # einer interaktiven Board-Session mit "KANBAN_AUTOMAT_DASHBOARD_URL fehlt" ab,
+      # obwohl der Worker im automat-Container davon nie betroffen ist (dort gesetzt).
+      DASHBOARD_URL: http://api:8798
     volumes:
       # /root haelt die Claude-Anmeldung (.claude/ + .claude.json) — dieses Volume
       # behalten, sonst ist nach jedem Neustart ein neuer Login faellig.
