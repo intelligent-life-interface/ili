@@ -25,8 +25,8 @@ Requires a running ili dashboard — see the main
 ### Option A: prebuilt image (recommended)
 
 ```bash
-docker pull ghcr.io/toa1984/ili-mcp:latest
-# or: podman pull ghcr.io/toa1984/ili-mcp:latest
+docker pull ghcr.io/intelligent-life-interface/ili-mcp:latest
+# or: podman pull ghcr.io/intelligent-life-interface/ili-mcp:latest
 ```
 
 Public image, no login needed.
@@ -34,7 +34,7 @@ Public image, no login needed.
 ### Option B: build locally
 
 ```bash
-git clone https://github.com/Toa1984/ili-public.git
+git clone https://github.com/intelligent-life-interface/ili.git
 cd ili-public/release-container/mcp
 docker build -t ili-mcp:latest -f Containerfile .
 # or: podman build -t ili-mcp:latest -f Containerfile .
@@ -66,7 +66,7 @@ add an entry under `mcpServers`:
       "args": [
         "run", "--rm", "-i",
         "-e", "DASHBOARD_URL=http://host.docker.internal:8798",
-        "ghcr.io/toa1984/ili-mcp:latest"
+        "ghcr.io/intelligent-life-interface/ili-mcp:latest"
       ]
     }
   }
@@ -85,7 +85,7 @@ own `-e` flag instead:
 ```bash
 claude mcp add ili-kanban \
   -- docker run --rm -i -e DASHBOARD_URL=http://host.docker.internal:8798 \
-  ghcr.io/toa1984/ili-mcp:latest
+  ghcr.io/intelligent-life-interface/ili-mcp:latest
 ```
 
 Use `--scope user` to make it available in every project, not just the
@@ -113,7 +113,7 @@ A quick manual check without any GUI client — send raw JSON-RPC over stdin:
 printf '%s\n%s\n' \
   '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_boards","arguments":{}}}' \
-| docker run --rm -i -e DASHBOARD_URL=http://host.docker.internal:8798 ghcr.io/toa1984/ili-mcp:latest
+| docker run --rm -i -e DASHBOARD_URL=http://host.docker.internal:8798 ghcr.io/intelligent-life-interface/ili-mcp:latest
 ```
 
 A healthy response to the second line is a JSON board list, not an
@@ -136,7 +136,7 @@ received and every dashboard API call made — pipe stderr to a file when
 diagnosing:
 
 ```bash
-docker run --rm -i -e DASHBOARD_URL=... ghcr.io/toa1984/ili-mcp:latest 2>mcp-debug.log
+docker run --rm -i -e DASHBOARD_URL=... ghcr.io/intelligent-life-interface/ili-mcp:latest 2>mcp-debug.log
 ```
 
 ## License

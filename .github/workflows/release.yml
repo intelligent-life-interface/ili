@@ -7,12 +7,12 @@
 # so the image namespace is derived from the repository the workflow runs in —
 # each repo builds ONLY its own images, never cross-project (decision 2026-08-24):
 #
-#   Toa1984/ili-public  -> ghcr.io/toa1984/ili{,-web,-terminal}
+#   intelligent-life-interface/ili  -> ghcr.io/intelligent-life-interface/ili{,-web,-terminal}
 #                          + Docker Hub mirror docker.io/toa1984/ili{,-web,-terminal}
 #                            (discoverability via docker search; needs repo secrets
 #                            DOCKERHUB_USERNAME + DOCKERHUB_TOKEN)
 #   any other repo (e.g. Toa1984/ili-coding, the private workshop)
-#                       -> ghcr.io/toa1984/<repo-name>{,-web,-terminal}
+#                       -> ghcr.io/toa1984/<repo-name>{,-web,-terminal}  (unveraendert)
 #                          ghcr only, NO Docker Hub (a Hub push would be public).
 #
 # Images per suffix (namespace must be lowercase for ghcr):
@@ -37,7 +37,10 @@ permissions:
 env:
   REGISTRY: ghcr.io
   # ili-public keeps the published name "ili"; every other repo uses its own name.
-  IMAGE_BASE: ghcr.io/toa1984/${{ github.repository == 'Toa1984/ili-public' && 'ili' || github.event.repository.name }}
+  # Auslieferung baut in die Organisation, jedes andere Repo (die Werkstatt)
+  # unter den eigenen User-Namespace — so kann ein Werkstatt-Lauf die
+  # oeffentlichen Images nicht ueberschreiben.
+  IMAGE_BASE: ${{ github.repository == 'intelligent-life-interface/ili' && 'ghcr.io/intelligent-life-interface/ili' || format('ghcr.io/toa1984/{0}', github.event.repository.name) }}
 
 jobs:
   build:
@@ -73,7 +76,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: github.repository == 'Toa1984/ili-public'
+        if: github.repository == 'intelligent-life-interface/ili'
         uses: docker/login-action@v3
         with:
           registry: docker.io
@@ -86,7 +89,7 @@ jobs:
         with:
           images: |
             ${{ env.IMAGE_BASE }}${{ matrix.suffix }}
-            name=docker.io/toa1984/ili${{ matrix.suffix }},enable=${{ github.repository == 'Toa1984/ili-public' }}
+            name=docker.io/toa1984/ili${{ matrix.suffix }},enable=${{ github.repository == 'intelligent-life-interface/ili' }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}

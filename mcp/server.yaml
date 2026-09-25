@@ -19,10 +19,10 @@ description: |
 
 license: MIT
 author: ~Toa1984
-homepage: https://github.com/Toa1984/ili-public
+homepage: https://github.com/intelligent-life-interface/ili
 
 mcp:
-  image: ghcr.io/toa1984/ili-mcp:latest
+  image: ghcr.io/intelligent-life-interface/ili-mcp:latest
   imageSource: oci
 
   # Environment configuration for the MCP server

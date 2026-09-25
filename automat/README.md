@@ -27,6 +27,16 @@ für den Fall, dass die KI-Session ilis eigene Dienste direkt ansprechen muss
 (F-17). `tests/test_no_kanban_editor_references.py` hält Ersteres fest; Letzteres
 nach einem rsync von Hand gegenprüfen.
 
+**Vierte Abweichung, kein Env-Patch, NICHT upstream schieben:** `worker.py`
+`resolve_workdir()` ruft `_ensure_git_repo()` auf jeden aufgelösten Projektordner
+(F-19, `git init` + Platzhalter-Identität `ili`/`ili@localhost`, falls keine
+konfiguriert ist — idempotent über den `.git`-Check, Fehler nur geloggt). Nur für
+dieses Release relevant: der Home-Stack `~/containers/kanban-automat` hat sein
+eigenes Terminal-Image mit eigenem Ordner-Handling; ein Upstream-rsync dieses
+Patches würde dort beim nächsten Karten-Pick jeden Nicht-Repo-Ordner unter
+`~/Projekte`/`~/containers` (264+ Boards) still git-initen — ausserhalb des Zwecks
+dieser Karte. `tests/test_project_git_init.py` hält den Patch fest.
+
 Aktualisieren: `rsync -a --include='*.py' --exclude='*' ~/containers/kanban-automat/ automat/`
-und danach die Env-Patches **und den `build_prompt()`-Patch oben** erneut anwenden
-(siehe git log dieses Ordners).
+und danach die Env-Patches, den `build_prompt()`-Patch **und den `_ensure_git_repo()`-
+Patch in `resolve_workdir()`** erneut anwenden (siehe git log dieses Ordners).

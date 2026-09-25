@@ -229,6 +229,36 @@ def _runtime_s(w: dict):
         return None
 
 
+def _ensure_git_repo(project_path: Path) -> None:
+    """Git-Repo in `project_path`, falls noch keines (F-19): der Automat kann eine
+    Karte abarbeiten, ohne dass je ein Board-Terminal geöffnet wurde (siehe
+    ili-term.sh, das denselben Schritt für den interaktiven Pfad macht) — ohne
+    diesen Guard bliebe genau dieser Fall unversioniert. Idempotent, best-effort:
+    ein Fehler hier darf den Worker nie stoppen."""
+    if not project_path.is_dir() or (project_path / ".git").is_dir():
+        return
+    if not shutil.which("git"):
+        return
+    try:
+        subprocess.run(["git", "-C", str(project_path), "init", "-q", "--initial-branch=main"],
+                       capture_output=True, timeout=10, check=True)
+        has_identity = subprocess.run(
+            ["git", "-C", str(project_path), "config", "user.name"],
+            capture_output=True, timeout=5,
+        ).returncode == 0
+        if not has_identity:
+            # Neutraler Platzhalter, keine echte Identität — dieser Ordner kann in
+            # jeder Fremdinstallation entstehen (F-19).
+            subprocess.run(["git", "-C", str(project_path), "config", "user.name", "ili"],
+                           capture_output=True, timeout=5, check=True)
+            subprocess.run(["git", "-C", str(project_path), "config", "user.email", "ili@localhost"],
+                           capture_output=True, timeout=5, check=True)
+        logger.info("resolve_workdir: Git-Repo initialisiert in %s", project_path)
+    except Exception as e:
+        logger.warning("resolve_workdir: git init in %s fehlgeschlagen (ignoriert): %s",
+                       project_path, e)
+
+
 def resolve_workdir(slug: str) -> Path:
     """Arbeitsordner des Boards — exakt wie das Projekt-Terminal (Manifest code_dir
     -> reichste CLAUDE.md), via projterm_prepare.py --resolve."""
@@ -237,6 +267,7 @@ def resolve_workdir(slug: str) -> Path:
                              capture_output=True, text=True, timeout=20)
         d = out.stdout.strip().splitlines()[-1].strip() if out.stdout.strip() else ""
         if d and Path(d).is_dir():
+            _ensure_git_repo(Path(d))
             return Path(d)
         logger.warning("resolve_workdir(%s): '%s' ungültig", slug, d)
     except Exception as e:
@@ -245,6 +276,7 @@ def resolve_workdir(slug: str) -> Path:
     extra = [Path(d) / slug for d in os.getenv("AUTOMAT_PROJECT_DIRS", "").split(":") if d]
     for cand in (*extra, Path.home() / "containers" / slug, Path.home() / "Projekte" / slug):
         if cand.is_dir():
+            _ensure_git_repo(cand)
             return cand
     return Path.home()
 

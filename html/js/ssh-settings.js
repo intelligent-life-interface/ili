@@ -88,7 +88,7 @@
         if (/['\u0000-\u001f\u007f]/.test(pubkey)) return fail('ssh.error.bad_chars');
 
         const bindArg = $('ssh-bind-select').value === 'lan' ? ' --bind lan' : '';
-        return `docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup${bindArg} '${pubkey}'`;
+        return `docker run --rm -v "$PWD":/out ghcr.io/intelligent-life-interface/ili ssh-setup${bindArg} '${pubkey}'`;
     }
 
     function updateCommand() {

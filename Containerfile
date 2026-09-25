@@ -17,9 +17,9 @@ FROM docker.io/library/python:3.11-slim
 LABEL org.opencontainers.image.title="ili Dashboard"
 LABEL org.opencontainers.image.description="Lightweight self-hosted Kanban Dashboard"
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
-LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
-LABEL org.opencontainers.image.url="https://github.com/Toa1984/ili-public"
-LABEL org.opencontainers.image.documentation="https://github.com/Toa1984/ili-public/blob/main/QUICKSTART.md"
+LABEL org.opencontainers.image.source="https://github.com/intelligent-life-interface/ili"
+LABEL org.opencontainers.image.url="https://github.com/intelligent-life-interface/ili"
+LABEL org.opencontainers.image.documentation="https://github.com/intelligent-life-interface/ili/blob/main/QUICKSTART.md"
 
 WORKDIR /app
 

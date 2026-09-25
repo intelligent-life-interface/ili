@@ -209,7 +209,7 @@
                 const commit = (v.commit && v.commit !== 'unknown') ? v.commit.slice(0, 7) : '?';
                 const built  = (v.build_date && v.build_date !== 'unknown') ? v.build_date.slice(0, 10) : '?';
                 ver.textContent = 'v' + v.version + (v.channel === 'beta' ? ' β' : '');
-                ver.href  = 'https://github.com/Toa1984/ili-public/releases/tag/v' + encodeURIComponent(v.version);
+                ver.href  = 'https://github.com/intelligent-life-interface/ili/releases/tag/v' + encodeURIComponent(v.version);
                 ver.title = t('nav.version.title', 'Installierte Version · Commit {commit} · gebaut {date}')
                     .replace('{commit}', commit).replace('{date}', built);
                 ver.hidden = false;

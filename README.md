@@ -1,8 +1,8 @@
 # Home Stack Dashboard
 
-[![Release](https://img.shields.io/github/v/release/Toa1984/ili-public?display_name=tag&sort=semver)](https://github.com/Toa1984/ili-public/releases)
-[![Release images](https://github.com/Toa1984/ili-public/actions/workflows/release.yml/badge.svg)](https://github.com/Toa1984/ili-public/actions/workflows/release.yml)
-[![ghcr.io](https://img.shields.io/badge/ghcr.io-toa1984%2Fili-blue?logo=docker)](https://github.com/Toa1984/ili-public/pkgs/container/ili)
+[![Release](https://img.shields.io/github/v/release/intelligent-life-interface/ili?display_name=tag&sort=semver)](https://github.com/intelligent-life-interface/ili/releases)
+[![Release images](https://github.com/intelligent-life-interface/ili/actions/workflows/release.yml/badge.svg)](https://github.com/intelligent-life-interface/ili/actions/workflows/release.yml)
+[![ghcr.io](https://img.shields.io/badge/ghcr.io-toa1984%2Fili-blue?logo=docker)](https://github.com/intelligent-life-interface/ili/pkgs/container/ili)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-toa1984%2Fili-blue?logo=docker)](https://hub.docker.com/r/toa1984/ili)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-green)](LICENSE)
 
@@ -16,8 +16,8 @@ Ein persönliches Homelab-Dashboard mit Multi-Board Kanban, KI-Chat, Projekt-Man
 > als Fork und Pull Request, nicht als Branch in diesem Repo.
 
 > **Du willst ili nur installieren?** → **[QUICKSTART.md](QUICKSTART.md)** —
-> entweder fertige Images von `ghcr.io/toa1984/ili{,-web,-terminal}` ziehen
-> (`docker run --rm --pull always -v "$PWD":/out ghcr.io/toa1984/ili init && docker compose up -d`,
+> entweder fertige Images von `ghcr.io/intelligent-life-interface/ili{,-web,-terminal}` ziehen
+> (`docker run --rm --pull always -v "$PWD":/out ghcr.io/intelligent-life-interface/ili init && docker compose up -d`,
 > kein Clone nötig — das Image liefert seine Compose-Dateien selbst) oder
 > `git clone` + `docker compose up -d --build`. Dieselben Images gibt es auch auf
 > Docker Hub als `toa1984/ili{,-web,-terminal}`. In der `.env` danach Claude-Zugang

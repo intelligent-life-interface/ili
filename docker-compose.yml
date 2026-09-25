@@ -4,7 +4,7 @@
 #
 # Zwei Wege, dieselbe Datei:
 #   Registry (kein Clone noetig):  docker compose pull && docker compose up -d
-#       Images: ghcr.io/toa1984/ili{,-web}:latest — Version pinnen
+#       Images: ghcr.io/intelligent-life-interface/ili{,-web}:latest — Version pinnen
 #       mit ILI_VERSION=0.1.0 in .env. (Solange das Repo privat ist, vorher
 #       `docker login ghcr.io` mit einem read:packages-Token.)
 #   Aus dem Quelltext:             docker compose up -d --build
@@ -33,7 +33,7 @@ services:
       args:
         ILI_COMMIT: ${ILI_COMMIT:-unknown}
         ILI_BUILD_DATE: ${ILI_BUILD_DATE:-unknown}
-    image: ghcr.io/toa1984/ili:${ILI_VERSION:-latest}
+    image: ghcr.io/intelligent-life-interface/ili:${ILI_VERSION:-latest}
     container_name: ili-api
     restart: unless-stopped
     # Kein veroeffentlichter Port: das Frontend erreicht die API unter dem
@@ -92,7 +92,7 @@ services:
     build:
       context: .
       dockerfile: Containerfile.web
-    image: ghcr.io/toa1984/ili-web:${ILI_VERSION:-latest}
+    image: ghcr.io/intelligent-life-interface/ili-web:${ILI_VERSION:-latest}
     container_name: ili-web
     restart: unless-stopped
     depends_on:

@@ -32,7 +32,7 @@ def get_updates():
       "current_version": "0.1.0",
       "channel": "stable",
       "available_version": "0.1.1",
-      "available_url": "https://github.com/Toa1984/ili-public/releases/tag/v0.1.1",
+      "available_url": "https://github.com/intelligent-life-interface/ili/releases/tag/v0.1.1",
       "update_available": true,
       "is_prerelease": false,
       "checked_at": "2026-08-23T12:34:56Z"

@@ -73,6 +73,33 @@ if [[ -n "$SLUG" ]]; then
 fi
 log "working directory: ${DIR}"
 
+# A project folder is a Git repo from day one, otherwise nothing an AI session
+# does in there is ever versioned (F-19). Runs on every connection, not just the
+# mkdir above: the api container creates the folder itself before anyone opens a
+# terminal, so ".git missing" is the real signal, not "folder missing". Restricted
+# to the real per-board path ($DIR == $PROJECTS_DIR/$SLUG), not just "$DIR exists":
+# the mkdir fallback above can leave DIR == PROJECTS_DIR while SLUG is still set (mkdir
+# failed) — git-initing PROJECTS_DIR itself would turn it into one repo that silently
+# absorbs every neighbouring project without its own .git. Idempotent and best-effort
+# — a git failure must never break the terminal connection.
+if [[ -n "$SLUG" && "$DIR" == "${PROJECTS_DIR}/${SLUG}" && ! -d "$DIR/.git" ]] \
+        && command -v git >/dev/null 2>&1; then
+    log "initializing git repo in ${DIR}"
+    if git -C "$DIR" init -q --initial-branch=main 2>/dev/null; then
+        if ! git -C "$DIR" config user.name >/dev/null 2>&1; then
+            # Neutral placeholder, not a real identity: this folder can be created in
+            # any third-party installation, not just here (F-19).
+            git -C "$DIR" config user.name "ili" \
+                || log "WARN: could not set placeholder git identity in ${DIR} (ignored)"
+            git -C "$DIR" config user.email "ili@localhost" \
+                || log "WARN: could not set placeholder git identity in ${DIR} (ignored)"
+            log "no git identity found anywhere — set a local placeholder (ili/ili@localhost)"
+        fi
+    else
+        log "WARN: git init failed in ${DIR} (ignored)"
+    fi
+fi
+
 SESSION="${SESSION_PREFIX}-${SLUG:-home}"
 log "instance ${INSTANCE} -> session '${SESSION}' (claude: ${RUN_CLAUDE})"
 

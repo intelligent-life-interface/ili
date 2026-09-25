@@ -132,7 +132,9 @@ inside the terminal. It only lasts until the container is recreated.
 ## Where your code lives
 
 Each board gets a working directory: `/projects/<board-id>`, created on first
-open. That is the convention **project = board**.
+open. That is the convention **project = board**. The folder is a Git repo from
+the moment it is created, so whatever a Claude session does in there is
+versioned — commit it like any other repo.
 
 By default `/projects` is the `./projects` folder next to `docker-compose.yml`.
 To work on code you already have:
@@ -250,7 +252,7 @@ stay unless you pass `--bind`/`--port`, only public keys are accepted, and nothi
 is started for you:
 
 ```bash
-docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup "$(cat ~/.ssh/id_ed25519.pub)"
+docker run --rm -v "$PWD":/out ghcr.io/intelligent-life-interface/ili ssh-setup "$(cat ~/.ssh/id_ed25519.pub)"
 docker compose up -d
 ```
 
@@ -285,7 +287,7 @@ ssh -p 2222 ili@127.0.0.1
 ```
 
 Registry install without a checkout? `docker run --rm -v "$PWD":/out
-ghcr.io/toa1984/ili init` writes `docker-compose.ssh.yml` along with the others.
+ghcr.io/intelligent-life-interface/ili init` writes `docker-compose.ssh.yml` along with the others.
 
 ### What this login is — read this before you open it up
 

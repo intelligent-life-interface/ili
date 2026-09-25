@@ -1,7 +1,7 @@
 """github_seed_service.py — Create GitHub issues for seed cards.
 
 When a new ili instance is set up, its seed (idea) cards should automatically
-create corresponding GitHub issues in Toa1984/ili-public so the crowd can see
+create corresponding GitHub issues in intelligent-life-interface/ili so the crowd can see
 what ideas are already available to work on.
 
 Interface

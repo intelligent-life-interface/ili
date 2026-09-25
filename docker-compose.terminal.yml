@@ -50,7 +50,7 @@ services:
     build:
       context: .
       dockerfile: deploy/Containerfile.terminal
-    image: ghcr.io/toa1984/ili-terminal:${ILI_VERSION:-latest}
+    image: ghcr.io/intelligent-life-interface/ili-terminal:${ILI_VERSION:-latest}
     container_name: ili-terminal
     restart: unless-stopped
     # Resource limits (measured 09.09.2026, see RESOURCE_LIMITS.md in the
@@ -100,7 +100,7 @@ services:
   # shares the Claude login (terminal-home). Pause: touch state/automat.disabled in the
   # automat-state volume.
   automat:
-    image: ghcr.io/toa1984/ili-terminal:${ILI_VERSION:-latest}
+    image: ghcr.io/intelligent-life-interface/ili-terminal:${ILI_VERSION:-latest}
     container_name: ili-automat
     restart: unless-stopped
     # Credentials (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY) and tuning knobs come

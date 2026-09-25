@@ -8,14 +8,14 @@ ili implements a **crowd-development workflow** where contributions flow through
 
 Every ili instance comes with a set of **seed idea cards** (in the `Ideen` / Ideas board). When you set up ili for the first time and authenticate with GitHub, these cards automatically create corresponding **GitHub Issues** in the central repository.
 
-Visit the [repository issues](https://github.com/Toa1984/ili-public/issues?labels=idea%2Cseed) to see what the community is already thinking about.
+Visit the [repository issues](https://github.com/intelligent-life-interface/ili/issues?labels=idea%2Cseed) to see what the community is already thinking about.
 
 ### Stage 2: Take a Card, Code Locally
 
 1. **Pick an issue** from the repository that interests you.
 2. **Create your own ili instance** (fork the repository or clone it):
    ```bash
-   docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili init
+   docker run --rm -v "$PWD":/out ghcr.io/intelligent-life-interface/ili init
    docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
    ```
    (See [QUICKSTART.md](QUICKSTART.md) for full setup.)
@@ -37,7 +37,7 @@ Once you have a working solution:
    git commit -m "Add: your feature"
    ```
 
-2. **Push to your fork** and **create a Pull Request** to `Toa1984/ili-public`.
+2. **Push to your fork** and **create a Pull Request** to `intelligent-life-interface/ili`.
    - Reference the issue: `Closes #42` in the PR description
    - Keep the PR focused (one feature per PR)
    - Ensure tests pass and no secrets are leaked (run `privacy-scanner` if unsure)
@@ -63,7 +63,7 @@ When you create a new ili instance and log in with GitHub:
 
 Example:
 - Your ili instance has `card_idea_1` ("Build a log scanner")
-- It creates `https://github.com/Toa1984/ili-public/issues/42`
+- It creates `https://github.com/intelligent-life-interface/ili/issues/42`
 - You code in your local ili, push a PR for that issue
 - Others install the next version of ili and get your code
 
@@ -106,6 +106,6 @@ See [API.md](docs/API.md) and [PROJECT-TERMINAL.md](docs/PROJECT-TERMINAL.md) fo
 
 - **Installation issues?** See [QUICKSTART.md](QUICKSTART.md)
 - **How does ili work?** Read [METHODIK.md](docs/METHODIK.md) (in German)
-- **Bug reports?** [Create an issue](https://github.com/Toa1984/ili-public/issues/new)
+- **Bug reports?** [Create an issue](https://github.com/intelligent-life-interface/ili/issues/new)
 
 Happy coding! 🚀

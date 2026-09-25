@@ -26,10 +26,10 @@ about:
       - update_card: Update card fields
       - add_note: Append note to card
 
-  icon: https://raw.githubusercontent.com/Toa1984/ili-public/main/html/img/favicon-64.png
+  icon: https://raw.githubusercontent.com/intelligent-life-interface/ili/main/html/img/favicon-64.png
 
 source:
-  project: https://github.com/Toa1984/ili-public
+  project: https://github.com/intelligent-life-interface/ili
   branch: main
   commit: "70af6811801bef7c1add20b7718dff29dc1fb24d"  # Updated to current HEAD (2026-08-27)
 

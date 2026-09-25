@@ -7,9 +7,9 @@ A release is a git tag; GitHub Actions builds and pushes the images.
 
 | Image | Built from | Role |
 |---|---|---|
-| `ghcr.io/toa1984/ili` | `Containerfile` | FastAPI backend (`api`) |
-| `ghcr.io/toa1984/ili-web` | `Containerfile.web` | nginx frontend (`web`) |
-| `ghcr.io/toa1984/ili-terminal` | `deploy/Containerfile.terminal` | optional browser terminal |
+| `ghcr.io/intelligent-life-interface/ili` | `Containerfile` | FastAPI backend (`api`) |
+| `ghcr.io/intelligent-life-interface/ili-web` | `Containerfile.web` | nginx frontend (`web`) |
+| `ghcr.io/intelligent-life-interface/ili-terminal` | `deploy/Containerfile.terminal` | optional browser terminal |
 
 **Each repo builds only its own images — never cross-project** (decision
 2026-08-24). The workflow derives the image namespace from the repository it
@@ -17,12 +17,12 @@ runs in:
 
 | Repository | Images | Registries |
 |---|---|---|
-| `Toa1984/ili-public` | `ghcr.io/toa1984/ili{,-web,-terminal}` | ghcr + Docker Hub mirror `docker.io/toa1984/ili{,-web,-terminal}` |
+| `intelligent-life-interface/ili` | `ghcr.io/intelligent-life-interface/ili{,-web,-terminal}` | ghcr + Docker Hub mirror `docker.io/toa1984/ili{,-web,-terminal}` |
 | `Toa1984/ili-coding` (private workshop) | `ghcr.io/toa1984/ili-coding{,-web,-terminal}` | ghcr only (private packages), no Docker Hub |
-| `Toa1984/ili-public` (MCP, `release-mcp.yml`, tag `mcp-v*`) | `ghcr.io/toa1984/ili-mcp` | ghcr + `docker mcp` catalog push |
+| `intelligent-life-interface/ili` (MCP, `release-mcp.yml`, tag `mcp-v*`) | `ghcr.io/intelligent-life-interface/ili-mcp` | ghcr + `docker mcp` catalog push |
 | `Toa1984/ili-coding` (MCP) | `ghcr.io/toa1984/ili-coding-mcp` | ghcr only (private), no catalog push |
 
-The published `ili*` ghcr packages are linked to `Toa1984/ili-public`; only
+The published `ili*` ghcr packages are linked to `intelligent-life-interface/ili`; only
 runs from that repo can write them. The Docker Hub mirror exists for
 discoverability (only Docker Hub is indexed by `docker search`, ghcr is not)
 and needs the repo secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`
@@ -47,7 +47,7 @@ Lessons from 0.1.8–0.1.10 — every item here once cost a release or a user.
       ```bash
       docker run --rm -v trivy-cache:/root/.cache/trivy docker.io/aquasec/trivy:latest \
         image --ignore-unfixed --severity CRITICAL,HIGH \
-        --skip-dirs /usr/local/lib/node_modules/npm ghcr.io/toa1984/ili:edge
+        --skip-dirs /usr/local/lib/node_modules/npm ghcr.io/intelligent-life-interface/ili:edge
       ```
       Fixable CRITICAL/HIGH must be 0 for all three images. Unfixed Debian CVEs
       (perl, curl, openssl, ...) are present in every current base image — note
@@ -67,7 +67,7 @@ Lessons from 0.1.8–0.1.10 — every item here once cost a release or a user.
       (`docker-entrypoint.sh`), QUICKSTART.md, README, Docker Hub description
       (`hub.docker.com/r/toa1984/ili`). Docker Hub is edited by hand — do not
       forget it.
-- [ ] **Workflow runs in `Toa1984/ili-public`** (see above) — secrets
+- [ ] **Workflow runs in `intelligent-life-interface/ili`** (see above) — secrets
       `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` present there.
 - [ ] **Mirror check:** before writing a file into `ili-public` compare its blob
       SHA with the workshop state it was copied from (`git rev-parse HEAD:<file>`

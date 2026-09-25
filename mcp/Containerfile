@@ -3,7 +3,7 @@ FROM docker.io/library/python:3.11-slim
 LABEL org.opencontainers.image.title="ili Kanban MCP Server"
 LABEL org.opencontainers.image.description="MCP Server for ili Dashboard Kanban boards"
 LABEL org.opencontainers.image.licenses="MIT"
-LABEL org.opencontainers.image.source="https://github.com/Toa1984/ili-public"
+LABEL org.opencontainers.image.source="https://github.com/intelligent-life-interface/ili"
 
 # Security: pull the base image's pending Debian fixes (e.g. openssl) and drop
 # pip/setuptools/wheel — the server has no dependencies, and their vendored

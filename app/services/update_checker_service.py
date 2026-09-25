@@ -1,6 +1,6 @@
 """GitHub-based update checker for ili.
 
-Checks for new releases on GitHub (Toa1984/ili-public), compares with
+Checks for new releases on GitHub (intelligent-life-interface/ili), compares with
 current version, and caches the result. Respects ILI_UPDATE_CHANNEL (stable/beta)
 and ILI_UPDATE_CHECK environment variables.
 
@@ -19,7 +19,7 @@ from app.services.version_service import read_version
 
 log = logging.getLogger("dashboard.services.update_checker")
 
-_GITHUB_REPO = "Toa1984/ili-public"
+_GITHUB_REPO = "intelligent-life-interface/ili"
 _GITHUB_RELEASES_API = f"https://api.github.com/repos/{_GITHUB_REPO}/releases"
 _CACHE_DURATION = timedelta(hours=1)
 _HTTP_TIMEOUT = 10

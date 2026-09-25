@@ -29,7 +29,7 @@ This goes through `web` to `api` — both must be up.
 ## 3. Image labels (works even when containers are stopped)
 
 Every image published to ghcr.io / Docker Hub carries its version as an OCI label.
-Ask the **container**, not the tag — `ghcr.io/toa1984/ili:latest` on your disk may
+Ask the **container**, not the tag — `ghcr.io/intelligent-life-interface/ili:latest` on your disk may
 be newer than what is actually running:
 
 ```bash

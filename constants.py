@@ -216,7 +216,7 @@ log = logging.getLogger("trigger-server")
 # Public identifiers only — the instance never holds a shared secret. Users sign
 # in with their own GitHub account via the GitHub App device flow; the resulting
 # user token lives in GITHUB_DATA_DIR (0600), never in user_settings.json.
-GITHUB_ISSUES_REPO       = os.environ.get("ILI_GITHUB_ISSUES_REPO", "Toa1984/ili-public")
+GITHUB_ISSUES_REPO       = os.environ.get("ILI_GITHUB_ISSUES_REPO", "intelligent-life-interface/ili")
 GITHUB_APP_CLIENT_ID     = os.environ.get("ILI_GITHUB_APP_CLIENT_ID", "")
 GITHUB_DATA_DIR          = _DASH / "data" / "github"
 GITHUB_AUTH_FILE         = GITHUB_DATA_DIR / "github_auth.json"

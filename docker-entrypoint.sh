@@ -23,8 +23,8 @@
 #                          .env (deploy/ssh-setup.sh, idempotent)
 #        help              this list
 #      Works the same with Docker and Podman:
-#        docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
-#        podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili init
+#        docker run --rm -v "$PWD":/out   ghcr.io/intelligent-life-interface/ili init
+#        podman run --rm -v "$PWD":/out:Z ghcr.io/intelligent-life-interface/ili init
 #
 #   2. Anything else (the CMD = uvicorn): seed the starter boards, then exec.
 #      A fresh installation would otherwise show an empty dashboard. The boards
@@ -54,8 +54,8 @@ ili image — usage:
                     deploy/gateway/nginx.conf,
                     deploy/gateway/10-generate-streams.sh and .env into /out
                     (existing .env is kept). Mount your folder:
-                      docker run --rm -v "$PWD":/out   ghcr.io/toa1984/ili init
-                      podman run --rm -v "$PWD":/out:Z ghcr.io/toa1984/ili init
+                      docker run --rm -v "$PWD":/out   ghcr.io/intelligent-life-interface/ili init
+                      podman run --rm -v "$PWD":/out:Z ghcr.io/intelligent-life-interface/ili init
                     then edit .env — CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY, and
                     TERMINAL_PASSWORD for the browser terminal (empty = generated at start,
                     read it with: docker compose logs web | grep ili-setup) — and:
@@ -72,7 +72,7 @@ ili image — usage:
                     argument or on stdin, writes ssh/authorized_keys and .env into /out.
                     Details: ssh-setup --help
   help              this text
-Docs, source & issues: https://github.com/Toa1984/ili-public  (QUICKSTART.md)
+Docs, source & issues: https://github.com/intelligent-life-interface/ili  (QUICKSTART.md)
 USAGE
 }
 
@@ -122,7 +122,7 @@ do_init() {
     log "  docker compose logs web | grep ili-setup) — then:"
     log "  docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   →  http://localhost:8080"
     log "  (podman: podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d)"
-    log "docs & issues: https://github.com/Toa1984/ili-public"
+    log "docs & issues: https://github.com/intelligent-life-interface/ili"
 }
 
 case "${1:-}" in

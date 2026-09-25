@@ -40,6 +40,24 @@ only from `PROJECTS_HOST_DIR` in `.env`, which meant editing a file and
 restarting. The engine already knows the answer, so when the variable is empty
 ili now reads the source of its own `/projects` mount via `docker inspect`.
 
+### New project folders are Git repos from the start
+
+A newly created project folder under `/projects/<board>` was plain files —
+nothing versioned the work an AI session did in there. Both places that
+actually write to a project folder now call `git init` on it (idempotent,
+`git` missing or the call failing is only logged, never breaks the terminal
+connection or the automat run): the board terminal (`ili-term.sh`, on every
+connection, so it also covers folders the api container already created
+before anyone opened a terminal) and the kanban automat (`worker.py`, so a
+card worked without a human ever opening that board's terminal is covered
+too). The api container itself was deliberately left without `git` — it has
+no need for one and adding it would pull ~50 MB of git+perl into an image
+that just dropped `pip` to shrink its own scanner surface. If no `user.name`
+is configured anywhere, ili sets one locally on the repo (`ili`/`ili@localhost`
+— a neutral placeholder, since this runs in every third-party installation, not
+just here) so the first `git commit` in a fresh install does not fail with
+"Please tell me who you are". Existing project folders are left untouched.
+
 ### Upgrading
 
 `docker compose pull && docker compose up -d`. The terminal changes take effect

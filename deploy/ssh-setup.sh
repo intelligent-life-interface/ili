@@ -4,8 +4,8 @@
 # Runs inside the api image (docker-entrypoint.sh: `ssh-setup`), with the
 # installation folder mounted at /out — the same way `init` works:
 #
-#   docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup "$(cat ~/.ssh/id_ed25519.pub)"
-#   cat ~/.ssh/id_ed25519.pub | docker run --rm -i -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup
+#   docker run --rm -v "$PWD":/out ghcr.io/intelligent-life-interface/ili ssh-setup "$(cat ~/.ssh/id_ed25519.pub)"
+#   cat ~/.ssh/id_ed25519.pub | docker run --rm -i -v "$PWD":/out ghcr.io/intelligent-life-interface/ili ssh-setup
 #
 # What it does (idempotent — running it twice changes nothing the second time):
 #   1. checks the key(s): PUBLIC keys only, a private key is refused outright
@@ -43,8 +43,8 @@ usage() {
     cat >&2 <<'USAGE'
 ssh-setup — set up SSH access to the project terminal (key login only)
 
-  docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup [options] "<public key>"
-  cat ~/.ssh/id_ed25519.pub | docker run --rm -i -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup [options]
+  docker run --rm -v "$PWD":/out ghcr.io/intelligent-life-interface/ili ssh-setup [options] "<public key>"
+  cat ~/.ssh/id_ed25519.pub | docker run --rm -i -v "$PWD":/out ghcr.io/intelligent-life-interface/ili ssh-setup [options]
   (Podman: -v "$PWD":/out:Z)   (PowerShell: -v "${PWD}:/out", key via Get-Content | ... -i)
 
 The key is the PUBLIC one (~/.ssh/id_ed25519.pub). No key pair yet? ssh-keygen -t ed25519

@@ -113,22 +113,22 @@ done
 
 ```bash
 # GitHub CLI Check:
-gh api repos/Toa1984/ili-public --jq '.private'
+gh api repos/intelligent-life-interface/ili --jq '.private'
 # → true (privat)
 
 # Packages auf ghcr.io:
-# 1. ghcr.io/toa1984/ili
-# 2. ghcr.io/toa1984/ili-web
-# 3. ghcr.io/toa1984/ili-terminal
+# 1. ghcr.io/intelligent-life-interface/ili
+# 2. ghcr.io/intelligent-life-interface/ili-web
+# 3. ghcr.io/intelligent-life-interface/ili-terminal
 # Alle MÜSSEN privat sein (erben von Repo-Sichtbarkeit oder explizit Paketebene)
 ```
 
 **Freischaltung (wenn Manager entscheidet):**
 1. Repo: Einstellungen → Visibility → Public
 2. Packages (jeweils einzeln):
-   - ghcr.io/toa1984/ili → Package settings → Public
-   - ghcr.io/toa1984/ili-web → Package settings → Public
-   - ghcr.io/toa1984/ili-terminal → Package settings → Public
+   - ghcr.io/intelligent-life-interface/ili → Package settings → Public
+   - ghcr.io/intelligent-life-interface/ili-web → Package settings → Public
+   - ghcr.io/intelligent-life-interface/ili-terminal → Package settings → Public
 
 **NIE** via Automation; immer manuell + bewusster Entscheid pro Schalter (6 Total).
 
@@ -192,7 +192,7 @@ echo "$after == $((before+1)) ?"  # → MUSS genau +1 sein, nicht 1
 git branch -r                      # → MUSS nur origin/main sein
 
 # GitHub Package-Visibility prüfen:
-gh api repos/Toa1984/ili-public --jq '.private'  # → true
+gh api repos/intelligent-life-interface/ili --jq '.private'  # → true
 
 # (Manager entscheidet) → Packages + Repo public schalten (manuell)
 ```

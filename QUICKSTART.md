@@ -83,8 +83,8 @@ build takes a minute; subsequent starts are instant.
 ### Alternative: install from the registry (no clone, no build)
 
 Prebuilt images for `linux/amd64` and `linux/arm64` (Apple Silicon, Raspberry Pi)
-live on GitHub Container Registry — `ghcr.io/toa1984/ili` (api), `ghcr.io/toa1984/ili-web`
-(web), `ghcr.io/toa1984/ili-terminal` (optional terminal) — and as a mirror on Docker Hub
+live on GitHub Container Registry — `ghcr.io/intelligent-life-interface/ili` (api), `ghcr.io/intelligent-life-interface/ili-web`
+(web), `ghcr.io/intelligent-life-interface/ili-terminal` (optional terminal) — and as a mirror on Docker Hub
 (`toa1984/ili`, `toa1984/ili-web`, `toa1984/ili-terminal`). Both are public, no login
 needed; the commands below use ghcr.io, swap in `toa1984/ili` if you prefer Docker Hub.
 
@@ -94,7 +94,7 @@ The api image carries its own compose files — let it write them (`init`), then
 
 ```bash
 mkdir -p ~/ili && cd ~/ili
-docker run --rm --pull always -v "$PWD":/out ghcr.io/toa1984/ili init
+docker run --rm --pull always -v "$PWD":/out ghcr.io/intelligent-life-interface/ili init
 printf 'TERMINAL_USER=me\nTERMINAL_PASSWORD=change-me\n' >> .env      # optional, see step 4
 docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   # no --build
 ```
@@ -103,7 +103,7 @@ docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   # no
 
 ```powershell
 New-Item -ItemType Directory -Force ~/ili | Out-Null; cd ~/ili
-docker run --rm --pull always -v "${PWD}:/out" ghcr.io/toa1984/ili init
+docker run --rm --pull always -v "${PWD}:/out" ghcr.io/intelligent-life-interface/ili init
 Add-Content -Path .env -Value "TERMINAL_USER=me`nTERMINAL_PASSWORD=change-me" -Encoding utf8   # optional
 docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
 ```
@@ -117,7 +117,7 @@ Windows PowerShell 5 and Compose then cannot read the file.
 
 ```bash
 mkdir -p ~/ili && cd ~/ili
-podman run --rm --pull always -v "$PWD":/out:Z ghcr.io/toa1984/ili init
+podman run --rm --pull always -v "$PWD":/out:Z ghcr.io/intelligent-life-interface/ili init
 podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d
 ```
 
@@ -281,14 +281,14 @@ creates `ssh/authorized_keys`, extends `COMPOSE_FILE` in `.env` and sets
 `SSH_BIND`/`SSH_PORT`, and can safely be run twice):
 
 ```bash
-docker run --rm -v "$PWD":/out ghcr.io/toa1984/ili ssh-setup "$(cat ~/.ssh/id_ed25519.pub)"
+docker run --rm -v "$PWD":/out ghcr.io/intelligent-life-interface/ili ssh-setup "$(cat ~/.ssh/id_ed25519.pub)"
 docker compose up -d
 ssh -p 2222 ili@127.0.0.1
 ```
 
 ```powershell
 # Windows PowerShell — the script cleans the BOM/UTF-16 that PowerShell adds
-Get-Content $HOME\.ssh\id_ed25519.pub | docker run --rm -i -v "${PWD}:/out" ghcr.io/toa1984/ili ssh-setup
+Get-Content $HOME\.ssh\id_ed25519.pub | docker run --rm -i -v "${PWD}:/out" ghcr.io/intelligent-life-interface/ili ssh-setup
 docker compose up -d
 ```
 

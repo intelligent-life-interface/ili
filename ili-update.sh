@@ -80,7 +80,7 @@ get_latest_tag() {
     # stable: latest release (excludes pre-releases)
     # beta:   any latest release (includes pre-releases)
     local channel="$1"
-    local url="https://api.github.com/repos/Toa1984/ili-public/releases"
+    local url="https://api.github.com/repos/intelligent-life-interface/ili/releases"
     local tag
 
     log "Checking GitHub for latest $channel release..."

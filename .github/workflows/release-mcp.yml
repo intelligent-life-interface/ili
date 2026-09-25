@@ -1,5 +1,5 @@
 # release-mcp.yml — builds and pushes the ili Kanban MCP Server to ghcr.io
-# Also registers a custom `docker mcp` catalog (ghcr.io/toa1984/mcp-catalog) via the
+# Also registers a custom `docker mcp` catalog (ghcr.io/intelligent-life-interface/mcp-catalog) via the
 # docker/mcp-gateway CLI plugin — installed at runtime since it's not part of the
 # ubuntu-latest image (plain Docker Engine, no Docker Desktop). CLI is pre-release
 # (no stable 1.0 yet), so this step is continue-on-error and doesn't block the image
@@ -11,7 +11,7 @@
 # The same file lives in BOTH repos (the workshop→public sync copies it 1:1), so the
 # image namespace is derived from the repository the workflow runs in — each repo
 # builds ONLY its own images, never cross-project (decision 2026-08-24):
-#   Toa1984/ili-public -> ghcr.io/toa1984/ili-mcp        (+ docker mcp catalog push)
+#   intelligent-life-interface/ili -> ghcr.io/intelligent-life-interface/ili-mcp        (+ docker mcp catalog push)
 #   any other repo     -> ghcr.io/toa1984/<repo-name>-mcp (private, no catalog push)
 #
 # Tags per image: X.Y.Z, X.Y, latest (tag runs) or edge (manual runs).
@@ -33,7 +33,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   # ili-public keeps the published name "ili-mcp"; every other repo uses "<repo-name>-mcp".
-  IMAGE_BASE: ghcr.io/toa1984/${{ github.repository == 'Toa1984/ili-public' && 'ili-mcp' || format('{0}-mcp', github.event.repository.name) }}
+  IMAGE_BASE: ${{ github.repository == 'intelligent-life-interface/ili' && 'ghcr.io/intelligent-life-interface/ili-mcp' || format('ghcr.io/toa1984/{0}-mcp', github.event.repository.name) }}
 
 jobs:
   build:
@@ -109,7 +109,7 @@ jobs:
         # docker/mcp-gateway has no stable 1.0 release yet (all tags are prereleases);
         # don't let install/CLI-syntax drift block the image build+push+scan above.
         # Catalog registration is a publish-only concern -> ili-public only.
-        if: github.repository == 'Toa1984/ili-public'
+        if: github.repository == 'intelligent-life-interface/ili'
         continue-on-error: true
         env:
           MCP_GATEWAY_VERSION: v0.43.3
@@ -123,10 +123,10 @@ jobs:
           docker mcp feature enable profiles
 
       - name: Register with own docker mcp catalog (ghcr.io)
-        if: github.repository == 'Toa1984/ili-public'
+        if: github.repository == 'intelligent-life-interface/ili'
         continue-on-error: true
         env:
-          CATALOG_REF: ghcr.io/toa1984/mcp-catalog:latest
+          CATALOG_REF: ghcr.io/intelligent-life-interface/mcp-catalog:latest
         run: |
           echo "Building catalog entry from mcp/server.yaml"
           docker mcp catalog create "${CATALOG_REF}" \
