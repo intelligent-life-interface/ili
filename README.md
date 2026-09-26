@@ -1,3 +1,8 @@
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="html/img/ili-logo.svg">
+  <img src="html/img/ili-logo-light.svg" width="160" alt="ili">
+</picture></p>
+
 # Home Stack Dashboard
 
 [![Release](https://img.shields.io/github/v/release/intelligent-life-interface/ili?display_name=tag&sort=semver)](https://github.com/intelligent-life-interface/ili/releases)
