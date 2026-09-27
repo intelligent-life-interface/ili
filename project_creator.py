@@ -591,7 +591,7 @@ def _read_tags_src_hash(project_path: Path) -> str:
     return m.group(1) if m else ""
 
 
-def _save_tags_md(project_path: Path, name: str, tags: list[str], source: str = "ollama",
+def _save_tags_md(project_path: Path, name: str, tags: list[str], source: str = "unbekannt",
                   src_hash: str | None = None) -> None:
     """Schreibt TAGS.md in den Projektordner. Ein bereits vorhandener "## Gepinnte Tags"- oder
     "## Individuelle Begriffe"-Abschnitt (siehe pin_tag / set_individual_terms) bleibt beim

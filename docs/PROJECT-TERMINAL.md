@@ -223,17 +223,20 @@ postgresql://ili:<POSTGRES_PASSWORD>@db:5432/ili
 container**, it lives in its own network namespace and the name `db` resolves
 nowhere there. Two options, same trade-off as any other cross-project setup:
 
-- Join it to this stack's network. Compose names the default network
-  `<project-directory>_default` (e.g. `ili_default` for a checkout in
-  `~/ili`) — add it as `external: true` under the BI tool's `networks:` and
-  point the tool's service at it. It then reaches `db` by name as above, no
+- Join it to this stack's network. The stack sets `name: ili`, so Compose
+  names the default network `ili_default` (check with `docker network ls`) —
+  add it as `external: true` under the BI tool's `networks:` and point the
+  tool's service at it. It then reaches `db` by name as above, no
   port has to be published.
-- Or publish the port (uncomment the `ports:` block on the `db` service,
-  above) and point the BI tool at the Docker/Podman **host's** address
+- Or publish the port (uncomment the `ports:` block on the `db` service in
+  `docker-compose.yml`) and point the BI tool at the Docker/Podman **host's** address
   instead of `db` — from inside another container that is usually
   `host.docker.internal` or an equivalent gateway address, not `127.0.0.1`
   (`127.0.0.1` only works from the host machine itself, or from a BI tool
   that is not containerized). Check what your container runtime provides.
+  Note the block binds to `127.0.0.1` by default, which another container
+  cannot reach through the host address — for that route change the binding
+  (e.g. to the host's LAN address) and keep in mind who else can then connect.
 
 Either way: the port stays closed by default on purpose (see above) — opening
 it or bridging networks is a decision you make, not something the stack does

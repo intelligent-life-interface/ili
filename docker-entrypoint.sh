@@ -115,11 +115,28 @@ do_init() {
         log ".env exists — keeping it (compare with: ... env > .env.example)"
     else
         cp "$DIST_DIR/.env.example" "$OUT_DIR/.env"
-        log "wrote .env (from .env.example — edit ILI_PORT, passwords etc. as needed)"
+        # Terminal password: generate it HERE, into the file the user owns and
+        # keeps, instead of letting the web container roll a new one on every
+        # start. The secret guards the terminal, but nginx-setup.sh generated it
+        # in the web container, which has no volume — so it changed on every web
+        # restart and survived only in a log line. .env survives `init` (an
+        # existing one is never touched) and is where the contract already says
+        # the password belongs. The generator in nginx-setup.sh stays as the
+        # fallback it was meant to be.
+        TP="$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-16)"
+        if [ -n "$TP" ] && sed -i "s|^# TERMINAL_PASSWORD=$|TERMINAL_PASSWORD=$TP|" "$OUT_DIR/.env" \
+           && grep -q "^TERMINAL_PASSWORD=..*" "$OUT_DIR/.env"; then
+            log "wrote .env (from .env.example) — a terminal password was generated into it"
+        else
+            # Never fatal: without it the old behaviour applies (web generates
+            # one at startup), so a changed .env.example only costs the comfort.
+            log "wrote .env (from .env.example — edit ILI_PORT, passwords etc. as needed)"
+            log "  NOTE: could not preset TERMINAL_PASSWORD — web will generate one at start"
+        fi
     fi
     log "done. Next: edit .env — CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY (required),"
-    log "  TERMINAL_PASSWORD for the browser terminal (empty = generated at start:"
-    log "  docker compose logs web | grep ili-setup) — then:"
+    log "  TERMINAL_PASSWORD for the browser terminal is already in .env (change it if you like;"
+    log "  empty means the web container generates one at start and logs it) — then:"
     log "  docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d   →  http://localhost:8080"
     log "  (podman: podman-compose -f docker-compose.yml -f docker-compose.terminal.yml up -d)"
     log "docs & issues: https://github.com/intelligent-life-interface/ili"
