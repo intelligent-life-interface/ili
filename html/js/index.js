@@ -19,6 +19,9 @@
     // Persistiert zentral im Manifest-Feld `eisenhower` (q1..q4 | ""), darum
     // synchron mit Priority Widget. Hier nur Darstellung + Setzen via PATCH.
     var eisOn = localStorage.getItem('idx_eisenhower') === '1';
+    // Bewusst NICHT aus localStorage gelesen (Revert 29.09.26, Review-Befund): archivierte
+    // Projekte sollen bei JEDEM Seitenaufruf standardmässig ausgeblendet sein, auch nach
+    // manuellem Reinschauen ins Archiv — persistenter Toggle-Zustand widerspräche genau dem.
     var showArchived = false;   // 🗄-Toggle: Archiv-Ansicht (zeigt NUR archivierte zum Aufräumen)
     // Arrange-Modus: Drag-and-Drop Reihenfolge der Projektkacheln (nur Kategorie-Ansicht)
     var arrangeMode = localStorage.getItem('idx_arrange') === '1';
@@ -239,7 +242,7 @@
         // Aktionen (Archivieren/Entarchivieren + Löschen) — stopPropagation im Handler, damit
         // ein Klick darauf NICHT das Projekt öffnet.
         var actions =
-            (p.archived
+            (isArchived(p)
                 ? '<button class="card-act" data-act="unarchive" title="Aus Archiv zurückholen">♻️</button>'
                 : '<button class="card-act" data-act="archive" title="Archivieren (aus Übersicht ausblenden)">🗄</button>') +
             '<button class="card-act card-act-del" data-act="delete" title="Projekt löschen">🗑</button>';
@@ -284,12 +287,20 @@
     function archiveProject(id, flag) {
         var p = (data.projects || []).find(function (x) { return x.id === id; });
         if (!p) return;
-        p.archived = flag;            // optimistisch sofort ausblenden/zeigen
+        var prevArchived = p.archived, prevStatus = p.status;
+        var patch = { archived: flag };
+        // Unarchiving a project whose lifecycle status is 'archiviert' must also clear
+        // that status — otherwise isArchived(p) still hides it after the ♻️ click.
+        if (!flag && p.status === 'archiviert') {
+            patch.status = 'pausiert';
+        }
+        p.archived = flag;
+        if (patch.status) p.status = patch.status;
         applyFilter();
         console.log(TAG, 'Archiv:', id, '→', flag);
-        window.API.patchBoard(id, { archived: flag }).catch(function (err) {
+        window.API.patchBoard(id, patch).catch(function (err) {
             console.error(TAG, 'Archiv-PATCH fehlgeschlagen, Rollback:', err);
-            p.archived = !flag; applyFilter();
+            p.archived = prevArchived; p.status = prevStatus; applyFilter();
             alert('Archivieren fehlgeschlagen: ' + err);
         });
     }
@@ -688,6 +699,12 @@
         return groups;
     }
 
+    // `archived` (bool, set by the 🗄 button) and `status === 'archiviert'` (lifecycle
+    // dropdown) are independent manifest fields; both count as archived for visibility.
+    function isArchived(p) {
+        return !!p.archived || p.status === 'archiviert';
+    }
+
     // ── Render ───────────────────────────────────────────────────
     function applyFilter() {
         if (!data) return;
@@ -703,7 +720,7 @@
             // Sie sind jetzt normal sichtbar und am ⏸️-Badge (.list-status) erkennbar;
             // genau dieses fehlende Erkennungsmerkmal war der ursprüngliche Grund fürs
             // Verstecken. Archiviert bleibt ausgeblendet (bewusstes „weg aus der Übersicht").
-            var hidden = !!p.archived;
+            var hidden = isArchived(p);
             if (showArchived) { if (!hidden) return false; }
             else if (hidden) { return false; }
             if (!search) return true;

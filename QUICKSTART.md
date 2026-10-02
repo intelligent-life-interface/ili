@@ -163,13 +163,9 @@ docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d --buil
 docker compose logs web | grep ili-setup   # prints the terminal password
 ```
 
-**Already had the stack running?** Then `web` still carries the configuration from
-its last start, where the terminal did not exist yet — the terminal route keeps
-answering 503. One extra command fixes it:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.terminal.yml restart web
-```
+**Already had the stack running?** `web` picks up the new `terminal` container on
+its own within a few seconds — no restart needed (details:
+[Troubleshooting](#project-terminal-projterm-returns-503)).
 
 Tired of typing both files? Remember the file list once, then plain `up`/`down`/
 `logs` commands include the terminal:
@@ -264,6 +260,21 @@ compose network.
 ### `/` shows raw JSON instead of the dashboard
 You started only the `api` container. Run `docker compose up -d` (both
 services), not `docker run` against the API image alone.
+
+### Project terminal (`/projterm/`) returns 503
+
+`web`'s reverse proxy re-resolves the terminal upstream on every request (a
+`resolver` directive + variable, not a static `proxy_pass`), so it self-heals
+within about 10 seconds of the `terminal` container existing — no restart of
+`web` needed, even if `web` was already running when you added the terminal
+overlay (fixed 27.09.2026; before that a restart was required). If it is still
+503 after that:
+
+- The terminal overlay was never started at all:
+  `docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d`
+- `web` itself has no route to any resolver (rare — check
+  `docker compose logs web | grep ili-setup` for a `WARN: no resolver` line).
+  Restarting `web` after fixing the DNS/network setup is required in that case.
 
 ### Reset Everything
 ```bash

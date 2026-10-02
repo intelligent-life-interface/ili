@@ -26,6 +26,7 @@ WORKDIR /app
 # System Dependencies — `upgrade` picks up the security fixes the base image
 # does not carry yet.
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+    git \
     curl \
     && rm -rf /var/lib/apt/lists/*
 

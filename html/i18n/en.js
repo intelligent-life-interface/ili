@@ -222,6 +222,7 @@ window.I18N = {
     "nav.more": "More",
     "nav.more.aria": "Additional menu items",
     "nav.neuesprojekt": "New Project",
+  "nav.githubimport": "GitHub import",
     "nav.ollamaqueue": "Ollama Queue",
     "nav.projekte": "Projects",
     "nav.quick": "Quick Start",

@@ -54,6 +54,7 @@ window.I18N = {
     "nav.cost": "Kosten",
     "nav.datenbanken": "Datenbanken",
     "nav.neuesprojekt": "Neues Projekt",
+  "nav.githubimport": "GitHub-Import",
     "nav.kiadvisor": "KI-Advisor",
     "nav.kisettings": "Settings",
     "nav.whitelist": "Whitelist",

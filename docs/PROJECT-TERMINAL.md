@@ -561,11 +561,11 @@ network. If you need direct access, put your own authentication in front of it.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `/projterm/` returns 503 | either the terminal service is not running, or `web` was started before it existed — the route is decided once, when `web` starts | start it: `docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d`, and if the stack was already running, add `restart web` |
+| `/projterm/` returns 503 | the terminal service is not running (or not reachable yet) | start it: `docker compose -f docker-compose.yml -f docker-compose.terminal.yml up -d` — since 27.09.2026 the route self-heals within ~10s once `terminal` exists, no `restart web` needed even if `web` was already running |
 | Board page shows "The project terminal needs a login" | browsers do not show the Basic-auth dialog inside an iframe | use the "Sign in in a new tab" button on that page, then "Reload terminal" |
-| Changed `TERMINAL_PASSWORD` has no effect | the route is written once, when the web container starts | `docker compose up -d web` (or `restart web`) |
+| Changed `TERMINAL_PASSWORD` has no effect | the htpasswd file is written once, when the web container starts | `docker compose up -d web` (or `restart web`) |
 | Terminal loads, no input accepted, browser console shows a failed WebSocket | cookie missing — the HTML route was not loaded first, or cookies are blocked for the site | reload `/projterm/` directly, then the board |
-| `web` container restarts in a loop, log says `host not found in upstream` | nginx resolves its upstreams once at startup and the other container was not registered yet | `deploy/nginx-setup.sh` waits for both (`API_WAIT`, `TERMINAL_WAIT` in seconds); on Podman check that `netavark`/`aardvark-dns` are installed, otherwise there is no container DNS at all |
+| `web` container restarts in a loop, log says `host not found in upstream` | rare: no DNS resolver found in `/etc/resolv.conf` at all, so nginx fell back to a static upstream that must resolve at startup | check `docker compose logs web \| grep -i resolver`; on Podman check that `netavark`/`aardvark-dns` are installed, otherwise there is no container DNS at all |
 | Dashboard empty, log says `api:8798 did not answer` | Podman without container DNS (Debian 12 default) | `sudo apt install netavark aardvark-dns`, then `docker compose down && docker compose up -d` |
 | Claude asks to sign in on every restart | the `terminal-home` volume was removed | keep the volume, or use `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_API_KEY` |
 | Terminal opens in the wrong folder | no board file for that id, so it fell back to a generic session | check `docker compose logs terminal` |

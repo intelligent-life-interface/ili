@@ -146,13 +146,14 @@ function decisionCard(d, i){
     const del = DEL_RE.test(o);
     return `<button class="btn opt${del?' del':''}" data-act="decide" data-i="${i}" data-choice="${esc(o)}">${del?'🗑️ ':''}${esc(o)}</button>`;
   }).join("");
+  const q = (d.question || d.title || d.description || "").trim();
   return `<div class="card decision">
     <div class="top">
       <span class="title">🟣 ${esc(d.board_name)}</span>
       <span class="badge kind">Automat</span>
       <span class="badge" style="margin-left:auto">${esc(d.column||"")}</span>
     </div>
-    <div class="question">${esc(d.question)}</div>
+    ${q ? `<div class="question">${esc(q)}</div>` : ""}
     ${d.description ? `<div class="ctx">${esc(d.description)}</div>` : ""}
     <div class="answer" style="flex-direction:column; align-items:stretch;">${opts}</div>
     <div class="answer">

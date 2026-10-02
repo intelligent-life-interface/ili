@@ -160,10 +160,12 @@ def _register_routers() -> None:
     from app.api import usage as usage_api
     from app.api import version as version_api
     from app.api import github_issues as github_issues_api
+    from app.api import github_import as github_import_api
     from app.api import seed as seed_api
     from app.api import db_logs as db_logs_api
 
     app.include_router(config_api.router)
+    app.include_router(github_import_api.router)
     app.include_router(logs_api.router)
     app.include_router(boards_api.router)
     app.include_router(kanban_api.router)

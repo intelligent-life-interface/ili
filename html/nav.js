@@ -44,6 +44,7 @@
         { id: 'nav-link-tokenguard', href: '/token-spikes.html', icon: '📈', key: 'nav.tokenguard', label: 'Token-Wächter' },
         { id: 'nav-link-datenbanken', href: '/datenbanken.html', icon: '🗄️', key: 'nav.datenbanken', label: 'Datenbanken' },
         { id: 'nav-link-neuesprojekt', href: '/projekt.html',  icon: '➕', key: 'nav.neuesprojekt', label: 'Neues Projekt' },
+        { id: 'nav-link-githubimport', href: '/github-import.html', icon: '🐙', key: 'nav.githubimport', label: 'GitHub-Import' },
         { id: 'nav-link-kiadvisor', href: '/ki-advisor.html',  icon: '🤖', key: 'nav.kiadvisor', label: 'KI-Advisor' },
         { id: 'nav-link-kisettings', href: '/ai-settings.html', icon: '⚙️', key: 'nav.kisettings', label: 'Settings' },
         { id: 'nav-link-whitelist', href: '/whitelist.html',   icon: '🔐', key: 'nav.whitelist', label: 'Whitelist' },

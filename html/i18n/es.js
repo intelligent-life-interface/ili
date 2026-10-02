@@ -221,6 +221,7 @@ window.I18N = {
     "nav.more": "Más",
     "nav.more.aria": "Elementos de menú adicionales",
     "nav.neuesprojekt": "Nuevo Proyecto",
+  "nav.githubimport": "Importar de GitHub",
     "nav.ollamaqueue": "Cola Ollama",
     "nav.projekte": "Proyectos",
     "nav.quick": "Inicio Rápido",

@@ -48,7 +48,20 @@ services:
       # Automat-State (Worker-Info, KI-Konfiguration) — wird mit dem Terminal-Service
       # gemountet, aber die api braucht Zugriff auf Worker-Status und ai_config.json
       - automat-state:/opt/ili-automat/state
+      # Projektordner: hier landen per GitHub-Import geklonte Repos, und hier
+      # schreibt die api die generierte CLAUDE.md. Bewusst im BASIS-Stack und
+      # nicht nur im Terminal-Overlay — der Import ist eine Kernfunktion und
+      # darf nicht vom optionalen Terminal abhaengen (Entscheid 29.09.2026).
+      # Das Terminal-Overlay mountet denselben Pfad fuer terminal/automat.
+      - ./projects:/projects:z
     environment:
+      # Wohin Projektordner geschrieben werden (siehe Volume oben).
+      PROJEKTE_DIR: /projects
+      # GitHub-Import (Repos suchen, auflisten, klonen): ein eigener Token des
+      # Nutzers. Der Device-Flow-Login daneben taugt dafuer nicht — seine
+      # GitHub-App hat absichtlich nur Issues-Rechte auf ein einziges Repo.
+      # Leer = die Import-Seite bleibt deaktiviert.
+      ILI_GITHUB_TOKEN: "${ILI_GITHUB_TOKEN:-}"
       # KI-Features: Anthropic API-Key (optional — ohne Key laufen Kanban-Grundfunktionen)
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
       # Lokales Ollama (optional)
